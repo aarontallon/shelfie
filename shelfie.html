@@ -264,6 +264,8 @@ a{color:inherit}
 .book-activity-tabs{display:flex;gap:8px;margin-bottom:14px}
 .book-activity-tab{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;border:1.5px solid var(--border);background:white;color:var(--ink2);cursor:pointer}
 .book-activity-tab.on{background:var(--ink);border-color:var(--ink);color:white}
+.retos-tab{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;padding:10px 18px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s}
+.retos-tab.on{color:var(--red);border-bottom-color:var(--red)}
 .book-activity-panel{display:none}
 .book-activity-panel.on{display:block}
 
@@ -577,19 +579,64 @@ a{color:inherit}
 .ch-book-tag{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:11px;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px}
 .ch-book-tag button{background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:14px;padding:0;line-height:1}
 .ch-book-tag button:hover{color:white}
-.reto-books-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;position:relative;z-index:2}
-.reto-book-cover{width:34px;height:50px;border-radius:4px;overflow:hidden;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,0.3)}
+.reto-books-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.reto-book-cover{width:30px;height:44px;border-radius:3px;overflow:hidden;flex-shrink:0;box-shadow:0 3px 8px rgba(0,0,0,0.2)}
 .reto-book-cover img{width:100%;height:100%;object-fit:cover}
 .reto-book-cover-fallback{width:100%;height:100%}
 
-/* PROMO BANNER for retos (Goodreads-style hero) */
-.promo-banner{background:linear-gradient(120deg,#2A1A15,#1C1917 60%);border-radius:18px;padding:34px 36px;margin-bottom:20px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px}
+/* Reto card — white card layout */
+.reto-card{background:white;border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px}
+.reto-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+.reto-card-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);font-weight:700;line-height:1.2}
+.reto-card-desc{font-size:13px;color:var(--ink3);margin-bottom:10px;line-height:1.5}
+.reto-card-actions{display:flex;gap:6px;flex-shrink:0}
+.reto-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;margin-right:4px;margin-bottom:8px}
+.reto-badge-pub{background:#ECFDF5;color:#065F46}
+.reto-badge-friends{background:#EFF6FF;color:#1E3A8A}
+.reto-badge-priv{background:#F5F5F4;color:#57534E}
+.reto-badge-joined{background:var(--red-light,#FEF2F2);color:var(--red-dark,#991B1B)}
+.reto-progress-row{display:flex;align-items:center;gap:10px;margin:10px 0 6px}
+.reto-progress-track{flex:1;height:8px;background:#F0EFED;border-radius:4px;overflow:hidden}
+.reto-progress-fill{height:100%;background:var(--red);border-radius:4px;transition:width 0.3s}
+.reto-progress-fill.done{background:var(--green)}
+.reto-progress-n{font-size:13px;font-weight:700;color:var(--ink);flex-shrink:0;min-width:54px;text-align:right}
+.reto-requirements{font-size:12px;color:var(--ink2);background:#FAFAF8;border:1px solid #F0EFED;border-radius:8px;padding:8px 12px;margin-bottom:10px;line-height:1.5}
+.reto-participants-row{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #F5F5F4}
+.reto-av-stack{display:flex}
+.reto-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid white;margin-left:-8px;flex-shrink:0}
+.reto-av:first-child{margin-left:0}
+.reto-participants-label{font-size:12px;color:var(--ink3);flex:1}
+.reto-participants-toggle{font-size:12px;color:var(--red);cursor:pointer;font-weight:600;background:none;border:none;padding:0;font-family:'Inter',sans-serif;text-decoration:underline}
+.reto-participants-list{margin-top:10px;border-top:1px solid #F5F5F4;padding-top:10px;display:none}
+.reto-participants-list.open{display:block}
+.reto-part-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #FAFAF8}
+.reto-part-row:last-child{border-bottom:none}
+.reto-part-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.reto-part-name{font-size:13px;color:var(--ink);font-weight:600;min-width:0}
+.reto-part-meta{font-size:11px;color:var(--ink3)}
+.reto-part-progress{display:flex;align-items:center;gap:6px;margin-left:auto;flex-shrink:0}
+.reto-part-bar{width:70px;height:5px;background:#F0EFED;border-radius:3px;overflow:hidden}
+.reto-part-fill{height:100%;background:var(--red);border-radius:3px}
+.reto-part-n{font-size:11px;font-weight:700;color:var(--ink);min-width:30px;text-align:right}
+
+/* Community reto cards */
+.community-reto-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px}
+.community-reto-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
+.community-reto-title{font-size:14px;font-weight:700;color:var(--ink)}
+.community-reto-desc{font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.4}
+.community-reto-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.community-reto-avs{display:flex}
+.community-reto-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid white;margin-left:-7px;flex-shrink:0}
+.community-reto-av:first-child{margin-left:0}
+.community-reto-count{font-size:12px;color:var(--ink3)}
+
+/* PROMO BANNER for retos */
+.promo-banner{background:linear-gradient(120deg,#2A1A15,#1C1917 60%);border-radius:18px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .promo-banner::before{content:'';position:absolute;left:-60px;bottom:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(232,93,74,0.25),transparent 70%)}
-.promo-banner::after{content:'';position:absolute;right:10%;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(74,124,95,0.18),transparent 70%)}
 .promo-text{position:relative;z-index:2;color:white;max-width:560px}
-.promo-text h2{font-family:'Playfair Display',serif;font-size:30px;line-height:1.15;margin-bottom:8px}
-.promo-text p{font-size:14px;color:rgba(255,255,255,0.55);margin-bottom:18px}
-.promo-stack{position:relative;z-index:2;display:flex;gap:-10px;flex-shrink:0}
+.promo-text h2{font-family:'Playfair Display',serif;font-size:26px;line-height:1.2;margin-bottom:6px}
+.promo-text p{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:14px}
+.promo-stack{position:relative;z-index:2;display:flex;flex-shrink:0}
 .promo-stack .spine{box-shadow:0 10px 30px rgba(0,0,0,0.4);margin-left:-18px;transform:rotate(var(--r,0deg))}
 .promo-stack .spine:first-child{margin-left:0}
 
@@ -845,18 +892,20 @@ a{color:inherit}
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modal-reto')"><i class="ti ti-x"></i></button>
   <h2>Crear reto</h2>
-  <p class="sub">Define tu desafío lector y asigna libros para cumplirlo</p>
+  <p class="sub">Define tu desafío lector, añade requisitos y compártelo</p>
   <div class="f-row"><label class="f-label">Nombre del reto *</label><input class="f-input" id="reto-name" placeholder="Ej: 30 libros en 2026"></div>
-  <div class="f-row"><label class="f-label">Descripción</label><input class="f-input" id="reto-desc" placeholder="¿De qué trata?"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+  <div class="f-row"><label class="f-label">Descripción</label><input class="f-input" id="reto-desc" placeholder="¿De qué trata el reto?"></div>
+  <div class="f-row"><label class="f-label">Requisitos <span style="color:var(--ink3);font-weight:400">(opcional — qué tipo de libros cuentan)</span></label><textarea class="f-input" id="reto-requirements" style="height:60px;resize:none" placeholder="Ej: Solo novelas publicadas después de 2000. Libros en español únicamente. Al menos 200 páginas."></textarea></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
     <div><label class="f-label">Meta (libros) *</label><input class="f-input" type="number" id="reto-goal" placeholder="30" min="1"></div>
-    <div><label class="f-label">Visibilidad</label><select class="f-input" id="reto-vis"><option value="privado">🔒 Privado</option><option value="amigos">👥 Amigos</option><option value="publico" selected>🌍 Público — otros pueden unirse</option></select></div>
+    <div><label class="f-label">Fecha límite</label><input class="f-input" type="date" id="reto-deadline"></div>
+    <div><label class="f-label">Visibilidad</label><select class="f-input" id="reto-vis"><option value="privado">🔒 Privado</option><option value="amigos">👥 Amigos</option><option value="publico" selected>🌍 Público</option></select></div>
   </div>
   <div class="f-row">
-    <label class="f-label">Asigna libros con los que se puede cumplir <span style="color:var(--ink3);font-weight:400">(opcional, pero recomendado)</span></label>
+    <label class="f-label">Lista de libros sugerida <span style="color:var(--ink3);font-weight:400">(opcional)</span></label>
     <div class="srch-wrap">
       <i class="ti ti-search srch-ico"></i>
-      <input class="srch-inp" id="reto-srch" placeholder="Busca un libro para añadirlo a la lista del reto..." oninput="onRetoSearch(this.value)" autocomplete="off">
+      <input class="srch-inp" id="reto-srch" placeholder="Busca un libro de tu shelfie para añadirlo..." oninput="onRetoSearch(this.value)" autocomplete="off">
       <div class="srch-drop" id="reto-srch-drop" style="display:none"></div>
     </div>
   </div>
@@ -1457,34 +1506,22 @@ a{color:inherit}
   <div id="reviews-empty" class="empty card"><i class="ti ti-pencil"></i><p>Aún no tienes reseñas</p><span>Añade libros leídos con valoración</span><br><button class="btn btn-red" style="margin-top:12px" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir primer libro</button></div>
 </div>
 
-<!-- ── RETOS (promocionados, visibles) ── -->
+<!-- ── RETOS ── -->
 <div id="p-retos" class="page">
-  <div class="tb"><div><h1>Retos de lectura</h1><p>Crea el tuyo, asigna libros, y compite con la comunidad</p></div>
-    <button class="btn btn-red btn-lg" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear reto</button>
+  <div class="tb"><div><h1>Retos de lectura</h1><p>Crea el tuyo, únete a otros y sigue el progreso de todos</p></div>
+    <button class="btn btn-red" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear reto</button>
   </div>
 
-  <div class="promo-banner">
-    <div class="promo-text">
-      <h2>¿Cuántos libros puedes leer este año?</h2>
-      <p>Define tu meta, asígnale una lista de libros concreta, y compártela con tus amigos. O súmate a un reto público y compite con miles de lectores.</p>
-      <button class="btn btn-red btn-lg" onclick="openModal('modal-reto')"><i class="ti ti-target"></i> Crear mi primer reto</button>
-    </div>
-    <div class="promo-stack">
-      <div class="spine" style="background:#7A4A1A;--r:-6deg"></div>
-      <div class="spine" style="background:#2C3E7A;--r:0deg"></div>
-      <div class="spine" style="background:#4A2D6A;--r:6deg"></div>
-    </div>
+  <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:20px">
+    <button class="retos-tab on" data-tab="mis" onclick="setRetosTab(this,'mis')">Mis retos</button>
+    <button class="retos-tab" data-tab="comunidad" onclick="setRetosTab(this,'comunidad')">Comunidad</button>
   </div>
 
-  <div class="card-head" style="margin-top:6px"><div class="card-title" style="font-size:16px">Mis retos</div></div>
-  <div id="my-retos"></div>
-
-  <div class="card-head" style="margin-top:20px"><div class="card-title" style="font-size:16px">🔥 Retos populares de la comunidad</div></div>
-  <div class="card">
-    <div class="list-row"><div class="list-info"><div class="list-name">📚 Maratón Nobel — 10 premios Nobel de Literatura</div><div class="list-meta">4.234 participantes · Lista de 10 libros sugerida</div></div><button class="btn btn-sm btn-white" onclick="joinCommunityReto(this,'Maratón Nobel',10,'Leer 10 obras de Premios Nobel de Literatura')">Unirse</button></div>
-    <div class="list-row"><div class="list-info"><div class="list-name">🌍 Un libro por país de África</div><div class="list-meta">1.891 participantes · 54 países</div></div><button class="btn btn-sm btn-white" onclick="joinCommunityReto(this,'África literaria',54,'Un libro de cada uno de los 54 países africanos')">Unirse</button></div>
-    <div class="list-row"><div class="list-info"><div class="list-name">🇯🇵 JLPT reading boost — 5 libros en japonés</div><div class="list-meta">342 participantes</div></div><button class="btn btn-sm btn-white" onclick="joinCommunityReto(this,'JLPT japonés',5,'5 libros en japonés para practicar JLPT N4/N3')">Unirse</button></div>
-    <div class="list-row"><div class="list-info"><div class="list-name">🌙 Narrativa árabe — 8 autores</div><div class="list-meta">876 participantes</div></div><button class="btn btn-sm btn-white" onclick="joinCommunityReto(this,'Narrativa árabe',8,'Descubrir 8 autores de la literatura árabe')">Unirse</button></div>
+  <div id="retos-tab-mis">
+    <div id="my-retos"></div>
+  </div>
+  <div id="retos-tab-comunidad" style="display:none">
+    <div id="community-retos-list"></div>
   </div>
 </div>
 
@@ -1613,6 +1650,75 @@ let DEMO_SEEDED=false;
 let DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
 let RETOS=[];
 let FRIENDS=[];
+
+const COMMUNITY_RETOS=[
+  {
+    id:'cr1',emoji:'📚',name:'Maratón Nobel',goal:10,
+    desc:'Lee 10 obras de escritores galardonados con el Premio Nobel de Literatura. Cualquier época, cualquier idioma.',
+    requirements:'Solo obras de autores que hayan recibido el Nobel de Literatura. Las colecciones de cuentos cuentan como un libro.',
+    participantCount:4234,
+    participants:[
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',progress:7},
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:10},
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',progress:3},
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',progress:6},
+      {name:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',progress:2},
+    ],
+  },
+  {
+    id:'cr2',emoji:'🌍',name:'Un libro por país de África',goal:54,
+    desc:'Un libro de cada uno de los 54 países africanos. Descubre literaturas poco exploradas y voces imprescindibles.',
+    requirements:'El autor debe ser de ese país o el libro debe estar ambientado principalmente en él.',
+    participantCount:1891,
+    participants:[
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',progress:12},
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',progress:5},
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',progress:28},
+    ],
+  },
+  {
+    id:'cr3',emoji:'🇯🇵',name:'JLPT reading boost',goal:5,
+    desc:'Lee 5 libros en japonés para mejorar tu comprensión lectora. Ideal para estudiantes de JLPT N4/N3.',
+    requirements:'Los libros deben estar escritos o disponibles en japonés. Mangas no cuentan.',
+    participantCount:342,
+    participants:[
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:5},
+      {name:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',progress:1},
+    ],
+  },
+  {
+    id:'cr4',emoji:'🌙',name:'Narrativa árabe',goal:8,
+    desc:'Descubre 8 autores de la literatura árabe clásica y contemporánea. Un viaje por el mundo árabe a través de la ficción.',
+    requirements:'Autores nacidos o criados en países de habla árabe. Traducciones son válidas.',
+    participantCount:876,
+    participants:[
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',progress:8},
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',progress:3},
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',progress:1},
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:4},
+    ],
+  },
+  {
+    id:'cr5',emoji:'🕰️',name:'Clásicos que nunca leíste',goal:12,
+    desc:'Lee 12 clásicos universales que llevas años posponiendo. La lista la construyes tú.',
+    requirements:'Publicados antes de 1970. Mínimo 150 páginas.',
+    participantCount:6120,
+    participants:[
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',progress:9},
+      {name:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',progress:12},
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',progress:6},
+    ],
+  },
+  {
+    id:'cr6',emoji:'✍️',name:'Debut literario',goal:6,
+    desc:'Lee 6 primeras novelas de autores. Solo óperas primas — descubre voces antes de que sean famosas.',
+    requirements:'Debe ser la primera novela publicada por el autor (no cuentos ni ensayos previos).',
+    participantCount:518,
+    participants:[
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:3},
+    ],
+  },
+];
 let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
 let retoAssigned=[];
@@ -1979,10 +2085,30 @@ function seedDemoData(){
   RETOS.push({
     name:'30 libros en '+CURRENT_SHELFIE_YEAR,
     desc:'Mi reto de lectura anual',
+    requirements:'Cualquier libro cuenta. Mínimo 100 páginas.',
+    deadline:'2026-12-31',
     goal:30,progress:18,vis:'publico',createdByMe:true,
     books:[pedroParamo,cienAnios].filter(Boolean).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover,color:b.color})),
+    participants:[
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',progress:22},
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:14},
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',progress:30,done:true},
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',progress:9},
+      {name:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',progress:5},
+    ],
   });
-  RETOS.push({name:'Maratón Nobel',desc:'Leer 10 obras de Premios Nobel de Literatura',goal:10,progress:3,vis:'publico',createdByMe:false,books:[]});
+  RETOS.push({
+    name:'Maratón Nobel',
+    desc:'Leer 10 obras de Premios Nobel de Literatura',
+    requirements:'Solo autores con el Nobel de Literatura. Cualquier época.',
+    deadline:'',
+    goal:10,progress:3,vis:'publico',createdByMe:false,
+    books:[],
+    participants:[
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',progress:10,done:true},
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',progress:6},
+    ],
+  });
 
   // ── Reading streak: marca los últimos 9 días como leídos ──
   for(let i=0;i<9;i++){
@@ -3375,48 +3501,199 @@ function renderStats(){
 // ═══════════════════════════════════════════════
 // RETOS
 // ═══════════════════════════════════════════════
+function setRetosTab(btn,tab){
+  document.querySelectorAll('.retos-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('retos-tab-mis').style.display=tab==='mis'?'block':'none';
+  document.getElementById('retos-tab-comunidad').style.display=tab==='comunidad'?'block':'none';
+  if(tab==='comunidad')renderCommunityRetos();
+}
+
+function retoParticipantsHtml(r,i){
+  const parts=r.participants||[];
+  if(!parts.length)return'';
+  const avatars=parts.slice(0,5).map(p=>`<div class="reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${p.initials}</div>`).join('');
+  const extra=parts.length>5?`<div class="reto-av" style="background:#F0EFED;color:var(--ink3)">+${parts.length-5}</div>`:'';
+  const listHtml=parts.map(p=>{
+    const pct=r.goal?Math.min(100,Math.round(p.progress/r.goal*100)):0;
+    return `<div class="reto-part-row">
+      <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${p.initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="reto-part-name">${escapeHtml(p.name)}${p.done?` <span style="color:var(--green);font-size:11px">✅</span>`:''}</div>
+        <div class="reto-part-meta">${p.progress} / ${r.goal} libros</div>
+      </div>
+      <div class="reto-part-progress">
+        <div class="reto-part-bar"><div class="reto-part-fill" style="width:${pct}%;${p.done?'background:var(--green)':''}"></div></div>
+        <div class="reto-part-n">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="reto-participants-row">
+    <div class="reto-av-stack">${avatars}${extra}</div>
+    <div class="reto-participants-label">${parts.length} participante${parts.length!==1?'s':''}</div>
+    <button class="reto-participants-toggle" onclick="toggleRetoParticipants(${i})">Ver progreso ↓</button>
+  </div>
+  <div class="reto-participants-list" id="reto-parts-${i}">${listHtml}</div>`;
+}
+
+function toggleRetoParticipants(i){
+  const el=document.getElementById('reto-parts-'+i);
+  if(!el)return;
+  const isOpen=el.classList.toggle('open');
+  const btn=el.previousElementSibling?.querySelector('.reto-participants-toggle');
+  if(btn)btn.textContent=isOpen?'Ocultar ↑':'Ver progreso ↓';
+}
+
 function renderRetos(){
   updateCounts();
   const cont=document.getElementById('my-retos');
-  if(!RETOS.length){cont.innerHTML=`<div class="empty card"><i class="ti ti-target"></i><p>Aún no tienes retos</p><button class="btn btn-red" style="margin-top:12px" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;return;}
+  if(!RETOS.length){
+    cont.innerHTML=`<div class="empty card"><i class="ti ti-target"></i><p>Aún no tienes retos</p><span>Crea tu propio reto o únete a uno de la comunidad</span><button class="btn btn-red" style="margin-top:14px" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;
+    return;
+  }
   cont.innerHTML=RETOS.map((r,i)=>{
     const pct=r.goal?Math.min(100,Math.round(r.progress/r.goal*100)):0;
-    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.map(b=>{
-      const cover=b.cover?`<img src="${b.cover}" alt="">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'var(--ink3)'}"></div>`;
-      return `<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cover}</div>`;
-    }).join('')}</div>`:'';
-    return `<div class="ch-hero" style="margin-bottom:12px${pct>=100?';outline:2px solid var(--green)':''}">
-      <div class="flex justify-between items-center" style="margin-bottom:4px;position:relative;z-index:2">
-        <div class="ch-title">${pct>=100?'🎉 ':''} ${escapeHtml(r.name)}</div>
-        <div class="flex gap-2">
-          <button class="btn btn-sm" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:none;font-size:11px" onclick="assignBookToReto(${i})"><i class="ti ti-bookmark"></i> Asignar libro</button>
-          <button class="btn btn-sm" style="background:rgba(232,93,74,0.15);color:#F9B4AC;border:none;font-size:11px" onclick="editRetoGoal(${i})"><i class="ti ti-edit"></i></button>
-          <button class="btn btn-sm" style="background:rgba(232,93,74,0.15);color:#F9B4AC;border:none;font-size:11px" onclick="deleteReto(${i})"><i class="ti ti-trash"></i></button>
+    const visBadge=r.vis==='publico'?`<span class="reto-badge reto-badge-pub"><i class="ti ti-world" style="font-size:10px"></i> Público</span>`:r.vis==='amigos'?`<span class="reto-badge reto-badge-friends"><i class="ti ti-users" style="font-size:10px"></i> Amigos</span>`:`<span class="reto-badge reto-badge-priv"><i class="ti ti-lock" style="font-size:10px"></i> Privado</span>`;
+    const joinedBadge=!r.createdByMe?`<span class="reto-badge reto-badge-joined"><i class="ti ti-user-check" style="font-size:10px"></i> Unido</span>`:'';
+    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${b.cover}" alt="">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
+    const deadlineHtml=r.deadline?`<span style="font-size:11px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> Hasta ${r.deadline}</span>`:'';
+    return `<div class="reto-card">
+      <div class="reto-card-head">
+        <div>
+          <div class="reto-card-title">${pct>=100?'🎉 ':''}${escapeHtml(r.name)}</div>
+          <div style="margin-top:4px">${visBadge}${joinedBadge}${deadlineHtml}</div>
+        </div>
+        <div class="reto-card-actions">
+          <button class="btn btn-sm btn-white" onclick="assignBookToReto(${i})" title="Asignar libro leído"><i class="ti ti-bookmark"></i></button>
+          <button class="btn btn-sm btn-white" onclick="editReto(${i})" title="Editar"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-white" style="color:var(--red)" onclick="deleteReto(${i})" title="Eliminar"><i class="ti ti-trash"></i></button>
         </div>
       </div>
-      ${r.desc?`<div class="ch-sub">${escapeHtml(r.desc)}</div>`:'<div style="height:6px"></div>'}
-      <div class="ch-row"><div class="ch-bar-track"><div class="ch-bar-fill" style="width:${pct}%${pct>=100?';background:var(--green)':''}"></div></div><div class="ch-n"><b>${r.progress}</b> / ${r.goal}</div></div>
-      ${r.vis==='publico'?`<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;position:relative;z-index:2">🌍 Público — visible para otros lectores</div>`:r.vis==='amigos'?'<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;position:relative;z-index:2">👥 Visible para tus amigos</div>':'<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;position:relative;z-index:2">🔒 Privado</div>'}
+      ${r.desc?`<div class="reto-card-desc">${escapeHtml(r.desc)}</div>`:''}
+      ${r.requirements?`<div class="reto-requirements"><i class="ti ti-list-check" style="font-size:12px;margin-right:4px"></i>${escapeHtml(r.requirements)}</div>`:''}
+      <div class="reto-progress-row">
+        <div class="reto-progress-track"><div class="reto-progress-fill${pct>=100?' done':''}" style="width:${pct}%"></div></div>
+        <div class="reto-progress-n"><b>${r.progress}</b> / ${r.goal}</div>
+      </div>
+      ${pct>=100?`<div style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:8px">✅ ¡Reto completado!</div>`:''}
       ${booksHtml}
-      ${pct>=100?`<div style="font-size:13px;color:var(--green);margin-top:10px;font-weight:600;position:relative;z-index:2">✅ ¡Reto completado!</div>`:''}
+      ${retoParticipantsHtml(r,i)}
     </div>`;
   }).join('');
+}
+
+function renderCommunityRetos(){
+  const cont=document.getElementById('community-retos-list');
+  cont.innerHTML=COMMUNITY_RETOS.map(cr=>{
+    const alreadyJoined=RETOS.find(r=>r.name===cr.name);
+    const avatarsHtml=cr.participants.slice(0,5).map(p=>`<div class="community-reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${p.initials}</div>`).join('');
+    const extraCount=cr.participantCount-cr.participants.length;
+    return `<div class="community-reto-card">
+      <div style="font-size:28px;flex-shrink:0;line-height:1">${cr.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div class="community-reto-head">
+          <div>
+            <div class="community-reto-title">${escapeHtml(cr.name)}</div>
+            <div class="community-reto-desc">${escapeHtml(cr.desc)}</div>
+          </div>
+          ${alreadyJoined
+            ?`<span class="reto-badge reto-badge-joined" style="flex-shrink:0;align-self:flex-start">✓ Unido</span>`
+            :`<button class="btn btn-sm btn-red" style="flex-shrink:0;align-self:flex-start" onclick="joinCommunityRetoById('${cr.id}')">Unirse</button>`
+          }
+        </div>
+        ${cr.requirements?`<div class="reto-requirements" style="margin-bottom:8px"><i class="ti ti-list-check" style="font-size:12px;margin-right:4px"></i>${escapeHtml(cr.requirements)}</div>`:''}
+        <div class="community-reto-footer">
+          <div class="community-reto-avs">${avatarsHtml}</div>
+          <div class="community-reto-count"><i class="ti ti-users" style="font-size:12px"></i> ${cr.participantCount.toLocaleString('es-ES')} participantes</div>
+          <div style="font-size:11px;color:var(--ink3)">Meta: ${cr.goal} libros</div>
+          <button class="reto-participants-toggle" onclick="toggleCommunityParticipants('${cr.id}')">Ver quién participa ↓</button>
+        </div>
+        <div class="reto-participants-list" id="cr-parts-${cr.id}">
+          ${cr.participants.map(p=>{
+            const pct=cr.goal?Math.min(100,Math.round(p.progress/cr.goal*100)):0;
+            return `<div class="reto-part-row">
+              <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${p.initials}</div>
+              <div style="flex:1;min-width:0">
+                <div class="reto-part-name">${escapeHtml(p.name)}${p.done||p.progress>=cr.goal?` <span style="color:var(--green);font-size:11px">✅</span>`:''}</div>
+                <div class="reto-part-meta">${p.progress} / ${cr.goal} libros</div>
+              </div>
+              <div class="reto-part-progress">
+                <div class="reto-part-bar"><div class="reto-part-fill" style="width:${pct}%;${p.done||p.progress>=cr.goal?'background:var(--green)':''}"></div></div>
+                <div class="reto-part-n">${pct}%</div>
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="font-size:12px;color:var(--ink3);padding:8px 0;border-top:1px solid #F5F5F4;margin-top:4px">Y ${(cr.participantCount-cr.participants.length).toLocaleString('es-ES')} participantes más</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCommunityParticipants(id){
+  const el=document.getElementById('cr-parts-'+id);
+  if(!el)return;
+  const isOpen=el.classList.toggle('open');
+  const btn=el.closest('.community-reto-card')?.querySelector('.reto-participants-toggle');
+  if(btn)btn.textContent=isOpen?'Ocultar ↑':'Ver quién participa ↓';
+}
+
+function joinCommunityRetoById(id){
+  const cr=COMMUNITY_RETOS.find(r=>r.id===id);
+  if(!cr)return;
+  if(RETOS.find(r=>r.name===cr.name)){toast('Ya estás en este reto');return;}
+  RETOS.push({name:cr.name,desc:cr.desc,requirements:cr.requirements,goal:cr.goal,progress:0,vis:'publico',books:[],createdByMe:false,participants:cr.participants});
+  cr.participantCount++;
+  renderCommunityRetos();
+  renderRetos();
+  toast(`✅ Unido al reto «${cr.name}»`);
 }
 
 function saveReto(){
   const name=document.getElementById('reto-name').value.trim();
   const desc=document.getElementById('reto-desc').value.trim();
+  const requirements=document.getElementById('reto-requirements').value.trim();
+  const deadline=document.getElementById('reto-deadline').value;
   const goal=parseInt(document.getElementById('reto-goal').value);
   const vis=document.getElementById('reto-vis').value;
   if(!name){toast('⚠️ Escribe un nombre');return;}
   if(!goal||goal<1){toast('⚠️ Meta inválida');return;}
-  RETOS.push({name,desc,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true});
+  RETOS.push({name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]});
   retoAssigned=[];
+  ['reto-name','reto-desc','reto-requirements','reto-deadline','reto-goal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   closeModal('modal-reto');renderRetos();
-  toast(`✅ Reto «${name}» creado y publicado`);
+  toast(`✅ Reto «${name}» creado`);
 }
 
-function editRetoGoal(i){const n=parseInt(prompt('Nueva meta:',RETOS[i].goal));if(n&&n>0){RETOS[i].goal=n;renderRetos();toast('Meta actualizada');}}
+function editReto(i){
+  const r=RETOS[i];
+  document.getElementById('reto-name').value=r.name;
+  document.getElementById('reto-desc').value=r.desc||'';
+  document.getElementById('reto-requirements').value=r.requirements||'';
+  document.getElementById('reto-deadline').value=r.deadline||'';
+  document.getElementById('reto-goal').value=r.goal;
+  document.getElementById('reto-vis').value=r.vis;
+  retoAssigned=[...(r.books||[])];
+  renderRetoAssigned();
+  // Switch save button to update mode
+  const btn=document.querySelector('#modal-reto .btn-red');
+  if(btn){btn.textContent='Guardar cambios';btn.onclick=()=>{
+    r.name=document.getElementById('reto-name').value.trim()||r.name;
+    r.desc=document.getElementById('reto-desc').value.trim();
+    r.requirements=document.getElementById('reto-requirements').value.trim();
+    r.deadline=document.getElementById('reto-deadline').value;
+    const g=parseInt(document.getElementById('reto-goal').value);
+    if(g&&g>0)r.goal=g;
+    r.vis=document.getElementById('reto-vis').value;
+    r.books=[...retoAssigned];
+    retoAssigned=[];
+    closeModal('modal-reto');renderRetos();
+    btn.textContent='Crear y publicar reto';btn.onclick=saveReto;
+    toast('✅ Reto actualizado');
+  };}
+  openModal('modal-reto');
+}
+
 function deleteReto(i){if(!confirm('¿Eliminar este reto?'))return;RETOS.splice(i,1);renderRetos();toast('Reto eliminado');}
 
 let pendingAssignRetoIdx=null;
@@ -3435,40 +3712,27 @@ function onAssignRetoBookSearch(q){
   const already=new Set((RETOS[pendingAssignRetoIdx].books||[]).map(b=>b.id));
   const pool=allBooks().filter(b=>!already.has(b.id));
   let results=pool;
-  if(q&&q.trim().length){
-    const ql=q.toLowerCase();
-    results=pool.filter(b=>b.title.toLowerCase().includes(ql)||b.author.toLowerCase().includes(ql));
-  }
+  if(q&&q.trim().length){const ql=q.toLowerCase();results=pool.filter(b=>b.title.toLowerCase().includes(ql)||b.author.toLowerCase().includes(ql));}
   if(!pool.length){drop.style.display='block';drop.innerHTML='<div class="s-loading">Añade libros a tu shelfie primero.</div>';return;}
   if(!q||!q.trim().length){drop.style.display='none';return;}
   if(!results.length){drop.style.display='block';drop.innerHTML='<div class="s-loading">Sin resultados en tu shelfie.</div>';return;}
-  drop.style.display='block';
-  drop.innerHTML='';
+  drop.style.display='block';drop.innerHTML='';
   results.slice(0,8).forEach(b=>{
-    const row=document.createElement('div');
-    row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
-    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
+    const row=document.createElement('div');row.className='s-item';
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       const r=RETOS[pendingAssignRetoIdx];
       if(!r.books)r.books=[];
       r.books.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
       r.progress=Math.min(r.progress+1,r.goal);
-      closeModal('modal-assign-reto-book');
-      renderRetos();
+      closeModal('modal-assign-reto-book');renderRetos();
       toast(`📖 «${b.title}» asignado al reto`);
     };
     row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();addFn();});
     row.addEventListener('click',addFn);
     drop.appendChild(row);
   });
-}
-
-function joinCommunityReto(btn,name,goal,desc){
-  if(RETOS.find(r=>r.name===name)){toast('Ya estás en este reto');return;}
-  RETOS.push({name,desc,goal,progress:0,vis:'publico',books:[],createdByMe:false});
-  btn.textContent='¡Unido! ✓';btn.className='btn btn-sm btn-red';btn.disabled=true;
-  renderRetos();toast(`✅ Unido al reto «${name}»`);
 }
 
 // ═══════════════════════════════════════════════
