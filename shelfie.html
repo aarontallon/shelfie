@@ -947,7 +947,6 @@ a{color:inherit}
     <div class="sb-lbl">Principal</div>
     <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
     <button class="nb" onclick="go('shelf',this)"><i class="ti ti-books"></i> Mi shelfie</button>
-    <button class="nb" onclick="go('ranking',this)"><i class="ti ti-trophy"></i> Mis favoritos</button>
     <button class="nb" onclick="go('discover',this)"><i class="ti ti-telescope"></i> Descubrir</button>
   </div>
   <div class="sb-section">
@@ -1545,9 +1544,12 @@ a{color:inherit}
   </div>
 
   <div class="g2">
-    <!-- PUBLIC RANKING WIDGET -->
+    <!-- TOP FAVORITOS — editable inline -->
     <div class="card">
-      <div class="card-head"><div class="card-title">🏆 Top favoritos</div><button class="card-link" onclick="go('ranking',document.querySelectorAll('.nb')[2])">Editar ranking →</button></div>
+      <div class="card-head">
+        <div class="card-title">🏆 Top favoritos</div>
+        <button class="card-link" id="pf-edit-btn" onclick="toggleProfileFavEdit()">Editar</button>
+      </div>
       <div id="profile-public-ranking"></div>
     </div>
     <!-- SHELFIES STATE BREAKDOWN -->
@@ -2714,7 +2716,7 @@ function spineRealHtml(b,idx){
   const titleLen=b.title.length;
   const fontSize=titleLen>40?9:titleLen>28?10:titleLen>18?12:titleLen>12?13:15;
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
-    style="width:${widthPx}px;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
+    style="flex:1 0 ${widthPx}px;max-width:${widthPx*2}px;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${b.id}')"
     ondragstart="shelfDragStart(event,${idx})" ondragover="shelfDragOver(event,${idx})" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
     title="${escapeHtml(b.title)} · ${pages} pp">
@@ -3204,6 +3206,120 @@ function removeFromFavorites(id){
   toast(`«${book.title}» quitado de favoritos`);
 }
 
+// ── PROFILE INLINE FAVORITES EDITOR ────────────────────────────────
+let profileFavEditMode=false;
+let pfDragSrcIdx=null;
+
+function toggleProfileFavEdit(){
+  profileFavEditMode=!profileFavEditMode;
+  renderProfileFavSection();
+}
+
+function renderProfileFavSection(){
+  const container=document.getElementById('profile-public-ranking');
+  const btn=document.getElementById('pf-edit-btn');
+  const favs=getFavoriteBooks();
+  if(!profileFavEditMode){
+    if(btn)btn.textContent='Editar';
+    if(!favs.length){
+      container.innerHTML=`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Aún no tienes favoritos</p><button class="btn btn-red btn-sm" style="margin-top:10px" onclick="toggleProfileFavEdit()">Elegir favoritos</button></div>`;
+    } else {
+      container.innerHTML=`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${b.id}')"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`;
+    }
+    return;
+  }
+  if(btn)btn.textContent='Cerrar';
+  const listHtml=favs.length?favs.map((b,i)=>`
+    <div class="rank-item" draggable="true" data-id="${b.id}" data-pos="${i}"
+      ondragstart="pfDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="pfDrop(event,${i})" ondragend="pfDragEnd(event)">
+      <i class="ti ti-grip-vertical rank-handle"></i>
+      <div class="rank-num">${i+1}</div>
+      ${cvr(b,'mini')}
+      <div class="list-info"><div class="list-name">${escapeHtml(b.title)}</div><div class="list-meta">${escapeHtml(b.author)}</div></div>
+      <span style="color:var(--amber);font-size:13px;flex-shrink:0">${'★'.repeat(b.stars||0)}</span>
+      <button class="btn btn-sm btn-danger" onclick="pfRemoveFav('${b.id}')"><i class="ti ti-x" style="font-size:11px"></i></button>
+    </div>`).join(''):`<div style="font-size:13px;color:var(--ink3);padding:8px 0">Busca un libro leído arriba para empezar.</div>`;
+  container.innerHTML=`
+    <div style="margin-bottom:12px">
+      <div class="srch-wrap">
+        <i class="ti ti-search srch-ico"></i>
+        <input class="srch-inp" id="pf-srch" placeholder="Busca entre tus libros leídos..." oninput="onProfileFavSearch(this.value)" onfocus="onProfileFavSearch(this.value)" autocomplete="off">
+        <div class="srch-drop" id="pf-srch-drop" style="display:none"></div>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);margin-top:5px">${favs.length}/${MAX_FAVORITES} favoritos · se muestran primero los mejor valorados</div>
+    </div>
+    <div id="pf-fav-list">${listHtml}</div>`;
+}
+
+function onProfileFavSearch(q){
+  const drop=document.getElementById('pf-srch-drop');
+  if(!drop)return;
+  const already=new Set(getFavoriteBooks().map(b=>b.id));
+  let pool=DB.leidos.filter(b=>!already.has(b.id));
+  if(q&&q.trim()){
+    const ql=q.toLowerCase();
+    pool=pool.filter(b=>b.title.toLowerCase().includes(ql)||b.author.toLowerCase().includes(ql));
+  }
+  pool=[...pool].sort((a,b)=>(b.stars||0)-(a.stars||0));
+  if(getFavoriteBooks().length>=MAX_FAVORITES){
+    drop.style.display='block';
+    drop.innerHTML=`<div class="s-loading">Máximo ${MAX_FAVORITES} favoritos. Quita alguno primero.</div>`;
+    return;
+  }
+  if(!pool.length){
+    drop.style.display='block';
+    drop.innerHTML=q&&q.trim()?'<div class="s-loading">Sin resultados.</div>':'<div class="s-loading">Ya añadiste todos tus libros leídos.</div>';
+    return;
+  }
+  drop.style.display='block';
+  drop.innerHTML='';
+  pool.slice(0,8).forEach(b=>{
+    const row=document.createElement('div');
+    row.className='s-item';
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
+    row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();pfAddFav(b.id);});
+    row.addEventListener('click',()=>pfAddFav(b.id));
+    drop.appendChild(row);
+  });
+}
+
+function pfAddFav(id){
+  const book=DB.leidos.find(b=>b.id===id);
+  if(!book||getFavoriteBooks().length>=MAX_FAVORITES)return;
+  book.isFavorite=true;
+  book.rankPos=getFavoriteBooks().length-1;
+  const srch=document.getElementById('pf-srch');
+  const drop=document.getElementById('pf-srch-drop');
+  if(srch)srch.value='';
+  if(drop)drop.style.display='none';
+  renderProfileFavSection();
+  toast(`✅ «${book.title}» añadido a tus favoritos`);
+}
+
+function pfRemoveFav(id){
+  const book=DB.leidos.find(b=>b.id===id);
+  if(!book)return;
+  book.isFavorite=false;
+  delete book.rankPos;
+  renderProfileFavSection();
+  toast(`«${book.title}» quitado de favoritos`);
+}
+
+function pfDragStart(e,idx){pfDragSrcIdx=idx;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function pfDragEnd(e){e.currentTarget.classList.remove('dragging');}
+function pfDrop(e,targetIdx){
+  e.preventDefault();
+  if(pfDragSrcIdx===null||pfDragSrcIdx===targetIdx)return;
+  const favs=getFavoriteBooks();
+  const moved=favs.splice(pfDragSrcIdx,1)[0];
+  favs.splice(targetIdx,0,moved);
+  favs.forEach((b,i)=>{b.rankPos=i;});
+  pfDragSrcIdx=null;
+  renderProfileFavSection();
+  toast('✓ Orden actualizado');
+}
+
 document.addEventListener('click',e=>{
   const drop=document.getElementById('rank-srch-drop');
   if(drop&&!e.target.closest('#rank-srch-inp')&&!e.target.closest('#rank-srch-drop'))drop.style.display='none';
@@ -3447,19 +3563,9 @@ function renderProfile(){
     }).filter(Boolean).join('');
   }
 
-  // public ranking on profile
-  const five=getFavoriteBooks();
-  const prContainer=document.getElementById('profile-public-ranking');
-  if(!five.length){
-    prContainer.innerHTML=`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Aún no tienes favoritos</p><button class="btn btn-red btn-sm" style="margin-top:10px" onclick="go('ranking',document.querySelectorAll('.nb')[2])">Crear mi ranking</button></div>`;
-  } else {
-    prContainer.innerHTML=`<div class="pub-rank-grid">${five.slice(0,6).map((b,i)=>`<div class="pub-rank-item">
-      <div class="pub-rank-badge">${i+1}</div>
-      ${cvr(b,'grid')}
-      <div class="grid-t" style="font-size:11px;margin-top:4px">${b.title}</div>
-      <div class="grid-a" style="font-size:10px">${b.author}</div>
-    </div>`).join('')}</div>`;
-  }
+  // public ranking on profile — rendered by dedicated function
+  profileFavEditMode=false;
+  renderProfileFavSection();
 
   // shelfie breakdown — visual states of the shelfie
   const total=allBooks().length;
