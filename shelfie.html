@@ -1875,27 +1875,27 @@ function mkBook(title,author,status,opts={}){
 function seedDemoData(){
   // ── 18 libros LEÍDOS, con valoraciones variadas, algunos favoritos, uno releído ──
   const leidosSeed=[
-    ['Cien años de soledad','Gabriel García Márquez',5,1967,'https://covers.openlibrary.org/b/id/8231856-M.jpg',true,0,[{stars:4,finishedAt:'12/3/2024'},{stars:5,finishedAt:'2/6/2026'}]],
-    ['Pedro Páramo','Juan Rulfo',5,1955,'https://covers.openlibrary.org/b/id/8312772-M.jpg',true,1],
-    ['Rayuela','Julio Cortázar',5,1963,'https://covers.openlibrary.org/b/id/8231991-M.jpg',true,2],
-    ['Ficciones','Jorge Luis Borges',5,1944,'https://covers.openlibrary.org/b/id/8310547-M.jpg',true,3],
-    ['El amor en los tiempos del cólera','Gabriel García Márquez',5,1985,'https://covers.openlibrary.org/b/id/8231865-M.jpg',true,4],
-    ['Las mil y una noches','Anónimo',5,820,null,true,5],
-    ['Don Quijote de la Mancha','Miguel de Cervantes',4,1605,'https://covers.openlibrary.org/b/id/8775161-M.jpg',false],
-    ['El túnel','Ernesto Sábato',4,1948,null,false],
-    ['La metamorfosis','Franz Kafka',4,1915,'https://covers.openlibrary.org/b/id/8231923-M.jpg',false],
-    ['Beloved','Toni Morrison',4,1987,'https://covers.openlibrary.org/b/id/8312912-M.jpg',false],
-    ['Ensayo sobre la ceguera','José Saramago',4,1995,null,false],
-    ['El otoño del patriarca','Gabriel García Márquez',4,1975,null,false],
-    ['2666','Roberto Bolaño',4,2004,'https://covers.openlibrary.org/b/id/8231977-M.jpg',false],
-    ['Los detectives salvajes','Roberto Bolaño',4,1998,null,false],
-    ['Crónica de una muerte anunciada','Gabriel García Márquez',3,1981,null,false],
-    ['La casa de los espíritus','Isabel Allende',3,1982,'https://covers.openlibrary.org/b/id/8312845-M.jpg',false],
-    ['El llano en llamas','Juan Rulfo',3,1953,null,false],
-    ['Bestiario','Julio Cortázar',2,1951,null,false],
+    ['Cien años de soledad','Gabriel García Márquez',5,1967,'https://covers.openlibrary.org/b/id/8231856-M.jpg',true,0,422,[{stars:4,finishedAt:'12/3/2024'},{stars:5,finishedAt:'2/6/2026'}]],
+    ['Pedro Páramo','Juan Rulfo',5,1955,'https://covers.openlibrary.org/b/id/8312772-M.jpg',true,1,152],
+    ['Rayuela','Julio Cortázar',5,1963,'https://covers.openlibrary.org/b/id/8231991-M.jpg',true,2,590],
+    ['Ficciones','Jorge Luis Borges',5,1944,'https://covers.openlibrary.org/b/id/8310547-M.jpg',true,3,172],
+    ['El amor en los tiempos del cólera','Gabriel García Márquez',5,1985,'https://covers.openlibrary.org/b/id/8231865-M.jpg',true,4,368],
+    ['Las mil y una noches','Anónimo',5,820,null,true,5,960],
+    ['Don Quijote de la Mancha','Miguel de Cervantes',4,1605,'https://covers.openlibrary.org/b/id/8775161-M.jpg',false,undefined,1094],
+    ['El túnel','Ernesto Sábato',4,1948,null,false,undefined,147],
+    ['La metamorfosis','Franz Kafka',4,1915,'https://covers.openlibrary.org/b/id/8231923-M.jpg',false,undefined,70],
+    ['Beloved','Toni Morrison',4,1987,'https://covers.openlibrary.org/b/id/8312912-M.jpg',false,undefined,324],
+    ['Ensayo sobre la ceguera','José Saramago',4,1995,null,false,undefined,326],
+    ['El otoño del patriarca','Gabriel García Márquez',4,1975,null,false,undefined,304],
+    ['2666','Roberto Bolaño',4,2004,'https://covers.openlibrary.org/b/id/8231977-M.jpg',false,undefined,912],
+    ['Los detectives salvajes','Roberto Bolaño',4,1998,null,false,undefined,577],
+    ['Crónica de una muerte anunciada','Gabriel García Márquez',3,1981,null,false,undefined,120],
+    ['La casa de los espíritus','Isabel Allende',3,1982,'https://covers.openlibrary.org/b/id/8312845-M.jpg',false,undefined,448],
+    ['El llano en llamas','Juan Rulfo',3,1953,null,false,undefined,192],
+    ['Bestiario','Julio Cortázar',2,1951,null,false,undefined,165],
   ];
-  leidosSeed.forEach(([title,author,stars,year,cover,fav,rankPos,history])=>{
-    const book=mkBook(title,author,'leidos',{stars,year:String(year),cover,isFavorite:fav,rankPos,readHistory:history});
+  leidosSeed.forEach(([title,author,stars,year,cover,fav,rankPos,pages,history])=>{
+    const book=mkBook(title,author,'leidos',{stars,year:String(year),cover,isFavorite:fav,rankPos,pages:pages||null,readHistory:history});
     DB.leidos.push(book);
   });
 
@@ -2623,7 +2623,8 @@ function renderShelf(){
   const isLeidosLike=(currentTab==='leidos'||currentTab==='anio');
 
   if(shelfView==='shelf'){
-    cont.innerHTML=`<div class="real-shelf">${books.map((b,i)=>spineRealHtml(b,i)).join('')}</div>`;
+    cont.innerHTML=renderMultiRowShelf(books);
+    initShelfDragAndDrop();
     return;
   }
 
@@ -2677,24 +2678,45 @@ function listDrop(e,targetIdx){
 // Universal "Mover a..." dropdown — lets any book jump to any other status directly
 // Real bookshelf spine: width scales with actual page count, title font-size shrinks to fit
 function spineRealHtml(b,idx){
-  const pages=b.pages||220;
-  const widthPx=Math.max(22,Math.min(46,Math.round(pages/14)));
-  const heightPx=Math.max(140,Math.min(210,140+Math.round(pages/8)));
+  const pages=b.pages||240;
+  // Width: 16px (thin pamphlet 50pp) to 56px (doorstop 1100pp+)
+  const widthPx=Math.max(16,Math.min(56,Math.round(10+pages/20)));
+  // Height: 150px (novella) to 230px (long book)
+  const heightPx=Math.max(150,Math.min(230,150+Math.round(pages/12)));
   const titleLen=b.title.length;
-  const fontSize=titleLen>34?7:titleLen>22?8:titleLen>14?9:10;
+  const fontSize=titleLen>36?6:titleLen>24?7:titleLen>16?8:titleLen>10?9:10;
+  // The fixed-move-menu goes OUTSIDE .real-shelf-spine-actions to avoid inheriting opacity:0
+  const menuItems=bookActionsMenuItemsHtml(b);
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
-    style="width:${widthPx}px;height:${heightPx}px;background:${b.color}"
+    style="width:${widthPx}px;height:${heightPx}px;background:${b.color};box-shadow:${widthPx>30?'2px':'1px'} 0 4px rgba(0,0,0,0.3),inset -2px 0 3px rgba(0,0,0,0.15)"
     onclick="go('bookdetail',null,'${b.id}')"
-    ondragstart="shelfDragStart(event,${idx})" ondragover="event.preventDefault()" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
-    title="${escapeHtml(b.title)} — ${pages}pp">
-    <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">${bookActionsMenuHtml(b)}</div>
+    ondragstart="shelfDragStart(event,${idx})" ondragover="shelfDragOver(event,${idx})" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
+    title="${escapeHtml(b.title)} · ${pages} pp">
+    <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
+      <button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
+    </div>
+    <div class="fixed-move-menu" id="move-menu3-${b.id}" onclick="event.stopPropagation()">${menuItems}</div>
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
 
+function bookActionsMenuItemsHtml(b){
+  const inYear=YEAR_GOAL_IDS.has(b.id);
+  const items=[];
+  if(b.status!=='leidos')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','leidos');closeAllMoveMenus()"><i class="ti ti-check"></i> Marcar leído</button>`);
+  if(b.status!=='leyendo')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','leyendo');closeAllMoveMenus()"><i class="ti ti-book-2"></i> Mover a leyendo</button>`);
+  if(b.status!=='quiero')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','quiero');closeAllMoveMenus()"><i class="ti ti-bookmark"></i> Mover a pendientes</button>`);
+  if(b.status!=='dnf')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','dnf');closeAllMoveMenus()"><i class="ti ti-x"></i> Abandonar (DNF)</button>`);
+  if(b.status==='leidos')items.push(`<button onclick="openRereadModal('${b.id}');closeAllMoveMenus()"><i class="ti ti-refresh"></i> Volver a leer</button>`);
+  items.push(`<button onclick="toggleYearGoal('${b.id}');closeAllMoveMenus()"><i class="ti ti-calendar-event"></i> ${inYear?'Quitar del':'Añadir al'} Shelfie ${CURRENT_SHELFIE_YEAR}</button>`);
+  items.push(`<button onclick="removeBook('${b.id}','${b.status}');closeAllMoveMenus()" style="color:var(--red)"><i class="ti ti-trash"></i> Eliminar</button>`);
+  return items.join('');
+}
+
 let shelfDragIdx=null;
-function shelfDragStart(e,idx){shelfDragIdx=idx;e.currentTarget.classList.add('dragging');}
+function shelfDragStart(e,idx){shelfDragIdx=idx;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
 function shelfDragEnd(e){e.currentTarget.classList.remove('dragging');}
+function shelfDragOver(e,idx){e.preventDefault();e.dataTransfer.dropEffect='move';}
 function shelfDrop(e,targetIdx){
   e.preventDefault();
   if(shelfDragIdx===null||shelfDragIdx===targetIdx)return;
@@ -2703,6 +2725,32 @@ function shelfDrop(e,targetIdx){
   arr.splice(targetIdx,0,moved);
   shelfDragIdx=null;
   renderShelf();
+}
+
+function renderMultiRowShelf(books){
+  if(!books.length)return '';
+  // Group books into rows of about 12 each
+  const rowSize=12;
+  const rows=[];
+  for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
+  return `<div class="shelf-unit">${rows.map((rowBooks,ri)=>`
+    <div class="shelf-row-wrap">
+      <div class="shelf-books-row" id="shelf-row-${ri}">
+        ${rowBooks.map((b,bi)=>spineRealHtml(b,ri*rowSize+bi)).join('')}
+      </div>
+      <div class="shelf-plank"></div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function initShelfDragAndDrop(){
+  // native drag events already attached inline; just ensure dragover works on empty shelf areas
+}
+
+// Override shelfDragOver to add visual indicator
+function shelfDragOver(e,idx){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
 }
 
 function moveMenuHtml(id,currentStatus){
@@ -2716,19 +2764,10 @@ function moveMenuHtml(id,currentStatus){
   </div>`;
 }
 
-// 3-dot contextual menu — full action list per book, used in the "shelf" (bookshelf) view
+// 3-dot contextual menu — for grid and list views
 function bookActionsMenuHtml(b){
-  const inYear=YEAR_GOAL_IDS.has(b.id);
-  const items=[];
-  if(b.status!=='leidos')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','leidos');closeAllMoveMenus()"><i class="ti ti-check"></i> Marcar leído</button>`);
-  if(b.status!=='leyendo')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','leyendo');closeAllMoveMenus()"><i class="ti ti-book-2"></i> Mover a leyendo</button>`);
-  if(b.status!=='quiero')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','quiero');closeAllMoveMenus()"><i class="ti ti-bookmark"></i> Mover a pendientes</button>`);
-  if(b.status!=='dnf')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','dnf');closeAllMoveMenus()"><i class="ti ti-x"></i> Abandonar (DNF)</button>`);
-  if(b.status==='leidos')items.push(`<button onclick="openRereadModal('${b.id}');closeAllMoveMenus()"><i class="ti ti-refresh"></i> Volver a leer</button>`);
-  items.push(`<button onclick="toggleYearGoal('${b.id}');closeAllMoveMenus()"><i class="ti ti-calendar-event"></i> ${inYear?'Quitar del reto':'Añadir al reto'} ${CURRENT_SHELFIE_YEAR}</button>`);
-  items.push(`<button onclick="removeBook('${b.id}','${b.status}');closeAllMoveMenus()" style="color:var(--red)"><i class="ti ti-trash"></i> Eliminar</button>`);
-  return `<button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
-    <div class="fixed-move-menu" id="move-menu3-${b.id}">${items.join('')}</div>`;
+  return `<button class="book3dot-btn" style="background:rgba(0,0,0,0.4);width:20px;height:20px;font-size:11px" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
+    <div class="fixed-move-menu" id="move-menu3-${b.id}" onclick="event.stopPropagation()">${bookActionsMenuItemsHtml(b)}</div>`;
 }
 
 function openFixedMenu(e,id){
@@ -3450,19 +3489,68 @@ function setShelfiePostViewMode(btn){
   composerShelfiePostViewMode=btn.dataset.shelfview;
 }
 
-// "Compartir" button in Mi shelfie: jumps to Feed with the composer pre-filled with the books currently visible
+// "Compartir" button in Mi shelfie: shows a preview modal before jumping to Feed composer
+let _sharePreviewBooks=[];
+let _sharePreviewViewMode='shelf';
+
 function shareCurrentShelfTab(){
   let books;
   if(currentTab==='anio')books=allBooks().filter(b=>YEAR_GOAL_IDS.has(b.id));
   else books=[...DB[currentTab]];
   if(!books.length){toast('No hay libros en este apartado para compartir');return;}
+  _sharePreviewBooks=books.slice(0,16).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color,pages:b.pages||null}));
+  _sharePreviewViewMode=shelfView;
+  // Show preview modal
+  const tabLabels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer',dnf:'Abandonados',anio:`Shelfie ${CURRENT_SHELFIE_YEAR}`};
+  document.getElementById('share-preview-sub').textContent=`${tabLabels[currentTab]||''} · ${_sharePreviewBooks.length} libro${_sharePreviewBooks.length!==1?'s':''}`;
+  renderSharePreview();
+  openModal('modal-share-preview');
+}
+
+function renderSharePreview(){
+  const el=document.getElementById('share-preview-content');
+  if(!el)return;
+  const books=_sharePreviewBooks;
+  let html='';
+  if(_sharePreviewViewMode==='shelf'){
+    // Mini multi-row shelf preview
+    const rowSize=8;
+    const rows=[];
+    for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
+    const rowsHtml=rows.map(rowBooks=>`
+      <div>
+        <div class="real-shelf" style="min-height:130px;padding:12px 10px 0;gap:2px">
+          ${rowBooks.map(b=>{
+            const pages=b.pages||240;
+            const w=Math.max(14,Math.min(46,Math.round(10+pages/20)));
+            const h=Math.max(110,Math.min(175,110+Math.round(pages/12)));
+            const fs=b.title.length>30?6:b.title.length>18?7:8;
+            return `<div style="width:${w}px;height:${h}px;background:${b.color};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
+              <div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="shelf-plank"></div>
+      </div>`).join('');
+    html=`<div style="background:#f0e8d8;border-radius:10px;padding:12px;overflow:hidden">${rowsHtml}</div>`;
+  } else if(_sharePreviewViewMode==='grid'){
+    html=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));max-height:280px;overflow-y:auto">${books.map(b=>`<div class="grid-item"><div class="grid-cover" style="background:${b.color}"><div class="gc-txt">${escapeHtml(b.title)}</div></div><div class="grid-t" style="font-size:10px">${escapeHtml(b.title)}</div></div>`).join('')}</div>`;
+  } else {
+    html=`<div style="max-height:300px;overflow-y:auto">${books.map(b=>`<div class="book-list-row"><div class="spine" style="background:${b.color};width:30px;height:44px"></div><div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`).join('')}</div>`;
+  }
+  el.innerHTML=html;
+}
+
+function confirmShareToComposer(){
+  closeModal('modal-share-preview');
+  const books=_sharePreviewBooks;
   go('feed',document.querySelectorAll('.nb')[4]);
   setTimeout(()=>{
     const shelfieBtn=document.querySelector('.composer-mode[data-mode="shelfiepost"]');
     if(shelfieBtn){shelfieBtn.classList.add('on');document.querySelectorAll('.composer-mode').forEach(b=>{if(b!==shelfieBtn)b.classList.remove('on');});setComposerMode(shelfieBtn);}
-    composerShelfiePostBooks=books.slice(0,12).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color,pages:b.pages||null}));
+    composerShelfiePostBooks=books;
     renderShelfiePostStack();
-    const viewBtn=document.querySelector(`#shelfiepost-view-toggle .subject-toggle-btn[data-shelfview="${shelfView==='shelf'?'shelf':shelfView}"]`);
+    const viewBtn=document.querySelector(`#shelfiepost-view-toggle .subject-toggle-btn[data-shelfview="${_sharePreviewViewMode==='shelf'?'shelf':_sharePreviewViewMode}"]`);
     if(viewBtn)setShelfiePostViewMode(viewBtn);
     document.getElementById('composer-shelfiepost-text').focus();
   },120);
