@@ -200,23 +200,24 @@ a{color:inherit}
 
 /* Multi-row real bookshelf */
 .shelf-unit{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
-.shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:#FAFAF8;padding:24px 16px 0;min-height:210px;flex-wrap:nowrap;overflow-x:visible;border-left:1px solid #E8E6E1;border-right:1px solid #E8E6E1}
+.shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:#FAFAF8;padding:30px 16px 0;min-height:270px;flex-wrap:nowrap;overflow-x:auto;border-left:1px solid #E8E6E1;border-right:1px solid #E8E6E1}
 .shelf-plank{height:10px;background:#1C1917;border-radius:0 0 2px 2px}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
-.real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAF8;border-radius:8px 8px 0 0;padding:16px 12px 0;min-height:160px;overflow-x:auto}
+.real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAF8;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
 .real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
 .real-shelf-spine::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(90deg,rgba(255,255,255,0.22),rgba(255,255,255,0));border-radius:3px 0 0 0;pointer-events:none}
 .real-shelf-spine::after{content:'';position:absolute;right:0;top:0;width:2px;height:100%;background:rgba(0,0,0,0.15);pointer-events:none}
-.real-shelf-spine:hover{transform:translateY(-8px);box-shadow:0 12px 24px rgba(0,0,0,0.3)!important;z-index:2}
+.real-shelf-spine:hover{transform:translateY(-10px);box-shadow:0 16px 30px rgba(0,0,0,0.35)!important;z-index:2}
 .real-shelf-spine.dragging{opacity:0.3;transform:scale(0.96)}
-.real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.92);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.5);max-height:85%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.3px}
-.real-shelf-spine-actions{position:absolute;top:4px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
+.real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.95);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.6);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.5px}
+.real-shelf-spine-actions{position:absolute;top:6px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
 .real-shelf-spine:hover .real-shelf-spine-actions{opacity:1}
-.book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;backdrop-filter:blur(4px)}
+.book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;backdrop-filter:blur(4px)}
 .book3dot-btn:hover{background:rgba(0,0,0,0.8)}
-.fixed-move-menu{position:fixed;display:none;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,0.18);z-index:9000;min-width:180px;overflow:hidden}
-.fixed-move-menu button{width:100%;text-align:left;padding:9px 13px;font-size:12.5px;background:none;border:none;cursor:pointer;color:var(--ink2);font-family:'Inter',sans-serif;display:flex;align-items:center;gap:7px}
-.fixed-move-menu button:hover{background:var(--paper)}
+/* Single global action menu — lives at <body> level so transforms on ancestors don't break position:fixed */
+#g-book-menu{position:fixed;display:none;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,0.18);z-index:9999;min-width:190px;overflow:hidden}
+#g-book-menu button{width:100%;text-align:left;padding:10px 14px;font-size:13px;background:none;border:none;cursor:pointer;color:var(--ink2);font-family:'Inter',sans-serif;display:flex;align-items:center;gap:8px}
+#g-book-menu button:hover{background:var(--paper)}
 .shelf-list-scroll{max-height:520px;overflow-y:auto;scrollbar-width:thin}
 /* Share preview modal */
 .share-preview-modal{max-width:680px}
@@ -2707,21 +2708,19 @@ function listDrop(e,targetIdx){
 // Real bookshelf spine: width scales with actual page count, title font-size shrinks to fit
 function spineRealHtml(b,idx){
   const pages=b.pages||240;
-  const widthPx=Math.max(14,Math.min(72,Math.round(8+pages/14)));
-  const heightPx=Math.max(140,Math.min(240,140+Math.round(pages/10)));
+  // Width scales with pages: 20px (tiny novella) to 80px (doorstop), height always tall
+  const widthPx=Math.max(20,Math.min(80,Math.round(10+pages/13)));
+  const heightPx=Math.max(200,Math.min(280,200+Math.round(pages/9)));
   const titleLen=b.title.length;
-  const fontSize=titleLen>36?6:titleLen>24?7:titleLen>16?8:titleLen>10?9:10;
-  // The fixed-move-menu goes OUTSIDE .real-shelf-spine-actions to avoid inheriting opacity:0
-  const menuItems=bookActionsMenuItemsHtml(b);
+  const fontSize=titleLen>40?9:titleLen>28?10:titleLen>18?12:titleLen>12?13:15;
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
-    style="width:${widthPx}px;height:${heightPx}px;background:${b.color};box-shadow:${widthPx>30?'2px':'1px'} 0 4px rgba(0,0,0,0.3),inset -2px 0 3px rgba(0,0,0,0.15)"
+    style="width:${widthPx}px;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${b.id}')"
     ondragstart="shelfDragStart(event,${idx})" ondragover="shelfDragOver(event,${idx})" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
     title="${escapeHtml(b.title)} · ${pages} pp">
     <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
       <button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
     </div>
-    <div class="fixed-move-menu" id="move-menu3-${b.id}" onclick="event.stopPropagation()">${menuItems}</div>
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
@@ -2790,27 +2789,36 @@ function moveMenuHtml(id,currentStatus){
   </div>`;
 }
 
-// 3-dot contextual menu — for grid and list views
+// 3-dot contextual menu button — opens the single global menu
 function bookActionsMenuHtml(b){
-  return `<button class="book3dot-btn" style="background:rgba(0,0,0,0.4);width:20px;height:20px;font-size:11px" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
-    <div class="fixed-move-menu" id="move-menu3-${b.id}" onclick="event.stopPropagation()">${bookActionsMenuItemsHtml(b)}</div>`;
+  return `<button class="book3dot-btn" style="background:rgba(0,0,0,0.4);width:24px;height:24px;font-size:13px" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>`;
 }
 
+let _gmenuBookId=null;
 function openFixedMenu(e,id){
   e.stopPropagation();
-  closeAllMoveMenus();
-  const menu=document.getElementById('move-menu3-'+id);
-  if(!menu)return;
+  const menu=document.getElementById('g-book-menu');
+  if(_gmenuBookId===id&&menu.style.display==='block'){closeAllMoveMenus();return;}
+  _gmenuBookId=id;
+  const book=allBooks().find(b=>b.id===id);
+  if(!book)return;
+  menu.innerHTML=bookActionsMenuItemsHtml(book);
   const r=e.currentTarget.getBoundingClientRect();
   menu.style.display='block';
-  menu.style.top=Math.min(r.bottom+4,window.innerHeight-200)+'px';
+  const mh=menu.offsetHeight||220;
+  let top=r.bottom+6;
+  if(top+mh>window.innerHeight-8)top=r.top-mh-6;
   let left=r.left;
-  if(left+170>window.innerWidth)left=window.innerWidth-176;
-  menu.style.left=left+'px';
+  if(left+200>window.innerWidth)left=window.innerWidth-204;
+  menu.style.top=Math.max(8,top)+'px';
+  menu.style.left=Math.max(8,left)+'px';
 }
 
 function closeAllMoveMenus(){
-  document.querySelectorAll('.fixed-move-menu,.move-menu-dropdown').forEach(d=>{d.classList.remove('show');d.style.display='none';});
+  const menu=document.getElementById('g-book-menu');
+  if(menu){menu.style.display='none';menu.innerHTML='';}
+  _gmenuBookId=null;
+  document.querySelectorAll('.move-menu-dropdown').forEach(d=>{d.classList.remove('show');d.style.display='none';});
 }
 
 function toggleMoveMenu(e,id){
@@ -2821,7 +2829,7 @@ function toggleMoveMenu(e,id){
 }
 
 document.addEventListener('click',e=>{
-  if(!e.target.closest('.move-menu')&&!e.target.closest('.fixed-move-menu')&&!e.target.closest('.book3dot-btn'))closeAllMoveMenus();
+  if(!e.target.closest('#g-book-menu')&&!e.target.closest('.move-menu')&&!e.target.closest('.book3dot-btn'))closeAllMoveMenus();
 });
 
 function moveBookUniversal(id,from,to){
@@ -4293,5 +4301,7 @@ document.addEventListener('keydown',e=>{
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
 </script>
+<!-- Global book action menu — single instance at body level, avoids transform stacking-context bugs -->
+<div id="g-book-menu"></div>
 </body>
 </html>
