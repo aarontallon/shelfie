@@ -3102,6 +3102,16 @@ function setSearchMode(mode){
   document.getElementById('edition-picker').style.display='none';
 }
 
+// Test if a cover URL actually has a real image (OL returns 1px blank for missing covers)
+function testCoverUrl(url){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>resolve(img.naturalWidth>10?url:null);
+    img.onerror=()=>resolve(null);
+    img.src=url;
+  });
+}
+
 let _isbnTimer=null;
 function onISBNSearch(val){
   clearTimeout(_isbnTimer);
@@ -3119,59 +3129,63 @@ function onISBNSearch(val){
       const year=d.publish_date||'';
       const pages=d.number_of_pages||null;
       const worksKey=d.works?.[0]?.key||null;
-      const authorOlKey=null;
-      // only use cover IDs from THIS specific edition — not from other editions
-      const editionCoverIds=(d.covers||[]).filter(c=>c>0);
-      const defaultCover=editionCoverIds.length
-        ?`https://covers.openlibrary.org/b/id/${editionCoverIds[0]}-L.jpg`
-        :null;
-      const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:defaultCover,olKey:worksKey,authorOlKey,isbn,publisher:publisher||null,editionYear:year||null};
-      // fetch author + synopsis from work record
-      if(worksKey){
-        try{
-          const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
-          const wd=await wr.json();
-          const desc=typeof wd.description==='string'?wd.description:(wd.description?.value||'');
-          if(desc) bookData.synopsis=desc.substring(0,1200);
-          const ak=wd.authors?.[0]?.author?.key;
-          if(ak){
-            bookData.authorOlKey=ak.replace('/authors/','');
-            try{const ar=await fetch(`https://openlibrary.org${ak}.json`);const ad=await ar.json();bookData.author=ad.name||'';}catch(_){}
-          }
-        }catch(_){}
-      }
+      const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:null,olKey:worksKey,authorOlKey:null,isbn,publisher:publisher||null,editionYear:year||null};
+      // build candidate cover URLs: cover IDs from this edition + the ISBN URL
+      const candidateUrls=[
+        ...(d.covers||[]).filter(c=>c>0).map(c=>`https://covers.openlibrary.org/b/id/${c}-L.jpg`),
+        `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
+      ];
+      // fetch author + synopsis while testing cover URLs in parallel
+      const [validCovers]=await Promise.all([
+        Promise.all(candidateUrls.map(testCoverUrl)).then(results=>results.filter(Boolean)),
+        (async()=>{
+          if(!worksKey)return;
+          try{
+            const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
+            const wd=await wr.json();
+            const desc=typeof wd.description==='string'?wd.description:(wd.description?.value||'');
+            if(desc)bookData.synopsis=desc.substring(0,1200);
+            const ak=wd.authors?.[0]?.author?.key;
+            if(ak){
+              bookData.authorOlKey=ak.replace('/authors/','');
+              try{const ar=await fetch(`https://openlibrary.org${ak}.json`);const ad=await ar.json();bookData.author=ad.name||'';}catch(_){}
+            }
+          }catch(_){}
+        })()
+      ]);
+      // deduplicate valid covers (isbn URL and cover_id URL can point to same image)
+      const uniqueCovers=[...new Set(validCovers)];
+      bookData.cover=uniqueCovers[0]||null;
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
-      if(editionCoverIds.length>1){
-        // multiple covers for this edition — let user pick
-        showCoverPicker(bookData,editionCoverIds);
+      if(uniqueCovers.length>1){
+        showCoverPicker(bookData,uniqueCovers,'url');
       } else {
-        // 0 or 1 cover — go straight to add (cover already set or null)
         selectBookForAdd(bookData);
       }
     }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
 }
 
-function showCoverPicker(bookData, coverIds){
+// covers can be cover IDs (numbers) or full URLs (strings, when mode='url')
+function showCoverPicker(bookData, covers, mode){
   const picker=document.getElementById('cover-picker');
   const grid=document.getElementById('cover-picker-grid');
-  if(!coverIds.length){selectBookForAdd(bookData);return;}
+  if(!covers.length){selectBookForAdd(bookData);return;}
   picker.style.display='block';
   grid.innerHTML='';
-  // show up to 12 covers
-  coverIds.slice(0,12).forEach(cid=>{
-    const url=`https://covers.openlibrary.org/b/id/${cid}-M.jpg`;
-    const fullUrl=`https://covers.openlibrary.org/b/id/${cid}-L.jpg`;
+  covers.slice(0,12).forEach(c=>{
+    const isUrl=mode==='url';
+    const thumbUrl=isUrl?c.replace('-L.jpg','-M.jpg'):`https://covers.openlibrary.org/b/id/${c}-M.jpg`;
+    const fullUrl=isUrl?c:`https://covers.openlibrary.org/b/id/${c}-L.jpg`;
     const item=document.createElement('div');
     item.className='cover-pick-item';
-    item.innerHTML=`<img src="${url}" alt="" onerror="this.remove()">`;
+    item.innerHTML=`<img src="${thumbUrl}" alt="" onerror="this.closest('.cover-pick-item').remove()">`;
     item.addEventListener('click',()=>{
       picker.style.display='none';
       selectBookForAdd({...bookData,cover:fullUrl});
     });
     grid.appendChild(item);
   });
-  // "none of these" fallback at the end
   const skip=document.createElement('div');
   skip.className='cover-pick-item';
   skip.style.cssText='display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:10px;color:var(--ink3);text-align:center;padding:6px';
