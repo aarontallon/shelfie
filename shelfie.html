@@ -1373,7 +1373,7 @@ a{color:inherit}
   <button class="nb" id="nav-discover" onclick="go('discover',this)"><i class="ti ti-telescope"></i> <span>Descubrir</span></button>
   <button class="nb" id="nav-feed" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> <span>Feed</span> <span class="nb-badge" id="feed-badge">3</span></button>
   <button class="nb" id="nav-friends" onclick="go('friends',this)"><i class="ti ti-users"></i> <span>Amigos</span> <span class="nb-badge" id="friends-badge">2</span></button>
-  <button class="nb" id="nav-clubs" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> <span>Clubs</span></button>
+  <button class="nb" id="nav-stats" onclick="go('stats',this)"><i class="ti ti-chart-bar"></i> <span>Estadísticas</span></button>
 
   <div class="tn-gap"></div>
 
@@ -1394,9 +1394,9 @@ a{color:inherit}
           <div class="tn-more-user-stat" id="sb-stat">0 libros leídos</div>
         </div>
         <button class="nb" onclick="go('profile',null);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-user"></i> Mi perfil</button>
+        <button class="nb" id="nav-clubs" onclick="go('clubs',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-users-group"></i> Clubs</button>
         <button class="nb" id="nav-reviews" onclick="go('reviews',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-message-2"></i> Reseñas</button>
         <button class="nb" id="nav-retos" onclick="go('retos',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-target"></i> Retos <span class="nb-badge" id="retos-badge" style="display:none">0</span></button>
-        <button class="nb" id="nav-stats" onclick="go('stats',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-chart-bar"></i> Estadísticas</button>
         <hr class="tn-more-sep">
         <button class="tn-more-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button>
       </div>
@@ -3771,7 +3771,7 @@ function cvr(b,type){
   if(type==='spine')return `<div class="spine" style="${bg}"><div class="spine-txt">${b.cover?'':b.title}</div></div>`;
   if(type==='grid'){
     if(b.cover)return `<div class="grid-cover" style="${bg}"></div>`;
-    return `<div class="grid-cover" style="${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.4)">${escapeHtml(b.title)}</div><div style="font-size:10px;color:rgba(255,255,255,.75);font-weight:400">${escapeHtml(b.author)}</div></div>`;
+    return `<div class="grid-cover" style="${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px;text-align:center;overflow:hidden"><div style="font-size:10px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.4);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(b.title)}</div><div style="font-size:8.5px;color:rgba(255,255,255,.75);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${escapeHtml(b.author)}</div></div>`;
   }
   if(type==='mini')return `<div style="width:22px;height:32px;border-radius:2px;flex-shrink:0;${bg};background-size:cover"></div>`;
   return '';
