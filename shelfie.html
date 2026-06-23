@@ -898,7 +898,9 @@ a{color:inherit}
 .disc-list-count{font-size:11px;color:var(--ink3)}
 .disc-para-card{background:white;border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:center;margin-bottom:8px}
 .disc-para-pct{width:38px;height:38px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--red);flex-shrink:0}
-.disc-no-results{text-align:center;padding:40px 20px;color:var(--ink3);font-size:14px}
+.disc-no-results{text-align:center;padding:40px 20px;color:var(--ink3);font-size:14px;grid-column:1/-1}
+.disc-similar-sel{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--ink);background:white;outline:none;cursor:pointer}
+.disc-similar-sel:focus{border-color:var(--ink)}
 .stats-year-sel{font-size:13px;font-weight:500;font-family:'Inter',sans-serif;padding:5px 30px 5px 10px;border-radius:8px;border:1.5px solid var(--border);background:white;color:var(--ink);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;outline:none}
 .stats-year-sel:focus{border-color:var(--ink)}
 @media(max-width:700px){.stats-hero-grid{grid-template-columns:repeat(2,1fr)}.stats-3col{grid-template-columns:1fr}}
@@ -1454,7 +1456,7 @@ a{color:inherit}
   </div>
 
   <!-- Genre tabs -->
-  <div class="disc-genres" id="disc-genre-tabs">
+  <div class="disc-genres">
     <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
     <button class="dg-tab" data-genre="Ficción" onclick="setDiscoverGenre(this,'Ficción')">Ficción</button>
     <button class="dg-tab" data-genre="Clásicos" onclick="setDiscoverGenre(this,'Clásicos')">Clásicos</button>
@@ -1464,37 +1466,60 @@ a{color:inherit}
     <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
   </div>
 
-  <!-- Search results (shown while typing) -->
+  <!-- Search results -->
   <div id="disc-search-results" style="display:none">
-    <div class="disc-section-head"><span class="disc-section-title" id="disc-search-label">Resultados</span></div>
+    <div class="disc-section-head"><span class="disc-section-title" id="disc-search-label"></span></div>
     <div class="disc-grid" id="disc-search-grid"></div>
   </div>
 
   <!-- Main sections -->
   <div id="disc-main-sections">
-    <!-- Tendencias -->
+
+    <!-- Recomendador: libros similares -->
     <div class="disc-section">
-      <div class="disc-section-head">
-        <span class="disc-section-title">🔥 Tendencias en la comunidad</span>
+      <div class="disc-section-head"><span class="disc-section-title">🔍 Libros similares a uno que te gustó</span></div>
+      <div class="card" style="padding:14px 16px;margin-bottom:0">
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">Elige un libro de tu shelfie y te recomendamos lecturas parecidas</div>
+        <select id="disc-similar-sel" class="disc-similar-sel" onchange="showSimilarBooks(this.value)">
+          <option value="">Elige un libro que te haya gustado…</option>
+        </select>
       </div>
-      <div class="disc-grid" id="disc-trending"></div>
+      <div id="disc-similar-results" style="display:none;margin-top:10px">
+        <div class="disc-section-head"><span class="disc-section-title" id="disc-similar-label"></span></div>
+        <div class="disc-grid" id="disc-similar-grid"></div>
+      </div>
     </div>
 
     <!-- Para ti -->
     <div class="disc-section">
-      <div class="disc-section-head">
-        <span class="disc-section-title">✨ Para ti · basado en tu shelfie</span>
-      </div>
-      <div id="disc-para-ti"></div>
+      <div class="disc-section-head"><span class="disc-section-title" id="disc-parati-title">✨ Para ti · basado en tu shelfie</span></div>
+      <div class="disc-grid" id="disc-para-ti"></div>
+    </div>
+
+    <!-- Tendencias -->
+    <div class="disc-section">
+      <div class="disc-section-head"><span class="disc-section-title">🔥 Tendencias en la comunidad</span></div>
+      <div class="disc-grid" id="disc-trending"></div>
     </div>
 
     <!-- Listas curadas -->
     <div class="disc-section">
-      <div class="disc-section-head">
-        <span class="disc-section-title">📚 Listas curadas</span>
-      </div>
+      <div class="disc-section-head"><span class="disc-section-title">📚 Listas curadas</span></div>
       <div class="disc-list-grid" id="disc-lists"></div>
     </div>
+
+  </div>
+</div>
+
+<!-- Modal: lista curada -->
+<div class="overlay" id="modal-disc-list" onclick="closeModal('modal-disc-list')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-height:80vh;overflow-y:auto">
+    <div class="modal-head">
+      <div id="disc-list-modal-title" style="font-size:16px;font-weight:600"></div>
+      <button class="modal-close" onclick="closeModal('modal-disc-list')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="disc-list-modal-desc" style="font-size:13px;color:var(--ink3);margin-bottom:14px"></div>
+    <div class="disc-grid" id="disc-list-modal-body"></div>
   </div>
 </div>
 
@@ -4240,89 +4265,152 @@ function renderReviews(){
 // ═══════════════════════════════════════════════
 // DISCOVER
 // ═══════════════════════════════════════════════
-function discoverBookCard(b,showWhy){
-  const inShelf=allBooks().find(x=>x.title.toLowerCase()===b.title.toLowerCase());
-  const stars='★'.repeat(Math.round(b.stars))+'☆'.repeat(5-Math.round(b.stars));
-  const safeTitle=b.title.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  const safeAuthor=(b.author||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-  const addedClass=inShelf?'added':'';
-  const addedLabel=inShelf?'✓ En tu shelfie':'+ Añadir';
-  const addClick=inShelf?'':`onclick="quickAddDirect('${safeTitle}','${safeAuthor}','quiero');this.className='disc-add-btn added';this.textContent='✓ En tu shelfie'"`;
-  return `<div class="disc-book-card" onclick="openBookPage('${safeTitle}','${safeAuthor}')">
-    <div class="disc-cover" style="background:${b.color}">${b.title.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div>
+function inferDiscoverGenre(book){
+  const t=(book.title+' '+book.author).toLowerCase();
+  if(/garcía márquez|cortázar|bolaño|borges|vargas llosa|allende|rulfo|neruda|fuentes|donoso|arlt|onetti/.test(t))return'Latinoamérica';
+  if(/dostoievski|tolstói|tolstoi|cervantes|flaubert|kafka|proust|dickens|austen|eliot|joyce|homero|dante|chekhov|turgenev/.test(t))return'Clásicos';
+  if(/asimov|herbert|le guin|clarke|dick|gibson|lem|atwood|bradbury|heinlein/.test(t))return'Sci-Fi';
+  if(/harari|zweig|woolf|rilke|nietzsche|montaigne|camus|sartre|beauvoir|arendt/.test(t))return'Ensayo';
+  if(/historia|siglo|guerra|imperio|revolución/.test(t))return'Historia';
+  return'Ficción';
+}
+
+function discoverUniqCatalog(genre){
+  let cat=genre==='all'?DISCOVER_CATALOG:DISCOVER_CATALOG.filter(b=>b.genre===genre);
+  const seen=new Set();
+  return cat.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
+}
+
+function discoverBookCard(b){
+  const inShelf=!!allBooks().find(x=>x.title.toLowerCase()===b.title.toLowerCase());
+  const starsN=Math.round(b.stars||0);
+  const stars='★'.repeat(starsN)+'☆'.repeat(5-starsN);
+  const t=b.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const a=(b.author||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const initials=b.title.split(/\s+/).filter(w=>/^[A-Za-záéíóúüñÁÉÍÓÚÜÑ]/.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+  const addBtn=inShelf
+    ?`<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>`
+    :`<button class="disc-add-btn" onclick="event.stopPropagation();quickAddDirect('${t}','${a}','quiero');this.outerHTML='<button class=\\'disc-add-btn added\\' disabled>✓ En tu shelfie</button>'">+ Quiero leer</button>`;
+  return`<div class="disc-book-card" onclick="openBookPage('${t}','${a}')">
+    <div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>
     <div class="disc-book-info">
       <div class="disc-book-title">${escapeHtml(b.title)}</div>
-      <div class="disc-book-author">${escapeHtml(b.author)}${b.year?' · '+b.year:''}</div>
-      ${showWhy?`<div style="font-size:10px;color:var(--red);margin-bottom:3px;font-style:italic">${escapeHtml(b.why||'')}</div>`:''}
-      <div class="disc-book-meta">
-        <span class="disc-stars">${stars}</span>
-        <span class="disc-readers">${b.readers?b.readers.toLocaleString('es-ES')+' lectores':''}</span>
-      </div>
-      <button class="disc-add-btn ${addedClass}" ${addClick} onclick="${addClick?'':''}">${addedLabel}</button>
+      <div class="disc-book-author">${escapeHtml(b.author||'')}${b.year?' · '+b.year:''}</div>
+      <div class="disc-book-meta"><span class="disc-stars">${stars}</span><span class="disc-readers">${b.readers?(b.readers).toLocaleString('es-ES')+' lectores':''}</span></div>
+      ${addBtn}
     </div>
   </div>`;
 }
 
 function renderDiscover(){
   _discoverQuery='';
-  const input=document.getElementById('disc-search-input');
-  if(input)input.value='';
+  const inp=document.getElementById('disc-search-input');
+  if(inp)inp.value='';
   document.getElementById('disc-search-results').style.display='none';
   document.getElementById('disc-main-sections').style.display='';
+  document.getElementById('disc-similar-results').style.display='none';
 
-  // Genre filter
   const genre=_discoverGenre;
-  let catalog=genre==='all'?DISCOVER_CATALOG:DISCOVER_CATALOG.filter(b=>b.genre===genre);
-  // Remove dupes by title
-  const seen=new Set();
-  catalog=catalog.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
+  const catalog=discoverUniqCatalog(genre);
+  const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
 
-  // Trending: top 6 by readers
-  const trending=[...catalog].sort((a,b2)=>b2.readers-a.readers).slice(0,6)
-    .filter(b=>!allBooks().find(x=>x.title.toLowerCase()===b.title.toLowerCase()));
+  // ── Para ti: from DISCOVER_CATALOG, never empty ──
+  // Try to match genres from user's leidos; fallback to top-rated
+  const userGenres=new Set(DB.leidos.map(b=>inferDiscoverGenre(b)));
+  let parati=catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())&&userGenres.has(b.genre))
+    .sort((a,b2)=>b2.stars-a.stars);
+  if(parati.length<4)parati=[...parati,...catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())&&!userGenres.has(b.genre)).sort((a,b2)=>b2.stars-a.stars)];
+  parati=parati.slice(0,6);
+  const topBook=DB.leidos.filter(b=>b.stars>=4).sort((a,b2)=>b2.stars-a.stars)[0];
+  if(topBook)document.getElementById('disc-parati-title').textContent=`✨ Porque disfrutas de libros como "${topBook.title}"`;
+  else document.getElementById('disc-parati-title').textContent='✨ Para ti · basado en tu shelfie';
+  document.getElementById('disc-para-ti').innerHTML=parati.length
+    ?parati.map(b=>discoverBookCard(b)).join('')
+    :'<div class="disc-no-results">Añade libros leídos a tu shelfie para personalizar tus recomendaciones</div>';
+
+  // ── Tendencias ──
+  const trending=catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())).sort((a,b2)=>b2.readers-a.readers).slice(0,6);
   document.getElementById('disc-trending').innerHTML=trending.length
-    ?trending.map(b=>discoverBookCard(b,false)).join('')
-    :'<div class="disc-no-results">¡Ya tienes los más populares de este género!</div>';
+    ?trending.map(b=>discoverBookCard(b)).join('')
+    :'<div class="disc-no-results">Ya tienes los más populares de este género</div>';
 
-  // Para ti (STATIC_RECS filtered to genre if needed)
-  const parati=STATIC_RECS.filter(r=>!allBooks().find(b=>b.title===r.title)).slice(0,4);
-  document.getElementById('disc-para-ti').innerHTML=parati.length?parati.map(r=>`
-    <div class="disc-para-card" onclick="openBookPage('${r.title.replace(/'/g,"\\'")}','${r.author.replace(/'/g,"\\'")}')">
-      <div class="disc-para-pct">${r.pct}%</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:1px">${escapeHtml(r.title)}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-bottom:3px">${escapeHtml(r.author)}${r.year?' · '+r.year:''}${r.pages?' · '+r.pages+' p':''}</div>
-        <div style="font-size:11px;color:var(--red);font-style:italic">${escapeHtml(r.why)}</div>
-      </div>
-      <button class="disc-add-btn" onclick="event.stopPropagation();quickAddDirect('${r.title.replace(/'/g,"\\'")}','${r.author.replace(/'/g,"\\'")}','quiero');this.className='disc-add-btn added';this.textContent='✓'">+</button>
-    </div>`).join(''):'<div class="disc-no-results">🎉 ¡Ya tienes todos en tu shelfie!</div>';
+  // ── Selector similares: libros leídos por el usuario ──
+  const sel=document.getElementById('disc-similar-sel');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">Elige un libro que te haya gustado…</option>';
+  const leidos=[...DB.leidos].sort((a,b2)=>(b2.stars||0)-(a.stars||0));
+  leidos.forEach(b=>{
+    const o=document.createElement('option');
+    o.value=b.title;
+    o.textContent=(b.stars?'★'.repeat(b.stars)+' ':'')+b.title;
+    sel.appendChild(o);
+  });
+  if(prev)sel.value=prev;
 
-  // Listas curadas
-  document.getElementById('disc-lists').innerHTML=DISCOVER_LISTS.map(l=>`
-    <div class="disc-list-card">
+  // ── Listas curadas ──
+  document.getElementById('disc-lists').innerHTML=DISCOVER_LISTS.map((l,i)=>`
+    <div class="disc-list-card" onclick="openDiscoverList(${i})">
       <div class="disc-list-emoji">${l.emoji}</div>
       <div class="disc-list-name">${escapeHtml(l.name)}</div>
-      <div class="disc-list-count" style="margin-bottom:6px">${escapeHtml(l.desc)}</div>
-      <div style="font-size:11px;color:var(--ink3)">${l.count} libros</div>
+      <div class="disc-list-count">${escapeHtml(l.desc)}</div>
+      <div style="font-size:11px;color:var(--red);margin-top:6px">${l.count} libros →</div>
     </div>`).join('');
+}
+
+function showSimilarBooks(title){
+  const res=document.getElementById('disc-similar-results');
+  if(!title){res.style.display='none';return;}
+  const book=allBooks().find(b=>b.title===title)||{title,author:'',stars:0};
+  const genre=inferDiscoverGenre(book);
+  const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
+  // Same genre first, then other genres
+  const seen=new Set();
+  let similar=DISCOVER_CATALOG.filter(b=>b.genre===genre&&!shelfTitles.has(b.title.toLowerCase()));
+  similar=[...similar,...DISCOVER_CATALOG.filter(b=>b.genre!==genre&&!shelfTitles.has(b.title.toLowerCase()))];
+  similar=similar.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;}).slice(0,6);
+  document.getElementById('disc-similar-label').textContent=`Porque leíste "${title}"`;
+  document.getElementById('disc-similar-grid').innerHTML=similar.length
+    ?similar.map(b=>discoverBookCard(b)).join('')
+    :'<div class="disc-no-results">No encontramos más libros similares en el catálogo</div>';
+  res.style.display='';
+}
+
+function openDiscoverList(idx){
+  const l=DISCOVER_LISTS[idx];
+  document.getElementById('disc-list-modal-title').textContent=l.emoji+' '+l.name;
+  document.getElementById('disc-list-modal-desc').textContent=l.desc;
+  // Find catalog books matching list.books titles; fill missing ones with minimal cards
+  const catalogMap=Object.fromEntries(DISCOVER_CATALOG.map(b=>[b.title.toLowerCase(),b]));
+  const books=l.books.map(t=>{
+    const found=catalogMap[t.toLowerCase()];
+    if(found)return found;
+    // Minimal fallback for books in list but not in catalog
+    return{title:t,author:'',year:null,pages:null,genre:'Ficción',stars:4.5,readers:0,color:'#555'};
+  });
+  // Dedupe
+  const seen=new Set();
+  const uniq=books.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
+  document.getElementById('disc-list-modal-body').innerHTML=uniq.map(b=>discoverBookCard(b)).join('');
+  openModal('modal-disc-list');
 }
 
 function discoverSearch(q){
   _discoverQuery=q.trim().toLowerCase();
-  const hasQuery=!!_discoverQuery;
-  document.getElementById('disc-search-results').style.display=hasQuery?'':'none';
-  document.getElementById('disc-main-sections').style.display=hasQuery?'none':'';
-  if(!hasQuery)return;
-  const results=DISCOVER_CATALOG.filter(b=>
-    b.title.toLowerCase().includes(_discoverQuery)||
-    b.author.toLowerCase().includes(_discoverQuery)
-  );
+  const hasQ=!!_discoverQuery;
+  document.getElementById('disc-search-results').style.display=hasQ?'':'none';
+  document.getElementById('disc-main-sections').style.display=hasQ?'none':'';
+  if(!hasQ)return;
   const seen=new Set();
-  const uniq=results.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
-  document.getElementById('disc-search-label').textContent=uniq.length?`${uniq.length} resultado${uniq.length!==1?'s':''} para "${q.trim()}"`:' ';
-  document.getElementById('disc-search-grid').innerHTML=uniq.length
-    ?uniq.map(b=>discoverBookCard(b,false)).join('')
-    :`<div class="disc-no-results" style="grid-column:1/-1">No encontramos "${escapeHtml(q.trim())}"<br><span style="font-size:12px">Prueba otro título o autor</span></div>`;
+  const results=DISCOVER_CATALOG.filter(b=>{
+    if(seen.has(b.title))return false;
+    if(b.title.toLowerCase().includes(_discoverQuery)||b.author.toLowerCase().includes(_discoverQuery)){seen.add(b.title);return true;}
+    return false;
+  });
+  document.getElementById('disc-search-label').textContent=results.length
+    ?`${results.length} resultado${results.length!==1?'s':''} para "${q.trim()}"`:`Sin resultados para "${q.trim()}"`;
+  document.getElementById('disc-search-grid').innerHTML=results.length
+    ?results.map(b=>discoverBookCard(b)).join('')
+    :'<div class="disc-no-results">Prueba con otro título o autor</div>';
 }
 
 function setDiscoverGenre(btn,genre){
