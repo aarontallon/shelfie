@@ -323,9 +323,6 @@ a{color:inherit}
 .author-page-bio{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:12px;max-width:620px}
 .author-work-row-full{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
 .author-work-row-full:last-child{border-bottom:none}
-.author-work-buy{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.author-work-buy-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;background:var(--paper);white-space:nowrap;transition:background .12s}
-.author-work-buy-btn:hover{background:var(--bg);color:var(--ink)}
 .author-work-badge{font-size:11px;color:var(--ink3);white-space:nowrap}
 .author-work-want{white-space:nowrap;font-size:11px}
 .author-work-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #F5F5F4;cursor:pointer}
@@ -2442,6 +2439,7 @@ let CURRENT_SHELFIE_YEAR=new Date().getFullYear();
 let YEAR_GOAL_IDS=new Set(); // book IDs marked as "quiero leer este año" — the current year's Shelfie
 let SHELFIE_YEARS_ARCHIVE=[]; // [{year, books:[{id,title,author,status,stars,cover,color}]}] — snapshots of past years' shelfies
 let pendingBook=null;
+let _pendingStartReading=null;
 let customCover=null;
 let toastTimer=null;
 let isLoggedIn=false;
@@ -3010,7 +3008,9 @@ function openModal(id){document.getElementById(id).style.display='flex';if(id===
 function closeModal(id){document.getElementById(id).style.display='none';}
 
 function resetAddModal(){
-  starVal=0;starManualVal=0;pendingBook=null;customCover=null;
+  starVal=0;starManualVal=0;pendingBook=null;customCover=null;_pendingStartReading=null;
+  document.querySelector('#modal-add h2').textContent='Añadir libro a tu shelfie';
+  document.querySelector('#modal-add .sub').textContent='Busca un libro — aparecen portadas reales';
   document.getElementById('modal-srch-inp').value='';
   document.getElementById('isbn-inp').value='';
   document.getElementById('isbn-status').textContent='';
@@ -3395,6 +3395,27 @@ function onManualStatusChange(s){
 // ═══════════════════════════════════════════════
 function confirmAdd(){
   if(!pendingBook){toast('Primero selecciona un libro de la búsqueda');return;}
+  // Special flow: moving quiero→leyendo with edition selection
+  if(_pendingStartReading){
+    const {bookId,from}=_pendingStartReading;
+    _pendingStartReading=null;
+    const idx=DB[from].findIndex(b=>b.id===bookId);
+    if(idx>=0){
+      const book=DB[from].splice(idx,1)[0];
+      book.status='leyendo';
+      if(pendingBook.cover)book.cover=pendingBook.cover;
+      if(pendingBook.publisher)book.publisher=pendingBook.publisher;
+      if(pendingBook.isbn)book.isbn=pendingBook.isbn;
+      if(pendingBook.editionYear)book.editionYear=pendingBook.editionYear;
+      const pages=parseInt(document.getElementById('qadd-pages').value)||null;
+      if(pages)book.pages=pages;
+      DB.leyendo.unshift(book);
+    }
+    closeModal('modal-add');
+    updateAll();renderShelf();
+    toast(`📖 Empezando «${pendingBook.title}»`);
+    return;
+  }
   const status=document.querySelector('.status-btn.sel')?.dataset.s||'leidos';
   if(status==='leidos'&&!starVal){toast('⚠️ Selecciona una valoración');return;}
   const review=document.getElementById('qadd-review').value.trim();
@@ -4011,12 +4032,38 @@ function moveBookUniversal(id,from,to){
 
 function moveBook(id,from,to){
   const idx=DB[from].findIndex(b=>b.id===id);if(idx<0)return;
-  const book=DB[from].splice(idx,1)[0];
+  const book=DB[from][idx];
+  // When starting to read a book from "quiero leer", offer edition picker if possible
+  if(from==='quiero'&&to==='leyendo'&&book.olKey){
+    startReadingWithEdition(book,from);
+    return;
+  }
+  DB[from].splice(idx,1);
   book.status=to;
   if(to==='leidos'&&!book.stars){const s=parseInt(prompt(`Valora «${book.title}» (1-5★)`,'5'));book.stars=s>=1&&s<=5?s:5;RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));}
   DB[to].unshift(book);
   updateAll();renderShelf();
   toast(`«${book.title}» movido`);
+}
+
+async function startReadingWithEdition(book,from){
+  // Show edition picker modal reusing the add modal infrastructure
+  pendingBook={...book};
+  openModal('modal-add');
+  // Switch to show edition picker immediately
+  setSearchMode('title');
+  document.getElementById('title-search-row').style.display='none';
+  document.getElementById('edition-picker').style.display='none';
+  document.getElementById('qadd-panel').style.display='none';
+  const status=document.getElementById('isbn-status');
+  if(status)status.textContent='';
+  // Show a header message
+  document.querySelector('#modal-add h2').textContent='¿Qué edición estás leyendo?';
+  document.querySelector('#modal-add .sub').textContent=`Elige tu edición de «${book.title}»`;
+  await fetchEditionsAndPick({...book});
+  // After edition is selected, selectBookForAdd will show qadd-panel
+  // Override confirmAdd to just move status (not add new book)
+  _pendingStartReading={bookId:book.id,from};
 }
 
 function removeBook(id,from){
@@ -4313,13 +4360,6 @@ function renderAuthorPage(authorName){
         ?`<img src="${w.cover}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
         :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
 
-      const searchQ=encodeURIComponent(w.title+' '+name);
-      const buyLinksHtml=`
-        <div class="author-work-buy" onclick="event.stopPropagation()">
-          <a href="https://www.amazon.es/s?k=${searchQ}" target="_blank" class="author-work-buy-btn" title="Amazon"><i class="ti ti-brand-amazon"></i> Amazon</a>
-          <a href="https://www.casadellibro.com/busqueda-generica?q=${encodeURIComponent(w.title)}" target="_blank" class="author-work-buy-btn" title="Casa del Libro"><i class="ti ti-building-store"></i> Casa del libro</a>
-        </div>`;
-
       let actionHtml='';
       if(userBook){
         const labels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
@@ -4337,10 +4377,7 @@ function renderAuthorPage(authorName){
             ${w.year?`<div class="author-work-year">${w.year}</div>`:''}
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          ${actionHtml}
-          ${buyLinksHtml}
-        </div>
+        <div style="flex-shrink:0">${actionHtml}</div>
       </div>`;
     }).join('');
   });
