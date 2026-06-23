@@ -23,7 +23,7 @@ a{color:inherit}
 .auth-logo .logo-icon svg{width:22px;height:22px;fill:white}
 .auth-logo .logo-text{font-family:'Playfair Display',serif;font-size:24px;color:var(--ink)}
 .auth-logo .logo-text em{color:var(--red);font-style:normal}
-.auth-title{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;text-align:center;margin-bottom:6px}
+.auth-title{font-family:'Inter',sans-serif;font-size:24px;font-weight:600;letter-spacing:-0.02em;text-align:center;margin-bottom:6px}
 .auth-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:24px}
 .auth-social{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
 .auth-social-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:white;font-family:'Inter',sans-serif;transition:all 0.12s}
@@ -67,7 +67,7 @@ a{color:inherit}
 .page{display:none;padding:28px 32px;min-height:100vh}
 .page.on{display:block}
 .tb{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
-.tb h1{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-0.04em}
+.tb h1{font-family:'Inter',sans-serif;font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-0.03em}
 .tb p{font-size:13px;color:var(--ink3);margin-top:3px}
 .tb-right{display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.12s;white-space:nowrap}
@@ -597,7 +597,7 @@ a{color:inherit}
 .profile-av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(232,93,74,0.7);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0}
 .profile-av.has-streak{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,0.25)}
 .profile-hero-info{flex:1;min-width:0}
-.profile-name{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.03em}
+.profile-name{font-family:'Inter',sans-serif;font-size:26px;font-weight:600;line-height:1.1;margin-bottom:4px;letter-spacing:-0.02em}
 .profile-handle{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .profile-visibility-badge{background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px;font-size:10px;color:rgba(255,255,255,0.6)}
 .profile-bio-text{font-size:13.5px;color:rgba(255,255,255,0.65);line-height:1.55;margin-bottom:6px}
@@ -863,13 +863,12 @@ a{color:inherit}
 .in-progress-row:last-child{border-bottom:none}
 .in-progress-info{flex:1;min-width:0}
 .in-progress-pct{font-size:12px;font-weight:700;color:var(--red);flex-shrink:0;width:38px;text-align:right}
-.stats-year-btn{font-size:12px;font-weight:600;padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;transition:all .15s}
-.stats-year-btn.on{background:var(--ink);color:white;border-color:var(--ink)}
-.stats-year-btn:hover:not(.on){border-color:var(--ink);color:var(--ink)}
+.stats-year-sel{font-size:13px;font-weight:500;font-family:'Inter',sans-serif;padding:5px 30px 5px 10px;border-radius:8px;border:1.5px solid var(--border);background:white;color:var(--ink);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;outline:none}
+.stats-year-sel:focus{border-color:var(--ink)}
 @media(max-width:700px){.stats-hero-grid{grid-template-columns:repeat(2,1fr)}.stats-3col{grid-template-columns:1fr}}
 @media print{
   body{background:white}
-  .sidebar,.nb-wrap,.tb button,.stats-year-btn,.btn{display:none!important}
+  .sidebar,.nb-wrap,.tb button,.stats-year-sel,.btn{display:none!important}
   .page{display:block!important;padding:0;margin:0}
   .page:not(#p-stats){display:none!important}
   .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
@@ -1939,12 +1938,12 @@ a{color:inherit}
   <div class="tb">
     <div>
       <h1>Estadísticas</h1>
-      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-        <button class="stats-year-btn on" data-year="all" onclick="setStatsYear(this,'all')">Todo</button>
-        <button class="stats-year-btn" data-year="2026" onclick="setStatsYear(this,'2026')">2026</button>
-        <button class="stats-year-btn" data-year="2025" onclick="setStatsYear(this,'2025')">2025</button>
-        <button class="stats-year-btn" data-year="2024" onclick="setStatsYear(this,'2024')">2024</button>
-      </div>
+      <select class="stats-year-sel" onchange="setStatsYear(this.value)" style="margin-top:8px">
+        <option value="all">General</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+      </select>
     </div>
     <button class="btn btn-white" onclick="exportStats()"><i class="ti ti-download"></i> Exportar PDF</button>
   </div>
@@ -4330,9 +4329,7 @@ function renderStats(){
 // ═══════════════════════════════════════════════
 let _statsYear='all';
 
-function setStatsYear(btn,year){
-  document.querySelectorAll('.stats-year-btn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+function setStatsYear(year){
   _statsYear=year;
   renderStats();
 }
