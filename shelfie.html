@@ -962,6 +962,11 @@ a{color:inherit}
 .srch-mode-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
 .book-page-edition-badge{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;color:var(--ink3);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .edition-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;transition:background .12s;border:1px solid transparent}
+.cover-pick-item{cursor:pointer;border-radius:6px;overflow:hidden;border:2px solid transparent;transition:border-color .15s;aspect-ratio:2/3;background:#E8E5DF;position:relative}
+.cover-pick-item:hover{border-color:var(--red)}
+.cover-pick-item.sel{border-color:var(--red);box-shadow:0 0 0 2px var(--red-light)}
+.cover-pick-item img{width:100%;height:100%;object-fit:cover;display:block}
+.cover-pick-item .cover-pick-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#E8E5DF;color:var(--ink3);font-size:22px}
 .edition-item:hover{background:var(--bg);border-color:var(--border)}
 .edition-cover{width:32px;height:46px;border-radius:3px;background:#ddd;background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .edition-info{flex:1;min-width:0}
@@ -1087,6 +1092,12 @@ a{color:inherit}
       <button onclick="skipEditionPicker()" style="font-size:12px;color:var(--ink3);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Saltar →</button>
     </div>
     <div id="edition-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px"></div>
+  </div>
+  <div id="cover-picker" style="display:none;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--ink)">Elige la portada de tu ejemplar</div>
+    </div>
+    <div id="cover-picker-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px"></div>
   </div>
   <div class="qadd-panel" id="qadd-panel" style="display:none">
     <div class="qadd-book">
@@ -2998,6 +3009,7 @@ function resetAddModal(){
   document.getElementById('modal-srch-drop').style.display='none';
   document.getElementById('qadd-panel').style.display='none';
   document.getElementById('edition-picker').style.display='none';
+  document.getElementById('cover-picker').style.display='none';
   setSearchMode('title');
   document.getElementById('m-title').value='';
   document.getElementById('m-author').value='';
@@ -3126,9 +3138,37 @@ function onISBNSearch(val){
         }catch(_){}
       }
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
-      selectBookForAdd(bookData);
+      // if multiple cover IDs exist, show picker; otherwise go straight to add
+      const coverIds=(d.covers||[]).filter(c=>c>0);
+      if(coverIds.length>1){
+        showCoverPicker(bookData,coverIds);
+      } else {
+        selectBookForAdd(bookData);
+      }
     }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
+}
+
+function showCoverPicker(bookData, coverIds){
+  const picker=document.getElementById('cover-picker');
+  const grid=document.getElementById('cover-picker-grid');
+  picker.style.display='block';
+  grid.innerHTML='';
+  // limit to first 8 covers
+  coverIds.slice(0,8).forEach(cid=>{
+    const url=`https://covers.openlibrary.org/b/id/${cid}-M.jpg`;
+    const fullUrl=`https://covers.openlibrary.org/b/id/${cid}-L.jpg`;
+    const item=document.createElement('div');
+    item.className='cover-pick-item';
+    item.innerHTML=`<img src="${url}" alt="" onerror="this.parentElement.innerHTML='<div class=cover-pick-fallback><i class=ti ti-book></i></div>'">`;
+    item.addEventListener('click',()=>{
+      document.querySelectorAll('.cover-pick-item').forEach(el=>el.classList.remove('sel'));
+      item.classList.add('sel');
+      picker.style.display='none';
+      selectBookForAdd({...bookData,cover:fullUrl});
+    });
+    grid.appendChild(item);
+  });
 }
 
 async function fetchEditionsAndPick(bookData){
