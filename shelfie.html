@@ -933,7 +933,7 @@ a{color:inherit}
 .reread-history-stars{color:var(--amber);font-size:12px}
 .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink3);padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;line-height:1}
 .modal-close:hover{background:var(--paper);color:var(--ink)}
-.modal h2{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:4px}
+.modal h2{font-family:'Inter',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
 .modal .sub{font-size:13px;color:var(--ink3);margin-bottom:20px}
 .f-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink3);font-weight:600;display:block;margin-bottom:5px}
 .f-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;color:var(--ink);background:white;outline:none;transition:border-color 0.12s}
@@ -3137,34 +3137,54 @@ async function fetchEditionsAndPick(bookData){
   picker.style.display='block';
   list.innerHTML='<div style="padding:10px;text-align:center;color:var(--ink3);font-size:13px"><i class="ti ti-loader-2 spin"></i> Cargando ediciones…</div>';
   try{
-    const res=await fetch(`https://openlibrary.org${bookData.olKey}/editions.json?limit=20`);
+    // fetch up to 100 editions across two pages if needed
+    const res=await fetch(`https://openlibrary.org${bookData.olKey}/editions.json?limit=50`);
     const data=await res.json();
-    const editions=(data.entries||[]).filter(e=>e.publishers?.length||e.publish_date);
-    document.getElementById('edition-picker-count').textContent=editions.length?`(${editions.length} ediciones)`:'';
-    if(!editions.length){list.innerHTML='<div style="padding:10px;text-align:center;color:var(--ink3);font-size:12px">No hay ediciones disponibles</div>';return;}
+    let entries=(data.entries||[]).filter(e=>{
+      const isbn=(e.isbn_13||e.isbn_10||[])[0];
+      return e.publishers?.length||(isbn&&isbn.length>=10);
+    });
+    // sort: covers first, then ISBNs, then rest
+    entries.sort((a,b)=>{
+      const aC=(a.covers?.length?2:0)+(((a.isbn_13||a.isbn_10||[]).length)?1:0);
+      const bC=(b.covers?.length?2:0)+(((b.isbn_13||b.isbn_10||[]).length)?1:0);
+      return bC-aC;
+    });
+    document.getElementById('edition-picker-count').textContent=entries.length?`(${entries.length} ediciones)`:'';
+    if(!entries.length){
+      // fallback: skip picker and use default
+      selectBookForAdd(bookData);
+      picker.style.display='none';
+      return;
+    }
     list.innerHTML='';
-    editions.forEach(ed=>{
+    entries.forEach(ed=>{
       const pub=(ed.publishers||[])[0]||'Editorial desconocida';
       const yr=ed.publish_date||'';
       const lang=(ed.languages?.[0]?.key||'').replace('/languages/','');
-      const isbn=(ed.isbn_13||ed.isbn_10||[])[0]||null;
-      const coverId=ed.covers?.[0]||null;
-      const coverUrl=coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`:null;
+      const isbn13=(ed.isbn_13||[])[0]||null;
+      const isbn10=(ed.isbn_10||[])[0]||null;
+      const isbn=isbn13||isbn10;
+      const coverId=ed.covers?.[0]>0?ed.covers[0]:null;
+      // prefer cover_id since it's more reliable; fall back to isbn
+      const thumbUrl=coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`:null;
+      const fullUrl=coverId?`https://covers.openlibrary.org/b/id/${coverId}-L.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`:null;
       const pages=ed.number_of_pages||null;
       const item=document.createElement('div');
       item.className='edition-item';
+      const imgId='ecov-'+Math.random().toString(36).slice(2);
       item.innerHTML=`
-        <div class="edition-cover" id="ecov-${isbn||coverId||Math.random()}" style="${coverUrl?`background-image:url(${coverUrl});background-size:cover;background-position:center`:'background:#E8E5DF'}">
-          ${!coverUrl?`<i class="ti ti-book" style="font-size:14px;color:var(--ink3)"></i>`:''}
+        <div class="edition-cover" style="background:#E8E5DF;position:relative;overflow:hidden">
+          ${thumbUrl?`<img id="${imgId}" src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'" alt="">`:``}
+          <i class="ti ti-book" style="font-size:14px;color:var(--ink3)"></i>
         </div>
         <div class="edition-info">
           <div class="edition-pub">${escapeHtml(pub)}</div>
-          <div class="edition-meta">${[yr,lang?lang.toUpperCase():'',pages?pages+' p':''].filter(Boolean).join(' · ')}</div>
+          <div class="edition-meta">${[yr,lang?lang.toUpperCase():'',pages?pages+' p':'',isbn?'ISBN':''].filter(Boolean).join(' · ')}</div>
         </div>
         <i class="ti ti-chevron-right" style="color:var(--ink3);font-size:14px;flex-shrink:0"></i>`;
       item.addEventListener('click',()=>{
-        const bestCover=coverUrl?(coverId?`https://covers.openlibrary.org/b/id/${coverId}-L.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`:null):null;
-        selectBookForAdd({...bookData,cover:bestCover||bookData.cover});
+        selectBookForAdd({...bookData,cover:fullUrl||bookData.cover,pages:pages||bookData.pages});
         picker.style.display='none';
       });
       list.appendChild(item);
@@ -3298,7 +3318,9 @@ function confirmAdd(){
   if(status==='leidos'&&!starVal){toast('⚠️ Selecciona una valoración');return;}
   const review=document.getElementById('qadd-review').value.trim();
   const pages=parseInt(document.getElementById('qadd-pages').value)||null;
-  if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===pendingBook.title.toLowerCase())){toast(`«${pendingBook.title}» ya está en tu shelfie`);return;}
+  // allow duplicate titles (different editions) — just warn if exact same cover
+  const existing=Object.values(DB).flat().filter(b=>b.title.toLowerCase()===pendingBook.title.toLowerCase());
+  if(existing.length&&existing.some(b=>b.cover===pendingBook.cover&&b.cover)){toast(`Ya tienes esta edición de «${pendingBook.title}»`);return;}
   const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
@@ -3316,7 +3338,6 @@ function saveManual(){
   if(!title){toast('⚠️ Escribe el título');document.getElementById('m-title').focus();return;}
   if(!author){toast('⚠️ Escribe el autor');document.getElementById('m-author').focus();return;}
   if(status==='leidos'&&!starManualVal){toast('⚠️ Selecciona una valoración');return;}
-  if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===title.toLowerCase())){toast(`«${title}» ya está en tu shelfie`);return;}
   const book={id:'b'+Date.now(),title,author,year:'',status,stars:starManualVal,review,cover:customCover||null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
