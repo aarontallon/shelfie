@@ -1013,6 +1013,78 @@ a{color:inherit}
   .home-lower-grid{grid-template-columns:1fr}
   .home-reading-hero{flex-direction:column;align-items:flex-start}
 }
+
+/* ═══════════════════════════════════════════
+   TOP NAV LAYOUT — alternative structure
+═══════════════════════════════════════════ */
+.app{display:flex!important;flex-direction:column;grid-template-columns:none!important}
+.sidebar{display:none!important}
+.main{flex:1;overflow-x:hidden}
+.page{min-height:calc(100vh - 58px)}
+
+/* Top nav bar */
+.topnav{background:white;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;height:58px;position:sticky;top:0;z-index:200;flex-shrink:0;gap:0}
+.tn-logo{display:flex;align-items:center;gap:8px;background:none;border:none;cursor:pointer;padding:0;margin-right:20px;flex-shrink:0}
+.tn-logo .logo-icon{width:22px;height:22px;color:var(--ink)}
+.tn-logo .logo-icon svg{width:22px;height:22px}
+.tn-logo .logo-text{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-0.3px}
+.topnav .nb{height:58px;padding:0 13px;border:none;border-bottom:2.5px solid transparent;border-left:none!important;border-radius:0;color:var(--ink3);font-size:13.5px;font-weight:500;white-space:nowrap;background:none!important;flex-shrink:0}
+.topnav .nb:hover{color:var(--ink)}
+.topnav .nb.on{color:var(--ink);border-bottom-color:var(--red)}
+.topnav .nb i{display:none}
+.topnav .nb .nb-badge{background:var(--red);color:white;font-size:10px;font-weight:600;border-radius:10px;padding:1px 6px;margin-left:5px}
+.tn-gap{flex:1}
+/* Global search in topnav */
+.tn-srch{position:relative;flex-shrink:0}
+.tn-srch input{padding:7px 12px 7px 32px;border:1px solid var(--border);border-radius:20px;font-size:13px;font-family:'Inter',sans-serif;background:#F5F5F5;color:var(--ink);width:190px;outline:none;transition:all .18s}
+.tn-srch input:focus{width:250px;border-color:var(--red);background:white}
+.tn-srch .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--ink3);pointer-events:none}
+.tn-srch .drop{position:absolute;top:calc(100% + 6px);right:0;width:340px;background:white;border:1px solid var(--border);border-radius:12px;z-index:400;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.1);display:none;max-height:320px;overflow-y:auto}
+/* Actions cluster */
+.tn-actions{display:flex;align-items:center;gap:8px;margin-left:12px;flex-shrink:0}
+.tn-av{width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;background:var(--red);flex-shrink:0;background-size:cover;background-position:center;transition:opacity .12s}
+.tn-av:hover{opacity:.85}
+/* More dropdown */
+.tn-more{position:relative;flex-shrink:0}
+.tn-more-btn{background:none;border:none;width:34px;height:34px;border-radius:8px;cursor:pointer;color:var(--ink3);font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.tn-more-btn:hover{background:#F2F2F2;color:var(--ink)}
+.tn-more-drop{position:absolute;top:calc(100% + 6px);right:0;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:300;min-width:200px;display:none;overflow:hidden}
+.tn-more-drop.show{display:block}
+.tn-more-drop .nb{height:auto;padding:11px 16px;border:none!important;color:var(--ink2);width:100%;text-align:left;font-size:13.5px;background:none!important}
+.tn-more-drop .nb:hover{background:#F9F9F9!important;color:var(--ink)}
+.tn-more-drop .nb.on{color:var(--red)!important;background:var(--red-light)!important;font-weight:600}
+.tn-more-drop .nb i{display:inline;font-size:15px;margin-right:2px}
+.tn-more-user{padding:12px 16px 10px;border-bottom:1px solid var(--border)}
+.tn-more-user-name{font-size:14px;font-weight:600;color:var(--ink)}
+.tn-more-user-stat{font-size:12px;color:var(--ink3);margin-top:1px}
+.tn-more-sep{border:none;border-top:1px solid var(--border);margin:4px 0}
+.tn-more-logout{width:100%;text-align:left;padding:11px 16px;background:none;border:none;cursor:pointer;font-size:13.5px;color:var(--ink3);display:flex;align-items:center;gap:10px;font-family:'Inter',sans-serif;transition:all .12s}
+.tn-more-logout:hover{color:#991B1B;background:#FEF2F2}
+
+/* ── Home two-column layout ── */
+.home-wrap{display:grid;grid-template-columns:1fr 310px;gap:24px;align-items:start}
+.home-main{min-width:0}
+.home-main-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.home-main-header h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
+.home-main-header p{font-size:13px;color:var(--ink3);margin-top:2px}
+.home-rail{display:flex;flex-direction:column;gap:14px;position:sticky;top:74px}
+.home-rail-stats{display:grid;grid-template-columns:1fr 1fr;background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.home-rail-stat{padding:14px 16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.home-rail-stat:hover{background:#F9F9F9}
+.home-rail-stat:nth-child(2n){border-right:none}
+.home-rail-stat:nth-child(3),.home-rail-stat:nth-child(4){border-bottom:none}
+.home-rail-stat-n{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-0.03em;font-variant-numeric:tabular-nums;line-height:1}
+.home-rail-stat-l{font-size:11px;color:var(--ink3);margin-top:3px}
+
+@media(max-width:1050px){
+  .home-wrap{grid-template-columns:1fr}
+  .home-rail{position:static}
+  .topnav .nb i{display:inline}
+}
+@media(max-width:720px){
+  .topnav .nb span:not(.nb-badge){display:none}
+  .topnav{padding:0 16px}
+}
 </style>
 </head>
 <body>
@@ -1288,86 +1360,72 @@ a{color:inherit}
 
 <!-- ══════════════════════ APP SHELL ══════════════════════ -->
 <div class="app" id="app-shell">
-<nav class="sidebar">
-  <div class="sb-logo">
-    <div class="logo-wrap">
-      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
-      <div class="logo-text">shelf<em>ie</em></div>
+
+<!-- ── TOP NAV ── -->
+<nav class="topnav">
+  <button class="tn-logo" onclick="go('home',document.getElementById('nav-home'))">
+    <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+    <div class="logo-text">shelf<em style="font-style:normal">ie</em></div>
+  </button>
+
+  <button class="nb on" id="nav-home" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> <span>Inicio</span></button>
+  <button class="nb" id="nav-shelf" onclick="go('shelf',this)"><i class="ti ti-books"></i> <span>Mi shelfie</span></button>
+  <button class="nb" id="nav-discover" onclick="go('discover',this)"><i class="ti ti-telescope"></i> <span>Descubrir</span></button>
+  <button class="nb" id="nav-feed" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> <span>Feed</span> <span class="nb-badge" id="feed-badge">3</span></button>
+  <button class="nb" id="nav-friends" onclick="go('friends',this)"><i class="ti ti-users"></i> <span>Amigos</span> <span class="nb-badge" id="friends-badge">2</span></button>
+  <button class="nb" id="nav-clubs" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> <span>Clubs</span></button>
+
+  <div class="tn-gap"></div>
+
+  <div class="tn-srch global-srch">
+    <i class="ti ti-search ico"></i>
+    <input id="g-inp" placeholder="Buscar libros, autores..." oninput="onGlobalSearch(this.value)" onfocus="if(this.value.length>1)document.getElementById('g-drop').style.display='block'" autocomplete="off">
+    <div class="drop" id="g-drop"></div>
+  </div>
+
+  <div class="tn-actions">
+    <button class="btn btn-red btn-sm" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir</button>
+
+    <div class="tn-more">
+      <button class="tn-more-btn" id="tn-more-btn" onclick="document.getElementById('tn-more-drop').classList.toggle('show')"><i class="ti ti-dots-vertical"></i></button>
+      <div class="tn-more-drop" id="tn-more-drop">
+        <div class="tn-more-user">
+          <div class="tn-more-user-name" id="sb-name">Aarón</div>
+          <div class="tn-more-user-stat" id="sb-stat">0 libros leídos</div>
+        </div>
+        <button class="nb" onclick="go('profile',null);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-user"></i> Mi perfil</button>
+        <button class="nb" id="nav-reviews" onclick="go('reviews',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-message-2"></i> Reseñas</button>
+        <button class="nb" id="nav-retos" onclick="go('retos',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-target"></i> Retos <span class="nb-badge" id="retos-badge" style="display:none">0</span></button>
+        <button class="nb" id="nav-stats" onclick="go('stats',this);document.getElementById('tn-more-drop').classList.remove('show')"><i class="ti ti-chart-bar"></i> Estadísticas</button>
+        <hr class="tn-more-sep">
+        <button class="tn-more-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button>
+      </div>
     </div>
+
+    <div class="tn-av u-av" id="sb-avatar" onclick="go('profile',null)" style="background:var(--red)">AA</div>
   </div>
-  <div class="sb-section">
-    <div class="sb-lbl">Principal</div>
-    <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
-    <button class="nb" onclick="go('shelf',this)"><i class="ti ti-books"></i> Mi shelfie</button>
-    <button class="nb" onclick="go('discover',this)"><i class="ti ti-telescope"></i> Descubrir</button>
-  </div>
-  <div class="sb-section">
-    <div class="sb-lbl">Social</div>
-    <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed <span class="nb-badge" id="feed-badge">3</span></button>
-    <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos <span class="nb-badge" id="friends-badge">2</span></button>
-    <button class="nb" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> Clubs</button>
-  </div>
-  <div class="sb-section">
-    <div class="sb-lbl">Yo</div>
-    <button class="nb" onclick="go('reviews',this)"><i class="ti ti-message-2"></i> Reseñas</button>
-    <button class="nb" onclick="go('retos',this)"><i class="ti ti-target"></i> Retos <span class="nb-badge" id="retos-badge" style="display:none">0</span></button>
-    <button class="nb" onclick="go('stats',this)"><i class="ti ti-chart-bar"></i> Estadísticas</button>
-  </div>
-  <div class="sb-user" onclick="go('profile',null)">
-    <div class="u-av" id="sb-avatar" style="background:var(--red)">AA</div>
-    <div style="min-width:0">
-      <div style="font-size:13px;color:white;font-weight:500" id="sb-name">Aarón</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.3)" id="sb-stat">0 libros leídos</div>
-    </div>
-  </div>
-  <div class="sb-logout"><button onclick="doLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button></div>
 </nav>
 
 <div class="main">
 
 <!-- ── INICIO ── -->
 <div id="p-home" class="page on">
-  <div class="tb">
-    <div>
-      <h1 id="home-greeting">Buenos días ☀️</h1>
-      <p id="home-sub">Tu resumen lector</p>
-    </div>
-    <div class="tb-right">
-      <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
-    </div>
-  </div>
+  <div class="home-wrap">
 
-  <!-- Stats row -->
-  <div class="stats-grid">
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
-      <div class="stat-icon" style="background:var(--red-light)"><i class="ti ti-book" style="color:var(--red)"></i></div>
-      <div class="stat-val" id="h-leidos">0</div>
-      <div class="stat-lbl">Leídos</div>
-    </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
-      <div class="stat-icon" style="background:var(--blue-light)"><i class="ti ti-book-open" style="color:var(--blue)"></i></div>
-      <div class="stat-val" id="h-leyendo">0</div>
-      <div class="stat-lbl">Leyendo</div>
-    </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
-      <div class="stat-icon" style="background:var(--amber-light)"><i class="ti ti-bookmark" style="color:var(--amber)"></i></div>
-      <div class="stat-val" id="h-quiero">0</div>
-      <div class="stat-lbl">Quiero leer</div>
-    </div>
-    <div class="stat">
-      <div class="stat-icon" style="background:var(--green-light)"><i class="ti ti-star" style="color:var(--green)"></i></div>
-      <div class="stat-val" id="h-avg">—</div>
-      <div class="stat-lbl">Valoración media</div>
-    </div>
-  </div>
+    <!-- ── Columna principal ── -->
+    <div class="home-main">
+      <div class="home-main-header">
+        <div>
+          <h1 id="home-greeting">Buenos días ☀️</h1>
+          <p id="home-sub">Tu resumen lector</p>
+        </div>
+        <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
+      </div>
 
-  <!-- Reading hero — rendered by updateHome() -->
-  <div id="home-reading-hero"></div>
+      <!-- Libro en curso -->
+      <div id="home-reading-hero"></div>
 
-  <!-- Lower grid -->
-  <div class="home-lower-grid">
-    <!-- Left: racha + retos activos -->
-    <div>
+      <!-- Racha -->
       <div class="streak-dash-card" style="margin-bottom:14px">
         <div class="streak-icon-big"><i class="ti ti-flame"></i></div>
         <div class="streak-dash-info">
@@ -1378,31 +1436,58 @@ a{color:inherit}
         </div>
         <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
       </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title"><i class="ti ti-target" style="color:var(--red);font-size:14px"></i> Mis retos</div>
-          <button class="card-link" onclick="go('retos',document.querySelectorAll('.nb')[8])">Ver todos →</button>
-        </div>
-        <div id="home-retos"></div>
-      </div>
-    </div>
-    <!-- Right: recs + community -->
-    <div>
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-head">
-          <div class="card-title">✨ Recomendado para ti</div>
-          <button class="card-link" onclick="go('discover',document.querySelectorAll('.nb')[3])">Ver más →</button>
-        </div>
-        <div id="home-recs"></div>
-      </div>
+
+      <!-- Comunidad -->
       <div class="card">
         <div class="card-head">
           <div class="card-title"><i class="ti ti-users" style="color:var(--blue);font-size:14px"></i> Tu comunidad</div>
-          <button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ir al feed →</button>
+          <button class="card-link" onclick="go('feed',document.getElementById('nav-feed'))">Ir al feed →</button>
         </div>
         <div id="home-feed"></div>
       </div>
     </div>
+
+    <!-- ── Rail derecho ── -->
+    <aside class="home-rail">
+      <!-- Mini stats 2×2 -->
+      <div class="home-rail-stats">
+        <div class="home-rail-stat" onclick="go('shelf',document.getElementById('nav-shelf'));shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')">
+          <div class="home-rail-stat-n" id="h-leidos">0</div>
+          <div class="home-rail-stat-l">Leídos</div>
+        </div>
+        <div class="home-rail-stat" onclick="go('shelf',document.getElementById('nav-shelf'));shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')">
+          <div class="home-rail-stat-n" id="h-leyendo">0</div>
+          <div class="home-rail-stat-l">Leyendo</div>
+        </div>
+        <div class="home-rail-stat" onclick="go('shelf',document.getElementById('nav-shelf'));shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')">
+          <div class="home-rail-stat-n" id="h-quiero">0</div>
+          <div class="home-rail-stat-l">Por leer</div>
+        </div>
+        <div class="home-rail-stat">
+          <div class="home-rail-stat-n" id="h-avg">—</div>
+          <div class="home-rail-stat-l">Nota media</div>
+        </div>
+      </div>
+
+      <!-- Retos -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-target" style="color:var(--red);font-size:14px"></i> Mis retos</div>
+          <button class="card-link" onclick="go('retos',document.getElementById('nav-retos'))">Ver todos →</button>
+        </div>
+        <div id="home-retos"></div>
+      </div>
+
+      <!-- Recomendado -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">✨ Recomendado</div>
+          <button class="card-link" onclick="go('discover',document.getElementById('nav-discover'))">Ver más →</button>
+        </div>
+        <div id="home-recs"></div>
+      </div>
+    </aside>
+
   </div>
 </div>
 
@@ -1815,7 +1900,7 @@ a{color:inherit}
         <div class="fc-grouped-book"><div class="spine" style="background:#1A3A5C;width:40px;height:58px"></div><div class="fc-grouped-title">2666</div></div>
         <div class="fc-grouped-book"><div class="spine" style="background:#7A4A1A;width:40px;height:58px"></div><div class="fc-grouped-title">Pedro Páramo</div></div>
       </div>
-      <button class="btn btn-sm btn-white mt-1" onclick="go('clubs',document.querySelectorAll('.nb')[6])">Ver debate del club</button>
+      <button class="btn btn-sm btn-white mt-1" onclick="go('clubs',document.getElementById('nav-clubs'))">Ver debate del club</button>
     </div>
   </div>
 
@@ -1859,7 +1944,7 @@ a{color:inherit}
 <!-- ── CLUB DETAIL ── -->
 <div id="p-club-detail" class="page" style="padding:0">
   <div class="club-detail-header" id="club-detail-header" style="position:relative;margin:0">
-    <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="go('clubs',document.querySelectorAll('.nb')[6])"><i class="ti ti-arrow-left"></i> Clubs</button>
+    <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="go('clubs',document.getElementById('nav-clubs'))"><i class="ti ti-arrow-left"></i> Clubs</button>
     <div id="club-detail-hero"></div>
   </div>
   <div style="padding:0 28px 28px">
@@ -2111,7 +2196,7 @@ a{color:inherit}
 
   <!-- Libros en progreso -->
   <div class="card" style="margin-top:14px">
-    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',document.getElementById('nav-shelf'))">Ver shelfie →</button></div>
     <div id="st-progress"></div>
   </div>
 </div>
@@ -2141,9 +2226,9 @@ a{color:inherit}
       </div>
     </div>
     <div class="profile-stats">
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
-      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[5])"><div class="ps-n" id="ps-amigos">0</div><div class="ps-l">Amigos</div></div>
+      <div class="ps" onclick="go('shelf',document.getElementById('nav-shelf'))"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
+      <div class="ps" onclick="go('shelf',document.getElementById('nav-shelf'))"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
+      <div class="ps" onclick="go('friends',document.getElementById('nav-friends'))"><div class="ps-n" id="ps-amigos">0</div><div class="ps-l">Amigos</div></div>
     </div>
   </div>
 
@@ -2161,14 +2246,14 @@ a{color:inherit}
     </div>
     <!-- SHELFIES STATE BREAKDOWN -->
     <div class="card">
-      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',document.getElementById('nav-shelf'))">Ver shelfie →</button></div>
       <div id="profile-shelfie-breakdown"></div>
     </div>
   </div>
 
   <div class="g2">
     <div class="card">
-      <div class="card-head"><div class="card-title">Últimos libros leídos</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver todos →</button></div>
+      <div class="card-head"><div class="card-title">Últimos libros leídos</div><button class="card-link" onclick="go('shelf',document.getElementById('nav-shelf'))">Ver todos →</button></div>
       <div id="p-recent-books"><div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div></div>
     </div>
     <div class="card">
@@ -2191,7 +2276,7 @@ a{color:inherit}
 
   <!-- ACTIVIDAD RECIENTE: posts propios, con likes/comentarios -->
   <div class="card">
-    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ver feed →</button></div>
+    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',document.getElementById('nav-feed'))">Ver feed →</button></div>
     <div id="profile-activity"></div>
   </div>
 </div>
@@ -2964,11 +3049,11 @@ function go(id,btn,extraId){
 
 function goBackFromBookPage(){
   bookPageHistory.pop();
-  go('shelf',document.querySelectorAll('.nb')[1]);
+  go('shelf',document.getElementById('nav-shelf'));
 }
 
 function goBackFromAuthorPage(){
-  go('shelf',document.querySelectorAll('.nb')[1]);
+  go('shelf',document.getElementById('nav-shelf'));
 }
 
 function renderFeedPage(){
@@ -3366,6 +3451,7 @@ document.addEventListener('click',e=>{
     const el=document.getElementById(id);
     if(el&&!e.target.closest('.srch-wrap')&&!e.target.closest('.global-srch'))el.style.display='none';
   });
+  if(!e.target.closest('.tn-more'))document.getElementById('tn-more-drop')?.classList.remove('show');
 });
 
 // ═══════════════════════════════════════════════
@@ -4074,7 +4160,7 @@ function removeBook(id,from){
 function composerBookFromDetail(bookId){
   const book=allBooks().find(b=>b.id===bookId);
   if(!book)return;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',document.getElementById('nav-feed'));
   setTimeout(()=>selectComposerBook(book),100);
 }
 
@@ -6042,7 +6128,7 @@ function renderProfile(){
     ];
     sb.innerHTML=states.map(s=>{
       const pct=total?Math.round(s.n/total*100):0;
-      return `<div class="shelfie-breakdown-row" onclick="go('shelf',document.querySelectorAll('.nb')[1]);setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
+      return `<div class="shelfie-breakdown-row" onclick="go('shelf',document.getElementById('nav-shelf'));setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
         <div class="shelfie-breakdown-icon" style="background:${s.color}"><i class="ti ${s.icon}"></i></div>
         <div class="shelfie-breakdown-info"><div class="shelfie-breakdown-lbl">${s.lbl}</div><div class="shelfie-breakdown-track"><div class="shelfie-breakdown-fill" style="width:${pct}%;background:${s.color}"></div></div></div>
         <div class="shelfie-breakdown-n">${s.n}</div>
@@ -6181,7 +6267,7 @@ function renderSharePreview(){
 function confirmShareToComposer(){
   closeModal('modal-share-preview');
   const books=_sharePreviewBooks;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',document.getElementById('nav-feed'));
   setTimeout(()=>{
     const shelfieBtn=document.querySelector('.composer-mode[data-mode="shelfiepost"]');
     if(shelfieBtn){shelfieBtn.classList.add('on');document.querySelectorAll('.composer-mode').forEach(b=>{if(b!==shelfieBtn)b.classList.remove('on');});setComposerMode(shelfieBtn);}
@@ -6632,10 +6718,10 @@ function renderOnePost(p){
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
   // Small secondary book reference — used when the post's main subject is a character
-  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',document.querySelectorAll('.nb')[1])">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
+  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',document.getElementById('nav-shelf'))">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
 
   // Big visual book block: cover + title + author + stars — used when subject is the book itself
-  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',document.querySelectorAll('.nb')[1])">
+  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',document.getElementById('nav-shelf'))">
     ${cvr(p.book,'spine')}
     <div class="upost-book-big-info">
       <div class="upost-book-big-title">${escapeHtml(p.book.title)}</div>
@@ -6661,7 +6747,7 @@ function renderOnePost(p){
   if(p.chapter)locParts.push('cap. '+escapeHtml(p.chapter));
   const locTag=locParts.length?`<span class="upost-loc-tag"><i class="ti ti-bookmark" style="font-size:11px"></i> ${locParts.join(' · ')}</span>`:'';
   const reviewBadge=p.isReview?`<span class="upost-review-tag"><i class="ti ti-star" style="font-size:11px"></i> Reseña</span>`:'';
-  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',document.querySelectorAll('.nb')[8])"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
+  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',document.getElementById('nav-retos'))"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
   const badgesRow=(reviewBadge||retoBadge)?`<div class="flex gap-2" style="flex-wrap:wrap;margin-bottom:10px">${reviewBadge}${retoBadge}</div>`:'';
   const titleHtml=p.title?`<div class="upost-title">${escapeHtml(p.title)}</div>`:'';
 
