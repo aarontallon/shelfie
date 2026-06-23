@@ -3400,6 +3400,7 @@ function confirmAdd(){
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   closeModal('modal-add');
   updateAll();
+  renderShelf();
   toast(`✅ «${pendingBook.title}» añadido a tu shelfie`);
 }
 
@@ -3417,6 +3418,7 @@ function saveManual(){
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   closeModal('modal-add');
   updateAll();
+  renderShelf();
   toast(`✅ «${title}» añadido a tu shelfie`);
 }
 
@@ -3656,7 +3658,10 @@ function updateStreakDisplay(){
 function cvr(b,type){
   const bg=b.cover?`background-image:url(${b.cover});background-color:${b.color}`:`background:${b.color}`;
   if(type==='spine')return `<div class="spine" style="${bg}"><div class="spine-txt">${b.cover?'':b.title}</div></div>`;
-  if(type==='grid')return `<div class="grid-cover" style="${bg}"><div class="gc-txt">${b.cover?'':b.title}</div></div>`;
+  if(type==='grid'){
+    if(b.cover)return `<div class="grid-cover" style="${bg}"></div>`;
+    return `<div class="grid-cover" style="${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.4)">${escapeHtml(b.title)}</div><div style="font-size:10px;color:rgba(255,255,255,.75);font-weight:400">${escapeHtml(b.author)}</div></div>`;
+  }
   if(type==='mini')return `<div style="width:22px;height:32px;border-radius:2px;flex-shrink:0;${bg};background-size:cover"></div>`;
   return '';
 }
