@@ -1056,9 +1056,25 @@ a{color:inherit}
       <button class="auth-social-btn dark" onclick="socialLogin('Apple')"><i class="ti ti-brand-apple"></i> Continuar con Apple</button>
     </div>
     <div class="auth-divider">o regístrate con email</div>
-    <div class="f-row"><label class="f-label">Nombre</label><input class="f-input" id="reg-name" placeholder="Tu nombre"></div>
+    <div style="display:flex;gap:10px">
+      <div class="f-row" style="flex:1"><label class="f-label">Nombre</label><input class="f-input" id="reg-nombre" placeholder="Nombre"></div>
+      <div class="f-row" style="flex:1"><label class="f-label">Apellido</label><input class="f-input" id="reg-apellido" placeholder="Apellido"></div>
+    </div>
+    <div class="f-row">
+      <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
+      <div style="position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
+        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+      </div>
+      <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
+    </div>
     <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="reg-email" type="email" placeholder="tu@email.com"></div>
-    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 6 caracteres"></div>
+    <div class="f-row">
+      <label class="f-label">Contraseña</label>
+      <input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 8 caracteres" oninput="onPassInput(this.value)">
+      <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden"><div id="pass-strength-fill" style="height:100%;width:0;transition:width 0.2s,background 0.2s;border-radius:2px"></div></div>
+      <div id="pass-strength-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+    </div>
     <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
     <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
     <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
@@ -2908,25 +2924,74 @@ async function doLogin(){
   await _supaEnterApp();
 }
 
+let _usernameCheckTimer=null;
+let _usernameAvailable=false;
+
+function onUsernameInput(val){
+  const el=document.getElementById('username-status');
+  const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
+  if(val!==clean)document.getElementById('reg-username').value=clean;
+  if(clean.length<3){el.textContent=clean.length?'Mínimo 3 caracteres':'';el.style.color='var(--ink3)';_usernameAvailable=false;return;}
+  el.textContent='Comprobando...';el.style.color='var(--ink3)';
+  clearTimeout(_usernameCheckTimer);
+  _usernameCheckTimer=setTimeout(async()=>{
+    const{data}=await supa.from('profiles').select('id').eq('username',clean).maybeSingle();
+    if(data){el.textContent='@'+clean+' ya está en uso';el.style.color='#e53e3e';_usernameAvailable=false;}
+    else{el.textContent='@'+clean+' está disponible ✓';el.style.color='#38a169';_usernameAvailable=true;}
+  },500);
+}
+
+function passStrength(p){
+  let s=0;
+  if(p.length>=8)s++;
+  if(p.length>=12)s++;
+  if(/[A-Z]/.test(p))s++;
+  if(/[0-9]/.test(p))s++;
+  if(/[^A-Za-z0-9]/.test(p))s++;
+  return s;
+}
+
+function onPassInput(val){
+  const fill=document.getElementById('pass-strength-fill');
+  const lbl=document.getElementById('pass-strength-label');
+  if(!val){fill.style.width='0';lbl.textContent='';return;}
+  const s=passStrength(val);
+  const pct=[0,20,40,60,80,100][s];
+  const colors=['#e53e3e','#e53e3e','#ed8936','#ecc94b','#38a169','#276749'];
+  const labels=['','Muy débil','Débil','Regular','Buena','Muy fuerte'];
+  fill.style.width=pct+'%';fill.style.background=colors[s];
+  lbl.textContent=labels[s];lbl.style.color=colors[s];
+}
+
 async function doRegister(){
-  const name=document.getElementById('reg-name').value.trim();
+  const nombre=document.getElementById('reg-nombre').value.trim();
+  const apellido=document.getElementById('reg-apellido').value.trim();
+  const username=document.getElementById('reg-username').value.trim();
   const email=document.getElementById('reg-email').value.trim();
   const pass=document.getElementById('reg-pass').value;
-  if(!name){authErr('register-error','Escribe tu nombre');return;}
+  const fullName=(nombre+' '+apellido).trim();
+  if(!nombre){authErr('register-error','Escribe tu nombre');return;}
+  if(!apellido){authErr('register-error','Escribe tu apellido');return;}
+  if(!username||username.length<3){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
+  if(!_usernameAvailable){authErr('register-error','Ese usuario no está disponible');return;}
   if(!email||!email.includes('@')){authErr('register-error','Introduce un email válido');return;}
-  if(!pass||pass.length<6){authErr('register-error','La contraseña debe tener al menos 6 caracteres');return;}
+  if(!pass||pass.length<8){authErr('register-error','La contraseña debe tener al menos 8 caracteres');return;}
+  if(passStrength(pass)<2){authErr('register-error','La contraseña es demasiado débil. Usa mayúsculas, números o símbolos.');return;}
   const btn=document.querySelector('#register-box .btn-red');
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
-  const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name}}});
+  const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}});
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
   if(error){authErr('register-error',error.message);return;}
   SUPA_USER=data.user;
-  // Profile is auto-created by DB trigger; set name locally
-  PROFILE.name=name;
+  // Save username immediately (trigger creates the row, we update username)
+  if(SUPA_USER){
+    await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+  }
+  PROFILE.name=fullName;
   PROFILE.email=email;
-  PROFILE.username=name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_reads';
+  PROFILE.username=username;
   await _supaEnterApp();
-  toast(`✅ ¡Bienvenido a Shelfie, ${name}!`);
+  toast(`✅ ¡Bienvenido a Shelfie, ${nombre}!`);
 }
 
 async function socialLogin(provider){
@@ -7091,6 +7156,7 @@ document.addEventListener('keydown',e=>{
 // enter key on auth forms
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+document.getElementById('reg-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('reg-pass').focus();});
 
 // ── Check for existing Supabase session on load ──
 (async()=>{
