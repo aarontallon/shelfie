@@ -2993,9 +2993,12 @@ async function doRegister(){
   const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}});
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
   if(error){
-    if(error.message.includes('already registered')||error.message.includes('already been registered'))
-      authErr('register-error','Ya existe una cuenta con ese email. ¿Quieres iniciar sesión?');
-    else authErr('register-error',error.message);
+    const msg=error.message||JSON.stringify(error);
+    if(msg.includes('already registered')||msg.includes('already been registered'))
+      authErr('register-error','Ya existe una cuenta con ese email. Inicia sesión.');
+    else if(msg.includes('email')||msg==='{}'||!msg)
+      authErr('register-error','Error al crear la cuenta. Comprueba que el email es correcto o inténtalo más tarde.');
+    else authErr('register-error',msg);
     return;
   }
   SUPA_USER=data.user;
