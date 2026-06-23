@@ -630,6 +630,89 @@ a{color:inherit}
 .community-reto-av:first-child{margin-left:0}
 .community-reto-count{font-size:12px;color:var(--ink3)}
 
+/* ══ CLUB CARDS (list) ══ */
+.club-card{background:white;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:16px;cursor:pointer;transition:box-shadow 0.15s}
+.club-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08)}
+.club-avatar{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.club-card-info{flex:1;min-width:0}
+.club-card-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.club-card-meta{font-size:12px;color:var(--ink3);margin-bottom:6px}
+.club-card-reading{font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.club-card-tags{display:flex;gap:6px;flex-wrap:wrap}
+.club-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px;background:#F3F2EF;color:var(--ink3)}
+.club-tag.admin{background:#FEF2F2;color:#991B1B}
+.club-tag.private{background:#F0FDF4;color:#065F46}
+.club-av-stack{display:flex}
+.club-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid white;margin-left:-7px;flex-shrink:0}
+.club-av:first-child{margin-left:0}
+
+/* ══ CLUB DETAIL PAGE ══ */
+.club-detail-header{background:var(--ink);border-radius:16px;padding:24px 28px;margin-bottom:18px;color:white}
+.club-detail-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:4px}
+.club-detail-desc{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5}
+.club-detail-stats{display:flex;gap:20px;flex-wrap:wrap}
+.club-detail-stat{text-align:center}
+.club-detail-stat-n{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;line-height:1}
+.club-detail-stat-l{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px}
+.club-members-preview{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1)}
+.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:20px}
+.club-detail-tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s;white-space:nowrap}
+.club-detail-tab.on{color:var(--red);border-bottom-color:var(--red)}
+.club-detail-panel{display:none}
+.club-detail-panel.on{display:block}
+
+/* ══ THREADS / DEBATES ══ */
+.thread-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.12s}
+.thread-card:hover{box-shadow:0 3px 12px rgba(0,0,0,0.08)}
+.thread-card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.thread-type-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;flex-shrink:0;margin-top:1px}
+.thread-type-capitulo{background:#EFF6FF;color:#1E40AF}
+.thread-type-personaje{background:#F0FDF4;color:#065F46}
+.thread-type-debate{background:#FEF3C7;color:#92400E}
+.thread-type-general{background:#F5F5F4;color:#57534E}
+.thread-title{font-size:14px;font-weight:700;color:var(--ink);flex:1}
+.thread-meta{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:12px}
+.thread-detail{background:white;border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden}
+.thread-detail-head{padding:18px 20px;border-bottom:1px solid var(--border);background:#FAFAF8}
+.thread-posts{padding:16px 20px;max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.thread-post{display:flex;gap:12px;align-items:flex-start}
+.thread-post-body{flex:1;min-width:0;background:#F9F8F6;border-radius:10px;padding:12px 14px}
+.thread-post-author{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.thread-post-text{font-size:13px;color:var(--ink2);line-height:1.6}
+.thread-post-time{font-size:11px;color:var(--ink3);margin-top:6px}
+.thread-post-quote{background:white;border-left:3px solid var(--red);padding:6px 10px;border-radius:0 6px 6px 0;font-size:12px;color:var(--ink3);font-style:italic;margin-bottom:6px}
+.thread-reply-box{padding:14px 20px;border-top:1px solid var(--border);background:#FAFAF8}
+
+/* ══ CLUB MEMBERS ══ */
+.club-member-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F5F5F4}
+.club-member-row:last-child{border-bottom:none}
+.club-member-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.club-member-name{font-size:13px;font-weight:600;color:var(--ink);flex:1}
+.club-member-meta{font-size:11px;color:var(--ink3)}
+.club-member-role{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:#FEF2F2;color:#991B1B}
+
+/* ══ CLUB BOOK LIST ══ */
+.club-book-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F5F5F4}
+.club-book-row:last-child{border-bottom:none}
+.club-book-cover{width:32px;height:46px;border-radius:4px;flex-shrink:0;overflow:hidden}
+.club-book-cover div{width:100%;height:100%}
+.club-book-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px}
+.club-book-status.leyendo{background:#EFF6FF;color:#1E3A8A}
+.club-book-status.leido{background:#ECFDF5;color:#065F46}
+.club-book-status.pendiente{background:#FEF9C3;color:#713F12}
+
+/* ══ ANNOUNCEMENT ══ */
+.club-announcement{background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.club-announcement-head{font-size:12px;font-weight:700;color:#78350F;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.club-announcement-text{font-size:13px;color:#92400E;line-height:1.5}
+
+/* ══ DISCOVER CLUBS ══ */
+.discover-club-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.discover-club-avatar{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.discover-club-info{flex:1;min-width:0}
+.discover-club-name{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.discover-club-meta{font-size:12px;color:var(--ink3)}
+
 /* PROMO BANNER for retos */
 .promo-banner{background:linear-gradient(120deg,#2A1A15,#1C1917 60%);border-radius:18px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:24px}
 .promo-banner::before{content:'';position:absolute;left:-60px;bottom:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(232,93,74,0.25),transparent 70%)}
@@ -1476,24 +1559,101 @@ a{color:inherit}
 
 <!-- ── CLUBS ── -->
 <div id="p-clubs" class="page">
-  <div class="tb"><div><h1>Clubs de lectura</h1><p id="clubs-sub">Únete y debate</p></div></div>
-  <div class="g2">
-    <div class="card">
-      <div class="card-head"><div class="card-title">Mis clubs</div></div>
-      <div class="book-row" style="gap:12px">
-        <div style="width:42px;height:42px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--red);flex-shrink:0">28</div>
-        <div style="flex:1"><div class="bk-title">Club Ficción BCN</div><div class="bk-author">Leyendo: Rayuela · 28 miembros</div><div style="font-size:11px;color:var(--ink3);font-style:italic">Prox. 15 jun · La Libreria de Beate, BCN</div><button class="btn btn-sm btn-red" style="margin-top:8px" onclick="toast('Abriendo debate...')">Ver debate</button></div>
+  <div class="tb">
+    <div><h1>Clubs de lectura</h1><p>Debate, comparte y lee en comunidad</p></div>
+    <button class="btn btn-red" onclick="openModal('modal-create-club')"><i class="ti ti-plus"></i> Crear club</button>
+  </div>
+  <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:20px">
+    <button class="retos-tab on" data-tab="mis" onclick="setClubsTab(this,'mis')">Mis clubs</button>
+    <button class="retos-tab" data-tab="descubrir" onclick="setClubsTab(this,'descubrir')">Descubrir</button>
+  </div>
+  <div id="clubs-tab-mis"><div id="my-clubs-list"></div></div>
+  <div id="clubs-tab-descubrir" style="display:none"><div id="discover-clubs-list"></div></div>
+</div>
+
+<!-- ── CLUB DETAIL ── -->
+<div id="p-club-detail" class="page" style="padding:0">
+  <div class="club-detail-header" id="club-detail-header" style="position:relative;margin:0">
+    <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="go('clubs',document.querySelectorAll('.nb')[6])"><i class="ti ti-arrow-left"></i> Clubs</button>
+    <div id="club-detail-hero"></div>
+  </div>
+  <div style="padding:0 28px 28px">
+    <div class="club-detail-tabs" id="club-detail-tabs">
+      <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
+      <button class="club-detail-tab" data-tab="libros" onclick="setClubTab(this,'libros')"><i class="ti ti-books"></i> Libros</button>
+      <button class="club-detail-tab" data-tab="miembros" onclick="setClubTab(this,'miembros')"><i class="ti ti-users"></i> Miembros</button>
+      <button class="club-detail-tab" data-tab="retos" onclick="setClubTab(this,'retos')"><i class="ti ti-trophy"></i> Retos</button>
+      <button class="club-detail-tab" data-tab="anuncios" onclick="setClubTab(this,'anuncios')"><i class="ti ti-speakerphone"></i> Anuncios</button>
+    </div>
+    <div class="club-detail-panel on" id="club-panel-debates"></div>
+    <div class="club-detail-panel" id="club-panel-libros"></div>
+    <div class="club-detail-panel" id="club-panel-miembros"></div>
+    <div class="club-detail-panel" id="club-panel-retos"></div>
+    <div class="club-detail-panel" id="club-panel-anuncios"></div>
+  </div>
+</div>
+
+<!-- ── MODAL: CREAR CLUB ── -->
+<div id="modal-create-club" class="overlay" style="display:none" onclick="if(event.target===this)closeModal('modal-create-club')">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="closeModal('modal-create-club')"><i class="ti ti-x"></i></button>
+    <h2>Crear club de lectura</h2>
+    <p class="sub">Define el club, invita lectores por @usuario</p>
+    <div class="f-row"><label class="f-label">Nombre del club *</label><input id="cc-name" class="f-input" placeholder="p.ej. Club Ficción BCN"></div>
+    <div class="f-row"><label class="f-label">Descripción</label><textarea id="cc-desc" class="f-input" style="height:70px;resize:none" placeholder="¿De qué trata el club?"></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;margin-bottom:14px">
+      <div><label class="f-label">Tipo</label>
+        <select id="cc-type" class="f-input">
+          <option value="general">General</option>
+          <option value="ficcion">Ficción</option>
+          <option value="noficcion">No ficción</option>
+          <option value="clasicos">Clásicos</option>
+          <option value="genero">Por géneros</option>
+        </select>
+      </div>
+      <div><label class="f-label">Privacidad</label>
+        <select id="cc-privacy" class="f-input">
+          <option value="invite">Solo invitación</option>
+          <option value="request">Pedir acceso</option>
+          <option value="open">Abierto</option>
+        </select>
+      </div>
+      <div><label class="f-label">Emoji</label><input id="cc-emoji" class="f-input" placeholder="📚" maxlength="2" style="font-size:20px;text-align:center"></div>
+    </div>
+    <button class="btn btn-red w-full" onclick="saveNewClub()"><i class="ti ti-check"></i> Crear club</button>
+  </div>
+</div>
+
+<!-- ── MODAL: CREAR DEBATE ── -->
+<div id="modal-create-thread" class="overlay" style="display:none" onclick="if(event.target===this)closeModal('modal-create-thread')">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modal-create-thread')"><i class="ti ti-x"></i></button>
+    <h2>Nuevo debate</h2>
+    <p class="sub">Empieza una conversación en el club</p>
+    <div class="f-row"><label class="f-label">Tipo de debate</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="thread-type" value="capitulo" checked> <span class="thread-type-badge thread-type-capitulo">Capítulo</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="thread-type" value="personaje"> <span class="thread-type-badge thread-type-personaje">Personaje</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="thread-type" value="debate"> <span class="thread-type-badge thread-type-debate">Debate</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="thread-type" value="general"> <span class="thread-type-badge thread-type-general">General</span></label>
       </div>
     </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">Clubs sugeridos</div></div>
-      <div id="clubs-suggested">
-        <div class="list-row"><div class="list-info"><div class="list-name">Narrativa árabe contemporánea</div><div class="list-meta">45 miembros</div></div><button class="btn btn-sm btn-white" onclick="joinClub(this,'Narrativa árabe')">Unirse</button></div>
-        <div class="list-row"><div class="list-info"><div class="list-name">Literatura japonesa</div><div class="list-meta">89 miembros</div></div><button class="btn btn-sm btn-white" onclick="joinClub(this,'Literatura japonesa')">Unirse</button></div>
-        <div class="list-row"><div class="list-info"><div class="list-name">JLPT reading boost · N4/N3</div><div class="list-meta">342 miembros</div></div><button class="btn btn-sm btn-white" onclick="joinClub(this,'JLPT')">Unirse</button></div>
-        <div class="list-row"><div class="list-info"><div class="list-name">Realismo mágico global</div><div class="list-meta">134 miembros</div></div><button class="btn btn-sm btn-white" onclick="joinClub(this,'Realismo mágico')">Unirse</button></div>
-      </div>
-    </div>
+    <div class="f-row"><label class="f-label">Título *</label><input id="ct-title" class="f-input" placeholder="p.ej. ¿Qué os parece el final del cap. 12?"></div>
+    <div class="f-row"><label class="f-label">Mensaje inicial</label><textarea id="ct-body" class="f-input" style="height:90px;resize:none" placeholder="Empieza el debate..."></textarea></div>
+    <div class="f-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="ct-spoiler"> <span>⚠️ Este debate contiene spoilers</span></label></div>
+    <button class="btn btn-red w-full" onclick="saveNewThread()"><i class="ti ti-check"></i> Crear debate</button>
+  </div>
+</div>
+
+<!-- ── MODAL: INVITE MEMBER ── -->
+<div id="modal-invite-member" class="overlay" style="display:none" onclick="if(event.target===this)closeModal('modal-invite-member')">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeModal('modal-invite-member')"><i class="ti ti-x"></i></button>
+    <h2>Invitar miembro</h2>
+    <p class="sub">El club es solo por invitación — añade con @usuario</p>
+    <div class="f-row"><label class="f-label">@usuario</label><input id="inv-username" class="f-input" placeholder="@nombre_de_usuario"></div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:16px">El usuario recibirá una notificación con la invitación al club.</p>
+    <button class="btn btn-red w-full" onclick="sendClubInvite()"><i class="ti ti-send"></i> Enviar invitación</button>
   </div>
 </div>
 
@@ -1720,6 +1880,116 @@ const COMMUNITY_RETOS=[
   },
 ];
 let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
+
+let CLUBS=[
+  {
+    id:'club1',
+    name:'Club Ficción BCN',
+    emoji:'📖',
+    desc:'Club presencial en Barcelona enfocado en ficción contemporánea. Nos reunimos cada mes y debatimos online entre sesiones.',
+    type:'ficcion',
+    privacy:'invite',
+    myRole:'admin',
+    memberCount:28,
+    nextMeeting:{date:'2026-07-12',place:'La Libreria de Beate, BCN'},
+    members:[
+      {name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'admin',booksRead:12,joined:'2025-01'},
+      {name:'María García',initials:'MG',bg:'#7C3AED',tc:'white',role:'mod',booksRead:18,joined:'2025-02'},
+      {name:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',role:'member',booksRead:9,joined:'2025-03'},
+      {name:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',role:'member',booksRead:14,joined:'2025-03'},
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',role:'member',booksRead:7,joined:'2025-04'},
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',role:'member',booksRead:11,joined:'2025-05'},
+    ],
+    books:[
+      {title:'Rayuela',author:'Julio Cortázar',color:'#1A3A5C',status:'leyendo',addedBy:'María García'},
+      {title:'El juego del ángel',author:'Carlos Ruiz Zafón',color:'#5C2E7A',status:'leido',addedBy:'Ramón Vidal'},
+      {title:'La sombra del viento',author:'Carlos Ruiz Zafón',color:'#2D5016',status:'leido',addedBy:'Ana Torres'},
+      {title:'Ficciones',author:'Jorge Luis Borges',color:'#7A4A1A',status:'pendiente',addedBy:'Tú'},
+    ],
+    threads:[
+      {id:'t1',type:'capitulo',title:'Capítulos 1–10: El tablero del damero',spoiler:false,author:'María García',initials:'MG',bg:'#7C3AED',tc:'white',date:'hace 2 días',replies:8,likes:14,
+        posts:[
+          {author:'María García',initials:'MG',bg:'#7C3AED',tc:'white',text:'¿Qué os parece la propuesta de lectura del "lado de acá" vs "lado de allá"? Cortázar no tiene piedad con el lector pasivo.',date:'hace 2 días',likes:5},
+          {author:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',text:'Me parece una trampa maravillosa. El capítulo 1 ya te avisa de que el orden no existe, pero sigues leyendo en línea recta igual.',date:'hace 1 día',likes:3},
+          {author:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',text:'Yo empecé por el "lado de allá" la primera vez y nunca llegué a terminar. Esta vez voy lineal. ¿Alguien más?',date:'hace 22h',likes:2},
+          {author:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',text:'La maga me tiene descolocado. No sé si es un personaje o una idea.',date:'hace 20h',likes:4},
+        ],
+      },
+      {id:'t2',type:'personaje',title:'La Maga: ¿personaje o símbolo?',spoiler:false,author:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',date:'hace 4 días',replies:12,likes:21,
+        posts:[
+          {author:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',text:'La Maga no tiene nombre propio (Lucía aparece brevísimo). Cortázar la construye solo desde la mirada de Horacio. ¿Es un personaje o una proyección masculina?',date:'hace 4 días',likes:8},
+          {author:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',text:'Exactamente. Y eso es lo más inquietante. Todo lo que sabemos de ella lo filtra Horacio. Pero hay momentos donde ella lo ve a él con una lucidez brutal.',date:'hace 3 días',likes:6},
+          {author:'María García',initials:'MG',bg:'#7C3AED',tc:'white',text:'Leí que Cortázar dijo en una entrevista que La Maga es "lo que no se puede poseer ni retener". Creo que eso lo dice todo.',date:'hace 3 días',likes:9},
+        ],
+      },
+      {id:'t3',type:'debate',title:'¿Rayuela ha envejecido bien?',spoiler:true,author:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',date:'hace 1 semana',replies:5,likes:9,
+        posts:[
+          {author:'Ana Torres',initials:'AT',bg:'#059669',tc:'white',text:'Pregunta honesta: ¿la figura del artista torturado en París sigue resonando o ya suena demasiado de otra época?',date:'hace 1 semana',likes:3},
+          {author:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',text:'La experimentación formal sí envejece bien. Lo de la búsqueda existencial del hombre heterosexual de clase media... ya menos.',date:'hace 6 días',likes:5},
+        ],
+      },
+      {id:'t4',type:'general',title:'Próxima reunión: dónde quedamos',spoiler:false,author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'hace 1 semana',replies:3,likes:0,
+        posts:[
+          {author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',text:'Propongo quedar el 12 de julio en La Libreria de Beate. ¿Queda bien a todo el mundo?',date:'hace 1 semana',likes:0},
+          {author:'María García',initials:'MG',bg:'#7C3AED',tc:'white',text:'¡Perfecto! Yo me apunto.',date:'hace 6 días',likes:0},
+          {author:'Ramón Vidal',initials:'RV',bg:'#DC2626',tc:'white',text:'Confirmado por mi parte.',date:'hace 5 días',likes:0},
+        ],
+      },
+    ],
+    clubRetos:[
+      {name:'Leer Rayuela antes del 12 jul',progress:3,goal:28,emoji:'📚'},
+      {name:'Un libro de Cortázar al mes',progress:5,goal:28,emoji:'✍️'},
+    ],
+    announcements:[
+      {author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'hace 3 días',text:'📅 Próxima reunión: 12 de julio, 19h, La Libreria de Beate (c/ Provença 203, BCN). Traed notas del cap. 1–20 de Rayuela. ¡Nos vemos!'},
+      {author:'María García',initials:'MG',bg:'#7C3AED',tc:'white',date:'hace 1 semana',text:'💡 Recordatorio: si queréis invitar a alguien al club, mandadme el @usuario y os añado. El club es solo por invitación.'},
+    ],
+  },
+  {
+    id:'club2',
+    name:'Clásicos Sin Excusas',
+    emoji:'📜',
+    desc:'Un grupo de amigos que decidimos leer todos esos clásicos que llevamos años aplazando.',
+    type:'clasicos',
+    privacy:'invite',
+    myRole:'member',
+    memberCount:7,
+    nextMeeting:null,
+    members:[
+      {name:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',role:'admin',booksRead:8,joined:'2025-06'},
+      {name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'member',booksRead:5,joined:'2025-07'},
+      {name:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',role:'member',booksRead:6,joined:'2025-07'},
+    ],
+    books:[
+      {title:'Ana Karenina',author:'León Tolstói',color:'#8B2635',status:'leyendo',addedBy:'Kenji Tanaka'},
+      {title:'Crimen y castigo',author:'Fiódor Dostoievski',color:'#2C3E7A',status:'pendiente',addedBy:'Laila Ahmed'},
+    ],
+    threads:[
+      {id:'t10',type:'capitulo',title:'Ana Karenina parte I: impresiones',spoiler:false,author:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',date:'hace 3 días',replies:4,likes:7,
+        posts:[
+          {author:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',text:'La primera frase ya es un manifiesto. ¿Habéis empezado?',date:'hace 3 días',likes:4},
+          {author:'Laila Ahmed',initials:'LA',bg:'#D97706',tc:'white',text:'Sí, me tiene atrapada. La ironía de Tolstói con la familia Oblonsky en el primer capítulo es brutal.',date:'hace 2 días',likes:3},
+        ],
+      },
+    ],
+    clubRetos:[],
+    announcements:[
+      {author:'Kenji Tanaka',initials:'KT',bg:'#2563EB',tc:'white',date:'hace 5 días',text:'📚 Comenzamos Ana Karenina. Meta: leer la Parte I (caps 1–15) antes del 30 de junio.'},
+    ],
+  },
+];
+
+const DISCOVER_CLUBS=[
+  {id:'dc1',emoji:'🌍',name:'Narrativa árabe contemporánea',desc:'Autores de todo el mundo árabe',memberCount:45,privacy:'request',type:'genero'},
+  {id:'dc2',emoji:'🗾',name:'Literatura japonesa',desc:'Desde Kawabata hasta Murata',memberCount:89,privacy:'open',type:'genero'},
+  {id:'dc3',emoji:'🌀',name:'Realismo mágico global',desc:'Más allá de Latinoamérica',memberCount:134,privacy:'open',type:'ficcion'},
+  {id:'dc4',emoji:'🔬',name:'Ciencia ficción dura',desc:'Hard SF: Asimov, Clarke, Kim Stanley Robinson',memberCount:67,privacy:'request',type:'ficcion'},
+  {id:'dc5',emoji:'🏛️',name:'Filosofía y ensayo',desc:'Lecturas filosóficas y pensamiento crítico',memberCount:203,privacy:'open',type:'noficcion'},
+  {id:'dc6',emoji:'🖤',name:'Novela negra ibérica',desc:'Crimen y thriller en español y portugués',memberCount:318,privacy:'open',type:'ficcion'},
+];
+
+let CURRENT_CLUB_ID=null;
+let CURRENT_THREAD_ID=null;
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
 let retoAssigned=[];
 let starVal=0;
@@ -2199,10 +2469,15 @@ function go(id,btn,extraId){
     renderAuthorPage(extraId);
     return;
   }
+  if(id==='clubdetail'){
+    document.getElementById('p-club-detail').classList.add('on');
+    renderClubDetail(extraId);
+    return;
+  }
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,reviews:renderReviews,
-    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage})[id]?.();
+    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs})[id]?.();
   if(id==='feed')document.getElementById('feed-badge').style.display='none';
   if(id==='friends')document.getElementById('friends-badge').style.display='none';
 }
@@ -3771,7 +4046,390 @@ function searchFriends(q){
 // ═══════════════════════════════════════════════
 // CLUBS
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// CLUBS
+// ═══════════════════════════════════════════════
+function renderClubs(){
+  renderMyClubs();
+  renderDiscoverClubs();
+}
+
+function renderMyClubs(){
+  const el=document.getElementById('my-clubs-list');
+  if(!el)return;
+  if(!CLUBS.length){
+    el.innerHTML=`<div class="empty card"><i class="ti ti-users"></i><p>Aún no perteneces a ningún club</p><span>Crea uno o únete desde la pestaña Descubrir</span></div>`;
+    return;
+  }
+  el.innerHTML=CLUBS.map(c=>{
+    const avs=c.members.slice(0,5).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc}">${m.initials}</div>`).join('');
+    const roleTag=c.myRole==='admin'?'<span class="club-tag admin"><i class="ti ti-crown" style="font-size:9px"></i> Admin</span>':'';
+    const privTag=c.privacy==='invite'?'<span class="club-tag private"><i class="ti ti-lock" style="font-size:9px"></i> Privado</span>':'';
+    const reading=c.books.find(b=>b.status==='leyendo');
+    const mtg=c.nextMeeting?`<span style="font-size:12px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> ${c.nextMeeting.date} · ${c.nextMeeting.place}</span>`:'';
+    return `<div class="club-card" onclick="go('clubdetail',null,'${c.id}')">
+      <div class="club-avatar" style="background:${c.myRole==='admin'?'var(--ink)':'#F3F2EF'}">${c.emoji}</div>
+      <div class="club-card-info">
+        <div class="club-card-name">${escapeHtml(c.name)}</div>
+        <div class="club-card-meta">${c.memberCount} miembros · ${c.threads.length} debates activos</div>
+        ${reading?`<div class="club-card-reading"><i class="ti ti-book" style="font-size:14px;color:var(--red)"></i> Leyendo: <strong>${escapeHtml(reading.title)}</strong></div>`:''}
+        <div class="club-card-tags">${roleTag}${privTag}</div>
+        ${mtg?`<div style="margin-top:8px">${mtg}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="club-av-stack">${avs}</div>
+        <span style="font-size:11px;color:var(--ink3)">${c.announcements.length?'<i class="ti ti-speakerphone" style="color:var(--amber)"></i> '+c.announcements[0].text.slice(0,40)+'…':''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDiscoverClubs(){
+  const el=document.getElementById('discover-clubs-list');
+  if(!el)return;
+  const joinedIds=new Set(CLUBS.map(c=>c.id));
+  const list=DISCOVER_CLUBS.filter(c=>!joinedIds.has(c.id));
+  el.innerHTML=list.map(c=>{
+    const privLabel=c.privacy==='open'?'Abierto':c.privacy==='request'?'Pedir acceso':'Solo invitación';
+    const privColor=c.privacy==='open'?'var(--green)':c.privacy==='request'?'var(--amber)':'var(--ink3)';
+    return `<div class="discover-club-card">
+      <div class="discover-club-avatar" style="background:#F3F2EF">${c.emoji}</div>
+      <div class="discover-club-info">
+        <div class="discover-club-name">${escapeHtml(c.name)}</div>
+        <div class="discover-club-meta">${c.memberCount} miembros · <span style="color:${privColor}">${privLabel}</span></div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:2px">${escapeHtml(c.desc)}</div>
+      </div>
+      <button class="btn btn-sm btn-white" onclick="joinDiscoverClub(event,'${c.id}')">Unirse</button>
+    </div>`;
+  }).join('')||'<p style="color:var(--ink3);font-size:13px;text-align:center;padding:24px">No hay más clubs disponibles</p>';
+}
+
+function setClubsTab(btn,tab){
+  document.querySelectorAll('.retos-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('clubs-tab-mis').style.display=tab==='mis'?'block':'none';
+  document.getElementById('clubs-tab-descubrir').style.display=tab==='descubrir'?'block':'none';
+}
+
+function joinDiscoverClub(e,id){
+  e.stopPropagation();
+  const dc=DISCOVER_CLUBS.find(c=>c.id===id);
+  if(!dc)return;
+  if(dc.privacy==='open'){
+    const newClub={
+      id:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
+      myRole:'member',memberCount:dc.memberCount+1,nextMeeting:null,
+      members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'member',booksRead:0,joined:'2026-06'}],
+      books:[],threads:[],clubRetos:[],announcements:[],
+    };
+    CLUBS.push(newClub);
+    renderClubs();
+    toast(`✅ Unido a «${dc.name}»`);
+  } else if(dc.privacy==='request'){
+    toast(`📨 Solicitud enviada a «${dc.name}». El admin decidirá si te acepta.`);
+    e.currentTarget.textContent='Solicitado';e.currentTarget.disabled=true;
+  } else {
+    toast('🔒 Este club es solo por invitación. Pide al admin que te añada con @tuusuario.');
+  }
+}
+
 function joinClub(btn,name){btn.textContent='¡Unido! ✓';btn.className='btn btn-sm btn-red';btn.disabled=true;toast(`✅ Unido al club «${name}»`);}
+
+// ── CLUB DETAIL ──
+function renderClubDetail(id){
+  CURRENT_CLUB_ID=id;
+  CURRENT_THREAD_ID=null;
+  const club=CLUBS.find(c=>c.id===id);
+  if(!club){toast('Club no encontrado');return;}
+
+  // Hero header
+  const avs=club.members.slice(0,6).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc};width:28px;height:28px;font-size:10px">${m.initials}</div>`).join('');
+  document.getElementById('club-detail-hero').innerHTML=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-top:40px">
+      <div>
+        <div style="font-size:36px;margin-bottom:8px">${club.emoji}</div>
+        <div class="club-detail-title">${escapeHtml(club.name)}</div>
+        <div class="club-detail-desc">${escapeHtml(club.desc)}</div>
+        <div class="club-detail-stats">
+          <div class="club-detail-stat"><div class="club-detail-stat-n">${club.memberCount}</div><div class="club-detail-stat-l">miembros</div></div>
+          <div class="club-detail-stat"><div class="club-detail-stat-n">${club.threads.length}</div><div class="club-detail-stat-l">debates</div></div>
+          <div class="club-detail-stat"><div class="club-detail-stat-n">${club.books.length}</div><div class="club-detail-stat-l">libros</div></div>
+        </div>
+        <div class="club-members-preview">${avs}<span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:6px">${club.memberCount > 6 ? '+' + (club.memberCount-6) + ' más':''}</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        ${club.myRole==='admin'?`<button class="btn btn-white btn-sm" onclick="openModal('modal-invite-member')"><i class="ti ti-user-plus"></i> Invitar</button>`:''}
+        ${club.nextMeeting?`<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right"><div style="font-weight:700;color:white;margin-bottom:2px">📅 Próxima reunión</div>${escapeHtml(club.nextMeeting.date)}<br><span style="color:rgba(255,255,255,0.45)">${escapeHtml(club.nextMeeting.place)}</span></div>`:''}
+      </div>
+    </div>`;
+
+  // Reset tabs
+  document.querySelectorAll('.club-detail-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelector('.club-detail-tab[data-tab="debates"]').classList.add('on');
+  document.querySelectorAll('.club-detail-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('club-panel-debates').classList.add('on');
+
+  renderClubDebates(club);
+  renderClubLibros(club);
+  renderClubMiembros(club);
+  renderClubRetos(club);
+  renderClubAnuncios(club);
+}
+
+function setClubTab(btn,tab){
+  document.querySelectorAll('.club-detail-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.club-detail-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('club-panel-'+tab).classList.add('on');
+}
+
+function renderClubDebates(club){
+  const el=document.getElementById('club-panel-debates');
+  if(!el)return;
+  // If a thread is open, show thread detail
+  if(CURRENT_THREAD_ID){
+    const t=club.threads.find(th=>th.id===CURRENT_THREAD_ID);
+    if(t){el.innerHTML=threadDetailHtml(club,t);return;}
+  }
+  const isAdmin=club.myRole==='admin'||club.myRole==='mod';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--ink3)">${club.threads.length} debates</div>
+      <button class="btn btn-red btn-sm" onclick="openModal('modal-create-thread')"><i class="ti ti-plus"></i> Nuevo debate</button>
+    </div>
+    ${club.threads.map(t=>`
+      <div class="thread-card" onclick="openThread('${club.id}','${t.id}')">
+        <div class="thread-card-head">
+          <span class="thread-type-badge thread-type-${t.type}">${threadTypeLabel(t.type)}</span>
+          <div class="thread-title">${escapeHtml(t.title)}${t.spoiler?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:6px;margin-left:6px">⚠️ Spoiler</span>':''}</div>
+        </div>
+        <div class="thread-meta">
+          <div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${t.initials}</div>${escapeHtml(t.author)}</div>
+          <span>${t.date}</span>
+          <span><i class="ti ti-message-circle" style="font-size:12px"></i> ${t.replies}</span>
+          <span><i class="ti ti-heart" style="font-size:12px"></i> ${t.likes}</span>
+        </div>
+      </div>`).join('')}`;
+}
+
+function threadTypeLabel(type){
+  return {capitulo:'Capítulo',personaje:'Personaje',debate:'Debate',general:'General'}[type]||type;
+}
+
+function threadDetailHtml(club,t){
+  const postsHtml=t.posts.map((p,i)=>`
+    <div class="thread-post">
+      <div class="club-av" style="background:${p.bg};color:${p.tc};width:34px;height:34px;font-size:12px;flex-shrink:0">${p.initials}</div>
+      <div class="thread-post-body">
+        <div class="thread-post-author">${escapeHtml(p.author)}${p.author==='Tú'?'<span style="font-size:10px;background:var(--red-light);color:var(--red);padding:1px 5px;border-radius:5px">Tú</span>':''}</div>
+        <div class="thread-post-text">${escapeHtml(p.text)}</div>
+        <div class="thread-post-time" style="display:flex;align-items:center;gap:10px">
+          <span>${p.date}</span>
+          <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="likePost('${club.id}','${t.id}',${i})"><i class="ti ti-heart" style="font-size:11px"></i> ${p.likes}</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  return `<div>
+    <button class="btn btn-white btn-sm" style="margin-bottom:14px" onclick="CURRENT_THREAD_ID=null;renderClubDebates(CLUBS.find(c=>c.id==='${club.id}'))"><i class="ti ti-arrow-left"></i> Debates</button>
+    <div class="thread-detail">
+      <div class="thread-detail-head">
+        <span class="thread-type-badge thread-type-${t.type}">${threadTypeLabel(t.type)}</span>
+        <div class="thread-title" style="margin-top:6px;font-size:16px">${escapeHtml(t.title)}${t.spoiler?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:6px;margin-left:8px">⚠️ Spoiler</span>':''}</div>
+        <div class="thread-meta" style="margin-top:6px"><div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${t.initials}</div>${escapeHtml(t.author)}</div><span>${t.date}</span></div>
+      </div>
+      <div class="thread-posts">${postsHtml}</div>
+      <div class="thread-reply-box">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div class="club-av" style="background:var(--red);color:white;width:32px;height:32px;font-size:11px;flex-shrink:0">TU</div>
+          <div style="flex:1">
+            <textarea id="reply-input-${t.id}" class="form-input" rows="2" placeholder="Añade tu opinión..." style="resize:none;margin-bottom:8px"></textarea>
+            <button class="btn btn-red btn-sm" onclick="postReply('${club.id}','${t.id}')"><i class="ti ti-send"></i> Responder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openThread(clubId,threadId){
+  CURRENT_THREAD_ID=threadId;
+  const club=CLUBS.find(c=>c.id===clubId);
+  if(club)renderClubDebates(club);
+}
+
+function likePost(clubId,threadId,postIdx){
+  const club=CLUBS.find(c=>c.id===clubId);
+  if(!club)return;
+  const t=club.threads.find(th=>th.id===threadId);
+  if(!t||!t.posts[postIdx])return;
+  t.posts[postIdx].likes=(t.posts[postIdx].likes||0)+1;
+  renderClubDebates(club);
+}
+
+function postReply(clubId,threadId){
+  const club=CLUBS.find(c=>c.id===clubId);
+  const t=club&&club.threads.find(th=>th.id===threadId);
+  if(!t)return;
+  const input=document.getElementById('reply-input-'+threadId);
+  const text=(input&&input.value.trim())||'';
+  if(!text){toast('Escribe algo antes de responder');return;}
+  t.posts.push({author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',text,date:'ahora mismo',likes:0});
+  t.replies=t.posts.length-1;
+  input.value='';
+  renderClubDebates(club);
+  toast('💬 Respuesta publicada');
+}
+
+function renderClubLibros(club){
+  const el=document.getElementById('club-panel-libros');
+  if(!el)return;
+  const isAdmin=club.myRole==='admin';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--ink3)">${club.books.length} libros en el club</div>
+      ${isAdmin?`<button class="btn btn-white btn-sm" onclick="toast('Función de añadir libro próximamente')"><i class="ti ti-plus"></i> Añadir libro</button>`:''}
+    </div>
+    <div class="card" style="padding:0 20px">
+      ${club.books.map(b=>{
+        const statusLabel={leyendo:'Leyendo',leido:'Leído',pendiente:'Pendiente'}[b.status]||b.status;
+        return `<div class="club-book-row">
+          <div class="club-book-cover"><div style="background:${b.color};width:100%;height:100%;border-radius:3px"></div></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--ink)">${escapeHtml(b.title)}</div><div style="font-size:12px;color:var(--ink3)">${escapeHtml(b.author)}</div><div style="font-size:11px;color:var(--ink3);margin-top:2px">Añadido por ${escapeHtml(b.addedBy)}</div></div>
+          <span class="club-book-status ${b.status}">${statusLabel}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderClubMiembros(club){
+  const el=document.getElementById('club-panel-miembros');
+  if(!el)return;
+  const isAdmin=club.myRole==='admin';
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:13px;color:var(--ink3)">${club.memberCount} miembros</div>
+      ${isAdmin?`<button class="btn btn-red btn-sm" onclick="openModal('modal-invite-member')"><i class="ti ti-user-plus"></i> Invitar @usuario</button>`:''}
+    </div>
+    <div class="card" style="padding:0 20px">
+      ${club.members.map(m=>`<div class="club-member-row">
+        <div class="club-member-av" style="background:${m.bg};color:${m.tc}">${m.initials}</div>
+        <div>
+          <div class="club-member-name">${escapeHtml(m.name)}</div>
+          <div class="club-member-meta">${m.booksRead} libros leídos en el club · desde ${m.joined}</div>
+        </div>
+        ${m.role!=='member'?`<span class="club-member-role">${m.role==='admin'?'👑 Admin':'🛡️ Mod'}</span>`:''}
+        ${isAdmin&&m.name!=='Tú'?`<button class="btn btn-danger btn-sm" onclick="kickMember('${club.id}','${m.initials}')"><i class="ti ti-user-minus"></i></button>`:''}
+      </div>`).join('')}
+    </div>`;
+}
+
+function renderClubRetos(club){
+  const el=document.getElementById('club-panel-retos');
+  if(!el)return;
+  el.innerHTML=`
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:var(--ink3)">${club.clubRetos.length} retos activos</div>
+      ${club.myRole==='admin'?`<button class="btn btn-white btn-sm" onclick="toast('Reto de club próximamente')"><i class="ti ti-plus"></i> Crear reto</button>`:''}
+    </div>
+    ${club.clubRetos.length?club.clubRetos.map(r=>`
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:20px">${r.emoji}</span>
+          <div style="font-size:14px;font-weight:600;color:var(--ink)">${escapeHtml(r.name)}</div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:6px">${r.progress} de ${r.goal} miembros han completado el reto</div>
+        <div class="prog-track" style="height:6px"><div class="prog-bar" style="width:${Math.round(r.progress/r.goal*100)}%;background:var(--red)"></div></div>
+      </div>`).join(''):`<div class="empty card"><i class="ti ti-trophy"></i><p>Sin retos aún</p><span>El admin puede crear retos exclusivos para el club</span></div>`}`;
+}
+
+function renderClubAnuncios(club){
+  const el=document.getElementById('club-panel-anuncios');
+  if(!el)return;
+  const isAdmin=club.myRole==='admin';
+  el.innerHTML=`
+    ${isAdmin?`<div style="margin-bottom:14px"><button class="btn btn-red btn-sm" onclick="postAnnouncement('${club.id}')"><i class="ti ti-speakerphone"></i> Nuevo anuncio</button></div>`:''}
+    ${club.announcements.length?club.announcements.map(a=>`
+      <div class="club-announcement">
+        <div class="club-announcement-head">
+          <div class="club-av" style="background:${a.bg};color:${a.tc};width:22px;height:22px;font-size:8px">${a.initials}</div>
+          ${escapeHtml(a.author)} · ${a.date}
+        </div>
+        <div class="club-announcement-text">${escapeHtml(a.text)}</div>
+      </div>`).join(''):`<div class="empty card"><i class="ti ti-speakerphone"></i><p>Sin anuncios</p><span>El admin puede publicar anuncios para todos los miembros</span></div>`}`;
+}
+
+function kickMember(clubId,initials){
+  if(!confirm('¿Eliminar a este miembro del club?'))return;
+  const club=CLUBS.find(c=>c.id===clubId);
+  if(!club)return;
+  club.members=club.members.filter(m=>m.initials!==initials);
+  club.memberCount=Math.max(0,club.memberCount-1);
+  renderClubMiembros(club);
+  toast('Miembro eliminado del club');
+}
+
+function sendClubInvite(){
+  const val=document.getElementById('inv-username').value.trim();
+  if(!val){toast('Escribe un @usuario');return;}
+  closeModal('modal-invite-member');
+  toast(`📨 Invitación enviada a ${val.startsWith('@')?val:'@'+val}`);
+  document.getElementById('inv-username').value='';
+}
+
+function saveNewClub(){
+  const name=document.getElementById('cc-name').value.trim();
+  if(!name){toast('Escribe un nombre para el club');return;}
+  const emoji=document.getElementById('cc-emoji').value.trim()||'📚';
+  const desc=document.getElementById('cc-desc').value.trim()||'';
+  const type=document.getElementById('cc-type').value;
+  const privacy=document.getElementById('cc-privacy').value;
+  const id='club_'+Date.now();
+  CLUBS.push({
+    id,name,emoji,desc,type,privacy,myRole:'admin',memberCount:1,nextMeeting:null,
+    members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'admin',booksRead:0,joined:'2026-06'}],
+    books:[],threads:[],clubRetos:[],announcements:[],
+  });
+  closeModal('modal-create-club');
+  ['cc-name','cc-desc','cc-emoji'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
+  renderClubs();
+  toast(`✅ Club «${name}» creado. Invita miembros con @usuario.`);
+}
+
+function saveNewThread(){
+  const club=CLUBS.find(c=>c.id===CURRENT_CLUB_ID);
+  if(!club)return;
+  const title=document.getElementById('ct-title').value.trim();
+  if(!title){toast('Escribe un título para el debate');return;}
+  const body=document.getElementById('ct-body').value.trim();
+  const type=document.querySelector('input[name="thread-type"]:checked')?.value||'general';
+  const spoiler=document.getElementById('ct-spoiler').checked;
+  const id='t_'+Date.now();
+  const thread={
+    id,type,title,spoiler,
+    author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',
+    date:'ahora mismo',replies:body?1:0,likes:0,
+    posts:body?[{author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',text:body,date:'ahora mismo',likes:0}]:[],
+  };
+  club.threads.unshift(thread);
+  closeModal('modal-create-thread');
+  document.getElementById('ct-title').value='';
+  document.getElementById('ct-body').value='';
+  document.getElementById('ct-spoiler').checked=false;
+  CURRENT_THREAD_ID=id;
+  renderClubDebates(club);
+  toast('💬 Debate creado');
+}
+
+function postAnnouncement(clubId){
+  const text=prompt('Escribe el anuncio para todos los miembros:');
+  if(!text||!text.trim())return;
+  const club=CLUBS.find(c=>c.id===clubId);
+  if(!club)return;
+  club.announcements.unshift({author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'ahora mismo',text:text.trim()});
+  renderClubAnuncios(club);
+  toast('📢 Anuncio publicado');
+}
 
 // ═══════════════════════════════════════════════
 // PROFILE
@@ -4663,7 +5321,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
   if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
 });
 
