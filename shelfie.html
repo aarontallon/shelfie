@@ -5669,6 +5669,7 @@ function renderClubDetail(id){
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
         ${club.myRole==='admin'?`<button class="btn btn-white btn-sm" onclick="openModal('modal-invite-member')"><i class="ti ti-user-plus"></i> Invitar</button>`:''}
+        ${club.myRole==='admin'?`<button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:none" onclick="deleteClub('${club.id}')"><i class="ti ti-trash"></i> Eliminar club</button>`:`<button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:none" onclick="leaveClub('${club.id}')"><i class="ti ti-logout"></i> Salir del club</button>`}
         ${club.nextMeeting?`<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right"><div style="font-weight:700;color:white;margin-bottom:2px">📅 Próxima reunión</div>${escapeHtml(club.nextMeeting.date)}<br><span style="color:rgba(255,255,255,0.45)">${escapeHtml(club.nextMeeting.place)}</span></div>`:''}
       </div>
     </div>`;
@@ -5684,6 +5685,20 @@ function renderClubDetail(id){
   renderClubMiembros(club);
   renderClubRetos(club);
   renderClubAnuncios(club);
+}
+
+function deleteClub(id){
+  if(!confirm('¿Eliminar este club? Esta acción no se puede deshacer.'))return;
+  CLUBS=CLUBS.filter(c=>c.id!==id);
+  go('clubs',document.querySelectorAll('.nb')[5]);
+  toast('Club eliminado');
+}
+
+function leaveClub(id){
+  if(!confirm('¿Salir de este club?'))return;
+  CLUBS=CLUBS.filter(c=>c.id!==id);
+  go('clubs',document.querySelectorAll('.nb')[5]);
+  toast('Has salido del club');
 }
 
 function setClubTab(btn,tab){
@@ -7176,8 +7191,12 @@ document.getElementById('reg-email').addEventListener('keydown',e=>{if(e.key==='
 
 // ── Check for existing Supabase session on load ──
 (async()=>{
+  // Handle OAuth redirect tokens in URL hash
+  if(window.location.hash&&window.location.hash.includes('access_token')){
+    await supa.auth.getSession(); // let SDK parse the hash
+  }
   const{data:{session}}=await supa.auth.getSession();
-  if(session){
+  if(session&&!isLoggedIn){
     SUPA_USER=session.user;
     await _supaEnterApp();
   }
