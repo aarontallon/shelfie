@@ -84,11 +84,44 @@ a{color:inherit}
 .card-link{font-size:12px;color:var(--red);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;font-weight:500;padding:0}
 .card-link:hover{text-decoration:underline}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.stat{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:default;transition:box-shadow .15s}
+.stat:hover{box-shadow:0 2px 12px rgba(0,0,0,0.07)}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
 .stat-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--ink);line-height:1}
 .stat-lbl{font-size:12px;color:var(--ink3);margin-top:4px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* home reading hero */
+.home-reading-hero{background:linear-gradient(135deg,#1C1917 0%,#2D1F1A 60%,#1C1917 100%);border-radius:18px;padding:24px 28px;margin-bottom:20px;display:flex;gap:20px;align-items:center;position:relative;overflow:hidden}
+.home-reading-hero::before{content:'';position:absolute;right:-40px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(232,93,74,0.18),transparent 70%)}
+.home-reading-hero-empty{background:linear-gradient(135deg,#F5F4F0,white);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
+.home-hero-spine{flex-shrink:0;width:52px;height:80px;border-radius:5px;display:flex;align-items:flex-end;justify-content:center;padding:5px;position:relative;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.4)}
+.home-hero-spine::before{content:'';position:absolute;left:0;top:0;width:5px;height:100%;background:rgba(0,0,0,0.22)}
+.home-hero-spine-txt{font-size:6px;color:rgba(255,255,255,0.9);text-align:center;line-height:1.2;font-weight:600;z-index:1;position:relative;writing-mode:vertical-rl;transform:rotate(180deg);max-height:64px;overflow:hidden}
+.home-hero-info{flex:1;min-width:0;position:relative;z-index:1}
+.home-hero-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:6px}
+.home-hero-title{font-family:'Playfair Display',serif;font-size:20px;color:white;line-height:1.2;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-hero-author{font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:14px}
+.home-hero-prog-track{background:rgba(255,255,255,0.12);border-radius:4px;height:6px;margin-bottom:6px;overflow:hidden}
+.home-hero-prog-bar{height:100%;background:var(--red);border-radius:4px;transition:width .4s}
+.home-hero-prog-txt{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:14px}
+.home-hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.home-hero-books-more{font-size:12px;color:rgba(255,255,255,0.45);align-self:center;white-space:nowrap}
+/* home lower grid */
+.home-lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:0}
+/* home reto mini row */
+.home-reto-mini{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F4}
+.home-reto-mini:last-child{border-bottom:none}
+.home-reto-mini-emoji{font-size:20px;flex-shrink:0}
+.home-reto-mini-info{flex:1;min-width:0}
+.home-reto-mini-name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-reto-mini-prog{flex:1;background:#F0EFED;border-radius:4px;height:5px;overflow:hidden;margin-top:5px}
+.home-reto-mini-bar{height:100%;background:var(--red);border-radius:4px}
+.home-reto-mini-pct{font-size:11px;color:var(--ink3);flex-shrink:0;font-weight:600}
+/* home feed mini */
+.home-feed-mini{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F4}
+.home-feed-mini:last-child{border-bottom:none}
+.home-feed-mini-text{font-size:13px;color:var(--ink);line-height:1.4}
+.home-feed-mini-when{font-size:11px;color:var(--ink3);margin-top:2px}
 .spine{width:50px;height:76px;border-radius:4px;flex-shrink:0;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;padding:4px;background-size:cover;background-position:center}
 .spine::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:rgba(0,0,0,0.18)}
 .spine-txt{font-size:7px;color:rgba(255,255,255,0.9);text-align:center;line-height:1.2;font-weight:500;z-index:1;position:relative}
@@ -837,6 +870,8 @@ a{color:inherit}
   .g2{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .promo-banner{flex-direction:column}
+  .home-lower-grid{grid-template-columns:1fr}
+  .home-reading-hero{flex-direction:column;align-items:flex-start}
 }
 </style>
 </head>
@@ -1128,7 +1163,10 @@ a{color:inherit}
 <!-- ── INICIO ── -->
 <div id="p-home" class="page on">
   <div class="tb">
-    <div><h1 id="home-greeting">Buenos días ☀️</h1><p id="home-sub">Tu resumen lector</p></div>
+    <div>
+      <h1 id="home-greeting">Buenos días ☀️</h1>
+      <p id="home-sub">Tu resumen lector</p>
+    </div>
     <div class="tb-right">
       <div class="global-srch">
         <i class="ti ti-search ico"></i>
@@ -1138,51 +1176,72 @@ a{color:inherit}
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
   </div>
+
+  <!-- Stats row -->
   <div class="stats-grid">
-    <div class="stat"><div class="stat-icon" style="background:var(--red-light)"><i class="ti ti-book" style="color:var(--red)"></i></div><div class="stat-val" id="h-leidos">0</div><div class="stat-lbl">Leídos</div></div>
-    <div class="stat"><div class="stat-icon" style="background:var(--blue-light)"><i class="ti ti-book-open" style="color:var(--blue)"></i></div><div class="stat-val" id="h-leyendo">0</div><div class="stat-lbl">Leyendo</div></div>
-    <div class="stat"><div class="stat-icon" style="background:var(--amber-light)"><i class="ti ti-bookmark" style="color:var(--amber)"></i></div><div class="stat-val" id="h-quiero">0</div><div class="stat-lbl">Quiero leer</div></div>
-    <div class="stat"><div class="stat-icon" style="background:var(--green-light)"><i class="ti ti-star" style="color:var(--green)"></i></div><div class="stat-val" id="h-avg">—</div><div class="stat-lbl">Valoración media</div></div>
-  </div>
-
-  <!-- RACHA DE LECTURA — marca el día y la app calcula la racha real -->
-  <div class="streak-dash-card">
-    <div class="streak-icon-big"><i class="ti ti-flame"></i></div>
-    <div class="streak-dash-info">
-      <div class="streak-dash-num" id="streak-num">0 días</div>
-      <div class="streak-dash-lbl">Racha de lectura actual</div>
-      <div class="streak-dash-best" id="streak-best">Mejor racha: 0 días</div>
-      <div class="streak-week-dots" id="streak-week-dots"></div>
+    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
+      <div class="stat-icon" style="background:var(--red-light)"><i class="ti ti-book" style="color:var(--red)"></i></div>
+      <div class="stat-val" id="h-leidos">0</div>
+      <div class="stat-lbl">Leídos</div>
     </div>
-    <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
+    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
+      <div class="stat-icon" style="background:var(--blue-light)"><i class="ti ti-book-open" style="color:var(--blue)"></i></div>
+      <div class="stat-val" id="h-leyendo">0</div>
+      <div class="stat-lbl">Leyendo</div>
+    </div>
+    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
+      <div class="stat-icon" style="background:var(--amber-light)"><i class="ti ti-bookmark" style="color:var(--amber)"></i></div>
+      <div class="stat-val" id="h-quiero">0</div>
+      <div class="stat-lbl">Quiero leer</div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon" style="background:var(--green-light)"><i class="ti ti-star" style="color:var(--green)"></i></div>
+      <div class="stat-val" id="h-avg">—</div>
+      <div class="stat-lbl">Valoración media</div>
+    </div>
   </div>
 
-  <!-- PROMO: retos destacados en home, estilo Goodreads -->
-  <div class="promo-banner" id="home-reto-promo">
-    <div class="promo-text">
-      <h2>Ponte un reto de lectura</h2>
-      <p>Crea tu propio desafío, asígnale libros y compártelo — o únete a uno de la comunidad. Miles de lectores ya están compitiendo.</p>
-      <div class="flex gap-2">
-        <button class="btn btn-red btn-lg" onclick="openModal('modal-reto')"><i class="ti ti-target"></i> Crear mi reto</button>
-        <button class="btn btn-white btn-lg" onclick="go('retos',document.querySelectorAll('.nb')[8])">Ver todos los retos</button>
+  <!-- Reading hero — rendered by updateHome() -->
+  <div id="home-reading-hero"></div>
+
+  <!-- Lower grid -->
+  <div class="home-lower-grid">
+    <!-- Left: racha + retos activos -->
+    <div>
+      <div class="streak-dash-card" style="margin-bottom:14px">
+        <div class="streak-icon-big"><i class="ti ti-flame"></i></div>
+        <div class="streak-dash-info">
+          <div class="streak-dash-num" id="streak-num">0 días</div>
+          <div class="streak-dash-lbl">Racha de lectura actual</div>
+          <div class="streak-dash-best" id="streak-best">Mejor racha: 0 días</div>
+          <div class="streak-week-dots" id="streak-week-dots"></div>
+        </div>
+        <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-target" style="color:var(--red);font-size:14px"></i> Mis retos</div>
+          <button class="card-link" onclick="go('retos',document.querySelectorAll('.nb')[8])">Ver todos →</button>
+        </div>
+        <div id="home-retos"></div>
       </div>
     </div>
-    <div class="promo-stack">
-      <div class="spine" style="background:#8B2635;--r:-8deg"></div>
-      <div class="spine" style="background:#1A3A5C;--r:-3deg"></div>
-      <div class="spine" style="background:#5C2E7A;--r:3deg"></div>
-      <div class="spine" style="background:#1E4D3A;--r:8deg"></div>
-    </div>
-  </div>
-
-  <div class="g2">
-    <div class="card">
-      <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver mi shelfie →</button></div>
-      <div id="home-reading"></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">✨ Recomendado para ti</div><button class="card-link" onclick="go('discover',document.querySelectorAll('.nb')[3])">Ver más →</button></div>
-      <div id="home-recs"></div>
+    <!-- Right: recs + community -->
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+          <div class="card-title">✨ Recomendado para ti</div>
+          <button class="card-link" onclick="go('discover',document.querySelectorAll('.nb')[3])">Ver más →</button>
+        </div>
+        <div id="home-recs"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-users" style="color:var(--blue);font-size:14px"></i> Tu comunidad</div>
+          <button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ir al feed →</button>
+        </div>
+        <div id="home-feed"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2941,17 +3000,85 @@ function updateHome(){
   const av=document.getElementById('sb-avatar');
   if(PROFILE.photo){av.style.backgroundImage=`url(${PROFILE.photo})`;av.style.background='none';av.textContent='';}
   else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
-  const rl=document.getElementById('home-reading');
-  if(!DB.leyendo.length){rl.innerHTML='<div style="font-size:13px;color:var(--ink3);padding:8px 0">No estás leyendo nada. <button class="card-link" onclick="openModal(\'modal-add\')">Añade un libro →</button></div>';}
-  else{
-    rl.innerHTML=DB.leyendo.slice(0,2).map(b=>{
-      const pct=b.pages?Math.round(b.curPage/b.pages*100):0;
-      return `<div class="book-row">${cvr(b,'spine')}<div class="book-info"><div class="bk-title">${b.title}</div><div class="bk-author">${b.author}</div>${b.pages?`<div class="prog-track"><div class="prog-bar" id="hp-${b.id}" style="width:${pct}%"></div></div><div class="prog-txt" id="hpt-${b.id}">Pág. ${b.curPage}/${b.pages} · ${pct}%</div>`:'<div class="prog-txt">Sin páginas registradas</div>'}<div class="flex gap-2 mt-1">${b.pages?`<button class="btn btn-sm btn-white" onclick="addPages('${b.id}')">+ Páginas</button>`:''}<button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','leyendo')">✓ Terminado</button></div></div></div>`;
-    }).join('');
+
+  // ── Reading hero ──
+  const hero=document.getElementById('home-reading-hero');
+  if(!DB.leyendo.length){
+    hero.className='home-reading-hero-empty';
+    hero.innerHTML=`<div style="width:52px;height:80px;border-radius:8px;background:#E8E5DF;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-book-off" style="font-size:22px;color:var(--ink3)"></i></div><div><div style="font-size:16px;font-weight:700;margin-bottom:4px">No estás leyendo nada todavía</div><p style="font-size:13px;color:var(--ink3);margin-bottom:12px">Añade un libro a "Leyendo" para ver tu progreso aquí.</p><button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button></div>`;
+  } else {
+    const books=DB.leyendo;
+    const b=books[0];
+    const pct=b.pages?Math.round((b.curPage||0)/b.pages*100):0;
+    const bg=b.color||'#8B2635';
+    const coverStyle=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;`:`background:${bg};`;
+    hero.className='home-reading-hero';
+    hero.innerHTML=`
+      <div class="home-hero-spine" style="${coverStyle}">
+        ${!b.cover?`<span class="home-hero-spine-txt">${escapeHtml(b.title)}</span>`:''}
+      </div>
+      <div class="home-hero-info" style="flex:1;min-width:0">
+        <div class="home-hero-tag">Leyendo ahora</div>
+        <div class="home-hero-title">${escapeHtml(b.title)}</div>
+        <div class="home-hero-author">${escapeHtml(b.author)}</div>
+        ${b.pages?`<div class="home-hero-prog-track"><div class="home-hero-prog-bar" style="width:${pct}%"></div></div>
+        <div class="home-hero-prog-txt">Pág. ${b.curPage||0} de ${b.pages} · ${pct}%</div>`:`<div class="home-hero-prog-txt" style="color:rgba(255,255,255,0.4)">Sin páginas registradas</div>`}
+        <div class="home-hero-actions">
+          ${b.pages?`<button class="btn btn-white btn-sm" onclick="addPages('${b.id}')"><i class="ti ti-plus"></i> Páginas</button>`:''}
+          <button class="btn btn-red btn-sm" onclick="markFinishedFrom('${b.id}','leyendo')"><i class="ti ti-check"></i> Terminado</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15)" onclick="go('bookdetail',null,'${b.id}')"><i class="ti ti-notes"></i> Detalles</button>
+        </div>
+      </div>
+      ${books.length>1?`<div class="home-hero-books-more">+${books.length-1} más<br>leyendo</div>`:''}`;
   }
+
+  // ── Recs ──
   const recs=document.getElementById('home-recs');
-  const avail=STATIC_RECS.filter(r=>!allBooks().find(b=>b.title===r.title)).slice(0,2);
-  recs.innerHTML=avail.length?avail.map(r=>`<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F4"><div style="width:40px;height:40px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#9B2B1B;flex-shrink:0">${r.pct}%</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">${r.title}</div><div class="text-xs text-muted">${r.author}</div><div style="font-size:11px;color:var(--ink3);font-style:italic;margin-top:2px">${r.why}</div><button class="btn btn-sm btn-red mt-1" onclick="quickAddDirect('${r.title.replace(/'/g,"\\'")}','${r.author.replace(/'/g,"\\'")}','quiero')">+ Quiero leerlo</button></div></div>`).join(''):'<div style="font-size:13px;color:var(--ink3);padding:8px 0">🎉 ¡Tienes todos los libros recomendados!</div>';
+  const avail=STATIC_RECS.filter(r=>!allBooks().find(b=>b.title===r.title)).slice(0,3);
+  recs.innerHTML=avail.length?avail.map(r=>`<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F4">
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#9B2B1B;flex-shrink:0">${r.pct}%</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.title)}</div>
+      <div class="text-xs text-muted">${escapeHtml(r.author)}</div>
+      <div style="font-size:11px;color:var(--ink3);font-style:italic;margin-top:1px">${escapeHtml(r.why)}</div>
+      <button class="btn btn-sm btn-red mt-1" onclick="quickAddDirect('${r.title.replace(/'/g,"\\'")}','${r.author.replace(/'/g,"\\'")}','quiero')">+ Quiero leerlo</button>
+    </div></div>`).join(''):'<div style="font-size:13px;color:var(--ink3);padding:8px 0">🎉 ¡Tienes todos los libros recomendados!</div>';
+
+  // ── Active retos mini ──
+  const retosEl=document.getElementById('home-retos');
+  const activeRetos=RETOS.filter(r=>r.progress<r.goal);
+  if(!activeRetos.length){
+    retosEl.innerHTML=`<div style="font-size:13px;color:var(--ink3);padding:8px 0">Sin retos activos. <button class="card-link" onclick="openModal('modal-reto')">Crear un reto →</button></div>`;
+  } else {
+    retosEl.innerHTML=activeRetos.slice(0,3).map(r=>{
+      const pct=Math.round(r.progress/r.goal*100);
+      return `<div class="home-reto-mini">
+        <div class="home-reto-mini-emoji">${r.emoji||'📚'}</div>
+        <div class="home-reto-mini-info">
+          <div class="home-reto-mini-name">${escapeHtml(r.name)}</div>
+          <div class="home-reto-mini-prog"><div class="home-reto-mini-bar" style="width:${pct}%"></div></div>
+        </div>
+        <div class="home-reto-mini-pct">${r.progress}/${r.goal}</div>
+      </div>`;
+    }).join('')+
+    (RETOS.length===0?`<div style="margin-top:10px"><button class="btn btn-sm btn-red" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Nuevo reto</button></div>`:'');
+  }
+
+  // ── Community mini feed ──
+  const feedEl=document.getElementById('home-feed');
+  const DEMO_FEED=[
+    {initials:'MG',bg:'#7C3AED',tc:'white',name:'María García',action:'terminó',book:'Rayuela',when:'hace 2h'},
+    {initials:'KT',bg:'#2563EB',tc:'white',name:'Kenji Tanaka',action:'añadió una cita de',book:'Kafka en la orilla',when:'hace 5h'},
+    {initials:'LA',bg:'#D97706',tc:'white',name:'Laila Ahmed',action:'empezó a leer',book:'El nombre del viento',when:'hace 1d'},
+  ];
+  feedEl.innerHTML=DEMO_FEED.map(f=>`<div class="home-feed-mini">
+    <div class="u-av" style="background:${f.bg};color:${f.tc};width:32px;height:32px;font-size:11px;flex-shrink:0">${f.initials}</div>
+    <div>
+      <div class="home-feed-mini-text"><strong>${escapeHtml(f.name)}</strong> ${f.action} <em>${escapeHtml(f.book)}</em></div>
+      <div class="home-feed-mini-when">${f.when}</div>
+    </div>
+  </div>`).join('');
+
   updateStreakDisplay();
 }
 
