@@ -3117,11 +3117,15 @@ function onISBNSearch(val){
       const publisher=(d.publishers||[])[0]||'';
       const year=d.publish_date||'';
       const pages=d.number_of_pages||null;
-      const coverUrl=`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
       const worksKey=d.works?.[0]?.key||null;
       const authorOlKey=null;
-      const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:coverUrl,olKey:worksKey,authorOlKey,isbn,publisher:publisher||null,editionYear:year||null};
-      // fetch author from works
+      // prefer cover IDs (reliable); isbn URL is last resort and may return blank image
+      const rawCoverIds=(d.covers||[]).filter(c=>c>0);
+      const defaultCover=rawCoverIds.length
+        ?`https://covers.openlibrary.org/b/id/${rawCoverIds[0]}-L.jpg`
+        :`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:defaultCover,olKey:worksKey,authorOlKey,isbn,publisher:publisher||null,editionYear:year||null};
+      // fetch author + synopsis from work record
       if(worksKey){
         try{
           const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
@@ -3138,10 +3142,8 @@ function onISBNSearch(val){
         }catch(_){}
       }
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
-      // if multiple cover IDs exist, show picker; otherwise go straight to add
-      const coverIds=(d.covers||[]).filter(c=>c>0);
-      if(coverIds.length>1){
-        showCoverPicker(bookData,coverIds);
+      if(rawCoverIds.length>1){
+        showCoverPicker(bookData,rawCoverIds);
       } else {
         selectBookForAdd(bookData);
       }
@@ -3243,10 +3245,20 @@ function selectBookForAdd(book){
   document.getElementById('qadd-title').textContent=book.title;
   document.getElementById('qadd-author').textContent=book.author+(book.year?' · '+book.year:'');
   const cov=document.getElementById('qadd-cover');
-  if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.backgroundSize='cover';cov.style.backgroundPosition='center';cov.style.background='';}
-  else{cov.style.backgroundImage='';cov.style.background=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];}
+  const fallbackBg=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];
+  if(book.cover){
+    // use img to detect broken/blank covers
+    cov.style.backgroundImage='none';
+    cov.style.background=fallbackBg;
+    cov.innerHTML=`<img src="${book.cover}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:4px" onerror="this.style.display='none'">`;
+  } else {
+    cov.innerHTML='';
+    cov.style.backgroundImage='';
+    cov.style.background=fallbackBg;
+  }
   document.getElementById('qadd-panel').style.display='block';
   document.getElementById('edition-picker').style.display='none';
+  document.getElementById('cover-picker').style.display='none';
   starVal=0;
   document.querySelectorAll('#qadd-stars span').forEach(s=>s.classList.remove('on'));
   document.getElementById('qadd-review').value='';
