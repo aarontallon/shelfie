@@ -1290,11 +1290,6 @@ a{color:inherit}
       <p id="home-sub">Tu resumen lector</p>
     </div>
     <div class="tb-right">
-      <div class="global-srch">
-        <i class="ti ti-search ico"></i>
-        <input type="text" id="g-inp" placeholder="Buscar libro..." oninput="onGlobalSearch(this.value)" autocomplete="off">
-        <div class="drop" id="g-drop"></div>
-      </div>
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
   </div>
@@ -1490,12 +1485,6 @@ a{color:inherit}
       </div>
     </div>
 
-    <!-- Para ti -->
-    <div class="disc-section">
-      <div class="disc-section-head"><span class="disc-section-title" id="disc-parati-title">✨ Para ti · basado en tu shelfie</span></div>
-      <div class="disc-grid" id="disc-para-ti"></div>
-    </div>
-
     <!-- Tendencias -->
     <div class="disc-section">
       <div class="disc-section-head"><span class="disc-section-title">🔥 Tendencias en la comunidad</span></div>
@@ -1512,7 +1501,7 @@ a{color:inherit}
 </div>
 
 <!-- Modal: lista curada -->
-<div class="overlay" id="modal-disc-list" onclick="closeModal('modal-disc-list')">
+<div class="overlay" id="modal-disc-list" style="display:none" onclick="closeModal('modal-disc-list')">
   <div class="modal" onclick="event.stopPropagation()" style="max-height:80vh;overflow-y:auto">
     <div class="modal-head">
       <div id="disc-list-modal-title" style="font-size:16px;font-weight:600"></div>
@@ -2455,14 +2444,20 @@ const DISCOVER_CATALOG=[
   {title:'Solaris',author:'Stanisław Lem',year:1961,pages:205,genre:'Sci-Fi',stars:4.5,readers:980,color:'#01579B'},
   {title:'El cuento de la criada',author:'Margaret Atwood',year:1985,pages:311,genre:'Sci-Fi',stars:4.6,readers:2100,color:'#B71C1C'},
   {title:'Neuromante',author:'William Gibson',year:1984,pages:271,genre:'Sci-Fi',stars:4.3,readers:1100,color:'#1A237E'},
+  {title:'Fahrenheit 451',author:'Ray Bradbury',year:1953,pages:256,genre:'Sci-Fi',stars:4.6,readers:2890,color:'#B71C1C'},
+  {title:'¿Sueñan los androides con ovejas eléctricas?',author:'Philip K. Dick',year:1968,pages:244,genre:'Sci-Fi',stars:4.4,readers:1560,color:'#212121'},
+  {title:'El fin de la eternidad',author:'Isaac Asimov',year:1955,pages:192,genre:'Sci-Fi',stars:4.3,readers:980,color:'#1565C0'},
+  {title:'Don Quijote de la Mancha',author:'Miguel de Cervantes',year:1605,pages:863,genre:'Clásicos',stars:4.5,readers:2100,color:'#7B3F00'},
+  {title:'2666',author:'Roberto Bolaño',year:2004,pages:898,genre:'Latinoamérica',stars:4.6,readers:870,color:'#212121'},
+  {title:'Rayuela',author:'Julio Cortázar',year:1963,pages:736,genre:'Latinoamérica',stars:4.5,readers:1120,color:'#1B5E20'},
 ];
 const DISCOVER_LISTS=[
-  {emoji:'🏆',name:'Premios Nobel',desc:'Lo mejor de la literatura mundial',books:['Cien años de soledad','La casa de los espíritus','El nombre de la rosa','Ana Karenina'],count:24},
-  {emoji:'🌎',name:'Boom Latinoamericano',desc:'Los imprescindibles del continente',books:['Rayuela','Los detectives salvajes','Ficciones','Pedro Páramo'],count:18},
-  {emoji:'✍️',name:'Mujeres que Escriben',desc:'Voces femeninas esenciales',books:['Beloved','Una habitación propia','El cuento de la criada','Ana Karenina'],count:31},
-  {emoji:'🚀',name:'Ciencia Ficción Esencial',desc:'Los clásicos del género',books:['Dune','Solaris','Neuromante','El cuento de la criada'],count:20},
-  {emoji:'📖',name:'Menos de 200 páginas',desc:'Grandes libros, lectura rápida',books:['Ficciones','El coronel no tiene quien le escriba','Cartas a un joven poeta','Kokoro'],count:15},
-  {emoji:'🌍',name:'Literatura europea',desc:'Del Viejo Continente, lo mejor',books:['El proceso','Madame Bovary','Crimen y castigo','El mundo de ayer'],count:27},
+  {emoji:'🏆',name:'Premios Nobel',desc:'Lo mejor de la literatura mundial',books:['Cien años de soledad','Beloved','El maestro y Margarita','La casa de los espíritus','Ana Karenina','El nombre de la rosa','Pedro Páramo','Middlemarch']},
+  {emoji:'🌎',name:'Boom Latinoamericano',desc:'Los imprescindibles del continente',books:['Rayuela','Los detectives salvajes','Ficciones','Pedro Páramo','La ciudad y los perros','El coronel no tiene quien le escriba','2666','La casa de los espíritus','La vorágine']},
+  {emoji:'✍️',name:'Mujeres que Escriben',desc:'Voces femeninas esenciales',books:['Beloved','Una habitación propia','El cuento de la criada','Ana Karenina','Middlemarch','La casa de los espíritus','Madame Bovary']},
+  {emoji:'🚀',name:'Ciencia Ficción Esencial',desc:'Los clásicos del género',books:['Dune','Solaris','Neuromante','El cuento de la criada','Fahrenheit 451','El fin de la eternidad','¿Sueñan los androides con ovejas eléctricas?']},
+  {emoji:'📖',name:'Menos de 200 páginas',desc:'Grandes libros, lectura rápida',books:['Ficciones','El coronel no tiene quien le escriba','Cartas a un joven poeta','Kokoro','Solaris','El proceso','Una habitación propia']},
+  {emoji:'🌍',name:'Literatura europea',desc:'Del Viejo Continente, lo mejor',books:['El proceso','Madame Bovary','Crimen y castigo','El mundo de ayer','El maestro y Margarita','La insoportable levedad del ser','Middlemarch','Ana Karenina','Don Quijote de la Mancha']},
 ];
 let _discoverGenre='all';
 let _discoverQuery='';
@@ -4313,20 +4308,6 @@ function renderDiscover(){
   const genre=_discoverGenre;
   const catalog=discoverUniqCatalog(genre);
   const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
-
-  // ── Para ti: from DISCOVER_CATALOG, never empty ──
-  // Try to match genres from user's leidos; fallback to top-rated
-  const userGenres=new Set(DB.leidos.map(b=>inferDiscoverGenre(b)));
-  let parati=catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())&&userGenres.has(b.genre))
-    .sort((a,b2)=>b2.stars-a.stars);
-  if(parati.length<4)parati=[...parati,...catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())&&!userGenres.has(b.genre)).sort((a,b2)=>b2.stars-a.stars)];
-  parati=parati.slice(0,6);
-  const topBook=DB.leidos.filter(b=>b.stars>=4).sort((a,b2)=>b2.stars-a.stars)[0];
-  if(topBook)document.getElementById('disc-parati-title').textContent=`✨ Porque disfrutas de libros como "${topBook.title}"`;
-  else document.getElementById('disc-parati-title').textContent='✨ Para ti · basado en tu shelfie';
-  document.getElementById('disc-para-ti').innerHTML=parati.length
-    ?parati.map(b=>discoverBookCard(b)).join('')
-    :'<div class="disc-no-results">Añade libros leídos a tu shelfie para personalizar tus recomendaciones</div>';
 
   // ── Tendencias ──
   const trending=catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())).sort((a,b2)=>b2.readers-a.readers).slice(0,6);
