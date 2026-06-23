@@ -3153,7 +3153,6 @@ function onISBNSearch(val){
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
       // always show cover picker so user can pick their exact copy
       showCoverPicker(bookData,[...coverIds]);
-      }
     }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
 }
