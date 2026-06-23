@@ -19,10 +19,10 @@ a{color:inherit}
 .auth-screen::after{content:'';position:absolute;bottom:-150px;left:-100px;width:450px;height:450px;border-radius:50%;background:radial-gradient(circle,rgba(74,124,95,0.12),transparent 70%)}
 .auth-box{background:white;border-radius:20px;padding:40px;width:100%;max-width:420px;position:relative;z-index:2;box-shadow:0 24px 60px rgba(0,0,0,0.3)}
 .auth-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
-.auth-logo .logo-icon{width:40px;height:40px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center}
-.auth-logo .logo-icon svg{width:22px;height:22px;fill:white}
-.auth-logo .logo-text{font-family:'Playfair Display',serif;font-size:24px;color:var(--ink)}
-.auth-logo .logo-text em{color:var(--red);font-style:normal}
+.auth-logo .logo-icon{width:44px;height:44px;background:linear-gradient(145deg,#C0392B,#E8593A);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(220,38,38,0.3)}
+.auth-logo .logo-icon svg{width:26px;height:26px}
+.auth-logo .logo-text{font-family:'Inter',sans-serif;font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-0.5px}
+.auth-logo .logo-text em{color:var(--red);font-style:normal;font-weight:400}
 .auth-title{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;text-align:center;margin-bottom:6px}
 .auth-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:24px}
 .auth-social{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
@@ -47,10 +47,10 @@ a{color:inherit}
 .main{overflow-x:hidden;position:relative}
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.07)}
 .logo-wrap{display:flex;align-items:center;gap:10px}
-.logo-icon{width:38px;height:38px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.logo-icon svg{width:22px;height:22px;fill:white}
-.logo-text{font-family:'Playfair Display',serif;font-size:22px;color:white;letter-spacing:-0.3px}
-.logo-text em{color:var(--red);font-style:normal}
+.logo-icon{width:38px;height:38px;background:linear-gradient(145deg,#C0392B,#E8593A);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+.logo-icon svg{width:24px;height:24px}
+.logo-text{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:white;letter-spacing:-0.5px}
+.logo-text em{color:#FF8A75;font-style:normal;font-weight:400}
 .sb-section{padding:8px 0}
 .sb-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,0.2);padding:8px 18px 4px}
 .nb{display:flex;align-items:center;gap:9px;width:100%;padding:9px 18px;font-size:13px;color:rgba(255,255,255,0.55);background:none;border:none;cursor:pointer;text-align:left;border-left:2px solid transparent;font-family:'Inter',sans-serif;transition:all 0.12s;white-space:nowrap}
@@ -966,7 +966,23 @@ a{color:inherit}
 <div class="auth-screen on" id="auth-login">
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 3h3v18H4zM8.5 3h2.5v18H8.5zM13 3l6 2.5v15L13 23z"/><rect x="3" y="19.5" width="16" height="1.5" rx="0.5"/></svg></div>
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shelf base -->
+  <rect x="1" y="19.5" width="22" height="2" rx="1" fill="white"/>
+  <!-- Book 1: tall -->
+  <rect x="2" y="8" width="3" height="11.5" rx="0.5" fill="white"/>
+  <!-- Book 2: short -->
+  <rect x="5.5" y="12.5" width="2.5" height="7" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+  <!-- Book 3: tallest, with bookmark ribbon -->
+  <rect x="8.5" y="7" width="3" height="12.5" rx="0.5" fill="white"/>
+  <rect x="9.7" y="4" width="1" height="4" rx="0.5" fill="rgba(255,255,255,0.55)"/>
+  <!-- Book 4: medium -->
+  <rect x="12" y="10" width="2.5" height="9.5" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+  <!-- Book 5: tall-medium -->
+  <rect x="15" y="8.5" width="3" height="11" rx="0.5" fill="white"/>
+  <!-- Book 6: short-medium -->
+  <rect x="18.5" y="11" width="3" height="8.5" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+</svg></div>
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="auth-title">Bienvenido de nuevo</div>
@@ -988,7 +1004,23 @@ a{color:inherit}
 <div class="auth-screen" id="auth-register">
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 3h3v18H4zM8.5 3h2.5v18H8.5zM13 3l6 2.5v15L13 23z"/><rect x="3" y="19.5" width="16" height="1.5" rx="0.5"/></svg></div>
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shelf base -->
+  <rect x="1" y="19.5" width="22" height="2" rx="1" fill="white"/>
+  <!-- Book 1: tall -->
+  <rect x="2" y="8" width="3" height="11.5" rx="0.5" fill="white"/>
+  <!-- Book 2: short -->
+  <rect x="5.5" y="12.5" width="2.5" height="7" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+  <!-- Book 3: tallest, with bookmark ribbon -->
+  <rect x="8.5" y="7" width="3" height="12.5" rx="0.5" fill="white"/>
+  <rect x="9.7" y="4" width="1" height="4" rx="0.5" fill="rgba(255,255,255,0.55)"/>
+  <!-- Book 4: medium -->
+  <rect x="12" y="10" width="2.5" height="9.5" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+  <!-- Book 5: tall-medium -->
+  <rect x="15" y="8.5" width="3" height="11" rx="0.5" fill="white"/>
+  <!-- Book 6: short-medium -->
+  <rect x="18.5" y="11" width="3" height="8.5" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+</svg></div>
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="auth-title">Crea tu cuenta</div>
@@ -1209,7 +1241,23 @@ a{color:inherit}
 <nav class="sidebar">
   <div class="sb-logo">
     <div class="logo-wrap">
-      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M4 3h3v18H4zM8.5 3h2.5v18H8.5zM13 3l6 2.5v15L13 23z"/><rect x="3" y="19.5" width="16" height="1.5" rx="0.5"/></svg></div>
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shelf base -->
+  <rect x="1" y="19.5" width="22" height="2" rx="1" fill="white"/>
+  <!-- Book 1: tall -->
+  <rect x="2" y="8" width="3" height="11.5" rx="0.5" fill="white"/>
+  <!-- Book 2: short -->
+  <rect x="5.5" y="12.5" width="2.5" height="7" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+  <!-- Book 3: tallest, with bookmark ribbon -->
+  <rect x="8.5" y="7" width="3" height="12.5" rx="0.5" fill="white"/>
+  <rect x="9.7" y="4" width="1" height="4" rx="0.5" fill="rgba(255,255,255,0.55)"/>
+  <!-- Book 4: medium -->
+  <rect x="12" y="10" width="2.5" height="9.5" rx="0.5" fill="rgba(255,255,255,0.8)"/>
+  <!-- Book 5: tall-medium -->
+  <rect x="15" y="8.5" width="3" height="11" rx="0.5" fill="white"/>
+  <!-- Book 6: short-medium -->
+  <rect x="18.5" y="11" width="3" height="8.5" rx="0.5" fill="rgba(255,255,255,0.7)"/>
+</svg></div>
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
   </div>
