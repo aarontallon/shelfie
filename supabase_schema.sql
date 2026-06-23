@@ -12,6 +12,7 @@ create table if not exists public.profiles (
   city text default '',
   photo text,
   public boolean default true,
+  reading_days jsonb default '[]'::jsonb,
   created_at timestamptz default now()
 );
 

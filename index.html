@@ -2231,7 +2231,7 @@ a{color:inherit}
 // ══════════════════════════════════════════════════════════
 const SUPA_URL='https://zkoarvxhjunwmyiaynyc.supabase.co';
 const SUPA_KEY='sb_publishable_EkLevW97vxNd1UTKf3SLcw_FyT0S-iU';
-const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storage:window.localStorage,persistSession:true,autoRefreshToken:true}});
 let SUPA_USER=null; // auth.User object when logged in
 
 // ── Auth state listener (handles refresh / tab reopen) ──
@@ -2248,6 +2248,20 @@ supa.auth.onAuthStateChange(async(event,session)=>{
   }
 });
 
+// ── Fallback: if onAuthStateChange INITIAL_SESSION fires before DOM is ready ──
+(async()=>{
+  await new Promise(r=>setTimeout(r,500));
+  if(!isLoggedIn&&!_appEntering){
+    const{data:{session}}=await supa.auth.getSession();
+    if(session&&!isLoggedIn&&!_appEntering){
+      _appEntering=true;
+      SUPA_USER=session.user;
+      await _supaEnterApp();
+      _appEntering=false;
+    }
+  }
+})();
+
 // ── Load profile from DB into PROFILE ──
 async function loadSupaProfile(){
   const{data,error}=await supa.from('profiles').select('*').eq('id',SUPA_USER.id).single();
@@ -2259,6 +2273,9 @@ async function loadSupaProfile(){
   PROFILE.photo=data.photo||null;
   PROFILE.public=data.public!==false;
   PROFILE.email=SUPA_USER.email||'';
+  if(data.reading_days&&Array.isArray(data.reading_days)){
+    READING_DAYS=new Set(data.reading_days);
+  }
 }
 
 // ── Load books from DB into DB ──
@@ -3910,13 +3927,16 @@ function todayKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function markTodayAsRead(){
+async function markTodayAsRead(){
   const key=todayKey();
   if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
   READING_DAYS.add(key);
   updateStreakDisplay();
   const streak=calculateCurrentStreak();
   toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
+  if(SUPA_USER){
+    await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+  }
 }
 
 function calculateCurrentStreak(){
