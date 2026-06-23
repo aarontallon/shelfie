@@ -1061,7 +1061,7 @@ a{color:inherit}
       <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
       <div style="position:relative">
         <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
-        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" onblur="checkUsername(this.value.toLowerCase().replace(/[^a-z0-9_]/g,''))" autocomplete="off">
+        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
       </div>
       <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
     </div>
@@ -2924,29 +2924,15 @@ async function doLogin(){
 let _usernameCheckTimer=null;
 let _usernameAvailable=false;
 
-async function checkUsername(clean){
-  const el=document.getElementById('username-status');
-  if(clean.length<3){el.textContent=clean.length?'Mínimo 3 caracteres':'';el.style.color='var(--ink3)';_usernameAvailable=false;return;}
-  el.textContent='Comprobando...';el.style.color='var(--ink3)';
-  try{
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000));
-    const query=supa.from('profiles').select('id').eq('username',clean).maybeSingle();
-    const{data,error}=await Promise.race([query,timeout]);
-    if(error)throw error;
-    if(data){el.textContent='@'+clean+' ya está en uso';el.style.color='#e53e3e';_usernameAvailable=false;}
-    else{el.textContent='@'+clean+' disponible ✓';el.style.color='#38a169';_usernameAvailable=true;}
-  }catch(e){
-    // On timeout or error, optimistically allow — DB unique constraint will catch real duplicates
-    el.textContent='';_usernameAvailable=true;
-  }
-}
+function checkUsername(){}
 
 function onUsernameInput(val){
   const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(val!==clean)document.getElementById('reg-username').value=clean;
-  _usernameAvailable=false;
-  clearTimeout(_usernameCheckTimer);
-  _usernameCheckTimer=setTimeout(()=>checkUsername(clean),400);
+  _usernameAvailable=clean.length>=3;
+  const el=document.getElementById('username-status');
+  el.textContent=clean.length>=3?'@'+clean:'';
+  el.style.color='var(--ink3)';
 }
 
 function passStrength(p){
@@ -2981,10 +2967,7 @@ async function doRegister(){
   if(!nombre){authErr('register-error','Escribe tu nombre');return;}
   if(!apellido){authErr('register-error','Escribe tu apellido');return;}
   if(!username||username.length<3){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
-  // If still checking, wait for result
-  const statusEl=document.getElementById('username-status');
-  if(statusEl&&statusEl.textContent==='Comprobando...'){authErr('register-error','Espera un momento, comprobando disponibilidad del usuario...');return;}
-  if(!_usernameAvailable){authErr('register-error','Ese @usuario no está disponible, elige otro');return;}
+  if(!_usernameAvailable){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
   if(!email||!email.includes('@')){authErr('register-error','Introduce un email válido');return;}
   if(!pass||pass.length<8){authErr('register-error','La contraseña debe tener al menos 8 caracteres');return;}
   if(passStrength(pass)<2){authErr('register-error','La contraseña es demasiado débil. Usa mayúsculas, números o símbolos.');return;}
