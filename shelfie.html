@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shelfie — Tu shelfie social</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--red:#E85D4A;--red-dark:#C04438;--red-light:#FEF2F0;--ink:#1C1917;--ink2:#57534E;--ink3:#A8A29E;--paper:#F7F4F0;--border:#E7E5E4;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF}
@@ -23,7 +23,7 @@ a{color:inherit}
 .auth-logo .logo-icon svg{width:22px;height:22px;fill:white}
 .auth-logo .logo-text{font-family:'Playfair Display',serif;font-size:24px;color:var(--ink)}
 .auth-logo .logo-text em{color:var(--red);font-style:normal}
-.auth-title{font-family:'Playfair Display',serif;font-size:24px;text-align:center;margin-bottom:6px}
+.auth-title{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.03em;text-align:center;margin-bottom:6px}
 .auth-sub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:24px}
 .auth-social{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
 .auth-social-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:white;font-family:'Inter',sans-serif;transition:all 0.12s}
@@ -67,7 +67,7 @@ a{color:inherit}
 .page{display:none;padding:28px 32px;min-height:100vh}
 .page.on{display:block}
 .tb{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
-.tb h1{font-family:'Playfair Display',serif;font-size:28px;color:var(--ink);letter-spacing:-0.5px}
+.tb h1{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;color:var(--ink);letter-spacing:-0.04em}
 .tb p{font-size:13px;color:var(--ink3);margin-top:3px}
 .tb-right{display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
 .btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.12s;white-space:nowrap}
@@ -87,7 +87,7 @@ a{color:inherit}
 .stat{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:default;transition:box-shadow .15s}
 .stat:hover{box-shadow:0 2px 12px rgba(0,0,0,0.07)}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px}
-.stat-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--ink);line-height:1}
+.stat-val{font-family:'Inter',sans-serif;font-size:28px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}
 .stat-lbl{font-size:12px;color:var(--ink3);margin-top:4px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 /* home reading hero */
@@ -153,7 +153,7 @@ a{color:inherit}
 .shelf-hero-sub{font-size:13px;color:rgba(255,255,255,0.45);margin-top:2px}
 .shelf-hero-stats{display:flex;gap:28px;position:relative;z-index:2}
 .shelf-hero-stat{text-align:center}
-.shelf-hero-stat-n{font-family:'Playfair Display',serif;font-size:24px;color:var(--red);line-height:1}
+.shelf-hero-stat-n{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--red);line-height:1;letter-spacing:-0.03em}
 .shelf-hero-stat-l{font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px;white-space:nowrap}
 
 /* Redesigned shelf tabs — pill-style with icon per section, distinct from generic .tabs */
@@ -278,7 +278,7 @@ a{color:inherit}
 /* Community stats row on book page */
 .book-community-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .book-community-stat{background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center}
-.book-community-stat-n{font-family:'Playfair Display',serif;font-size:24px;color:var(--ink)}
+.book-community-stat-n{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.03em}
 .book-community-stat-l{font-size:11px;color:var(--ink3);margin-top:3px}
 
 /* Rating breakdown bars */
@@ -288,7 +288,7 @@ a{color:inherit}
 .rating-breakdown-fill{height:100%;background:var(--amber);border-radius:4px}
 .rating-breakdown-pct{font-size:11px;color:var(--ink3);width:34px;text-align:right;flex-shrink:0}
 .book-rating-summary{display:flex;align-items:center;gap:18px;margin-bottom:16px}
-.book-rating-summary-n{font-family:'Playfair Display',serif;font-size:46px;color:var(--ink);line-height:1}
+.book-rating-summary-n{font-family:'Inter',sans-serif;font-size:46px;font-weight:900;color:var(--ink);line-height:1;letter-spacing:-0.04em}
 .book-rating-summary-stars{color:var(--amber);font-size:16px;margin-top:4px}
 .book-rating-summary-count{font-size:12px;color:var(--ink3);margin-top:2px}
 .book-rating-summary-bars{flex:1}
@@ -397,7 +397,7 @@ a{color:inherit}
 .streak-icon-big{width:54px;height:54px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;animation:glowPulse 2.4s ease-in-out infinite}
 .streak-icon-big i{display:inline-block;animation:flicker 1.8s ease-in-out infinite}
 .streak-dash-info{flex:1;min-width:140px}
-.streak-dash-num{font-family:'Playfair Display',serif;font-size:26px;color:var(--ink);line-height:1}
+.streak-dash-num{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-0.03em}
 .streak-dash-lbl{font-size:12px;color:var(--ink3);margin-top:3px}
 .streak-dash-best{font-size:11px;color:var(--ink3);margin-top:2px}
 .streak-mark-btn{flex-shrink:0;animation:flameBtnPulse 2s ease-in-out infinite}
@@ -597,7 +597,7 @@ a{color:inherit}
 .profile-av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(232,93,74,0.7);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0}
 .profile-av.has-streak{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,0.25)}
 .profile-hero-info{flex:1;min-width:0}
-.profile-name{font-family:'Playfair Display',serif;font-size:26px;line-height:1.1;margin-bottom:4px}
+.profile-name{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.03em}
 .profile-handle{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px;display:flex;align-items:center;gap:8px}
 .profile-visibility-badge{background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:10px;font-size:10px;color:rgba(255,255,255,0.6)}
 .profile-bio-text{font-size:13.5px;color:rgba(255,255,255,0.65);line-height:1.55;margin-bottom:6px}
@@ -607,7 +607,7 @@ a{color:inherit}
 .profile-stats{display:flex;gap:0;margin-top:0;flex-wrap:wrap;position:relative;z-index:2;border-top:1px solid rgba(255,255,255,0.08);padding-top:18px}
 .ps{text-align:center;cursor:pointer;padding:0 24px 0 0;flex-shrink:0}
 .ps:first-child{padding-left:0}
-.ps-n{font-family:'Playfair Display',serif;font-size:24px;color:var(--red);line-height:1}
+.ps-n{font-family:'Inter',sans-serif;font-size:24px;font-weight:800;color:var(--red);line-height:1;letter-spacing:-0.03em}
 .ps-l{font-size:11px;color:rgba(255,255,255,0.38);margin-top:2px;white-space:nowrap}
 .ps-sep{width:1px;background:rgba(255,255,255,0.1);margin:0 4px 0 0;align-self:stretch}
 .ps-streak{display:flex;align-items:center;gap:8px;padding-left:20px;cursor:default}
@@ -617,7 +617,7 @@ a{color:inherit}
 /* profile streak badge — top-right, big */
 .profile-streak-badge{position:absolute;top:22px;right:26px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(145deg,#92400E,#B45309);border:2px solid rgba(255,255,255,0.15);border-radius:18px;padding:14px 20px;box-shadow:0 8px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(217,119,6,0.3)}
 .profile-streak-badge-flame{font-size:34px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))}
-.profile-streak-badge-num{font-family:'Playfair Display',serif;font-size:32px;color:#FFF;line-height:1;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.profile-streak-badge-num{font-family:'Inter',sans-serif;font-size:32px;font-weight:900;color:#FFF;line-height:1;letter-spacing:-0.04em;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
 .profile-streak-badge-lbl{font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;font-weight:600}
 /* profile reading-now banner */
 .profile-reading-now{background:linear-gradient(120deg,#F5F3EF,white);border:1px solid #E8E4DC;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:center}
@@ -845,7 +845,7 @@ a{color:inherit}
 .stats-hero-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
 .stat-hero{background:white;border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px}
 .stat-hero-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.stat-hero-val{font-family:'Playfair Display',serif;font-size:30px;color:var(--ink);line-height:1}
+.stat-hero-val{font-family:'Inter',sans-serif;font-size:30px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-0.04em;font-variant-numeric:tabular-nums}
 .stat-hero-lbl{font-size:11.5px;color:var(--ink3);margin-top:3px}
 .stats-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
 .stats-record-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F4}
@@ -863,7 +863,19 @@ a{color:inherit}
 .in-progress-row:last-child{border-bottom:none}
 .in-progress-info{flex:1;min-width:0}
 .in-progress-pct{font-size:12px;font-weight:700;color:var(--red);flex-shrink:0;width:38px;text-align:right}
+.stats-year-btn{font-size:12px;font-weight:600;padding:5px 13px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;transition:all .15s}
+.stats-year-btn.on{background:var(--ink);color:white;border-color:var(--ink)}
+.stats-year-btn:hover:not(.on){border-color:var(--ink);color:var(--ink)}
 @media(max-width:700px){.stats-hero-grid{grid-template-columns:repeat(2,1fr)}.stats-3col{grid-template-columns:1fr}}
+@media print{
+  body{background:white}
+  .sidebar,.nb-wrap,.tb button,.stats-year-btn,.btn{display:none!important}
+  .page{display:block!important;padding:0;margin:0}
+  .page:not(#p-stats){display:none!important}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  .stats-hero-grid{grid-template-columns:repeat(3,1fr)}
+  .stats-3col{grid-template-columns:repeat(3,1fr)}
+}
 .list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F4}
 .list-row:last-child{border-bottom:none}
 .list-info{flex:1;min-width:0}
@@ -1923,10 +1935,18 @@ a{color:inherit}
 </div>
 
 <!-- ── ESTADÍSTICAS ── -->
-<div id="p-stats" class="page">
+<div id="p-stats" class="page" id="stats-printable">
   <div class="tb">
-    <div><h1>Estadísticas</h1><p id="stats-sub">Tu historia lectora</p></div>
-    <button class="btn btn-white" onclick="toast('Exportando PDF...')"><i class="ti ti-download"></i> Exportar</button>
+    <div>
+      <h1>Estadísticas</h1>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="stats-year-btn on" data-year="all" onclick="setStatsYear(this,'all')">Todo</button>
+        <button class="stats-year-btn" data-year="2026" onclick="setStatsYear(this,'2026')">2026</button>
+        <button class="stats-year-btn" data-year="2025" onclick="setStatsYear(this,'2025')">2025</button>
+        <button class="stats-year-btn" data-year="2024" onclick="setStatsYear(this,'2024')">2024</button>
+      </div>
+    </div>
+    <button class="btn btn-white" onclick="exportStats()"><i class="ti ti-download"></i> Exportar PDF</button>
   </div>
 
   <!-- 6 Hero stats -->
@@ -4115,8 +4135,20 @@ function renderDiscover(){
 // STATS
 // ═══════════════════════════════════════════════
 function renderStats(){
-  const total=allBooks().length;
-  const leidos=DB.leidos;
+  // ── Year filter ──
+  const filterYear=_statsYear==='all'?null:parseInt(_statsYear);
+  const leidos=filterYear
+    ? DB.leidos.filter(b=>{
+        const rh=b.readHistory;
+        if(!rh||!rh.length)return false;
+        return rh.some(h=>{
+          if(!h.finishedAt)return false;
+          const parts=h.finishedAt.split('/');
+          return parts.length===3&&parseInt(parts[2])===filterYear;
+        });
+      })
+    : DB.leidos;
+  const total=filterYear?leidos.length:allBooks().length;
   const totalPages=leidos.reduce((s,b)=>s+(b.pages||0),0);
   const streak=calculateCurrentStreak();
   const bestStreak=Math.max(calculateBestStreak(),streak);
@@ -4128,17 +4160,21 @@ function renderStats(){
   document.getElementById('st-autores').textContent=new Set(leidos.map(b=>b.author)).size;
   document.getElementById('st-streak').textContent=streak+(streak===1?' día':' días');
   document.getElementById('st-anio').textContent=YEAR_GOAL_IDS.size;
-  document.getElementById('stats-sub').textContent=`${leidos.length} libros · ${totalPages.toLocaleString('es-ES')} páginas · ${new Set(leidos.map(b=>b.author)).size} autores`;
+  const yearLabel=filterYear?`en ${filterYear}`:'en total';
+  document.getElementById('stats-sub').textContent=`${leidos.length} libros ${yearLabel} · ${totalPages.toLocaleString('es-ES')} páginas · ${new Set(leidos.map(b=>b.author)).size} autores`;
   document.getElementById('st-streak-summary').textContent=`Racha actual: ${streak} días · Mejor racha: ${bestStreak} días`;
 
   // ── Heatmap: días de lectura reales ──
+  const hmYear=filterYear||2026;
   const hm=document.getElementById('heatmap');
   hm.innerHTML='';
   const hmLabels=document.getElementById('hm-month-labels');
   hmLabels.innerHTML='';
-  const start=new Date(2026,0,1);
+  document.querySelector('#p-stats .card-head .card-title')&&(document.querySelector('#p-stats .card .card-title').textContent=`Actividad de lectura · ${hmYear}`);
+  const start=new Date(hmYear,0,1);
+  const hmEnd=filterYear&&filterYear<new Date().getFullYear()?new Date(hmYear,11,31):new Date();
   const todayDate=new Date();
-  const totalDays=Math.ceil((todayDate-start)/86400000)+1;
+  const totalDays=Math.ceil((hmEnd-start)/86400000)+1;
   const totalWeeks=Math.ceil(totalDays/7);
   hm.style.gridTemplateColumns=`repeat(${totalWeeks},1fr)`;
   hmLabels.style.gridTemplateColumns=`repeat(${totalWeeks},1fr)`;
@@ -4171,12 +4207,16 @@ function renderStats(){
 
   // ── Libros por mes ──
   const monthCounts=Array(12).fill(0);
-  leidos.forEach(b=>{
+  DB.leidos.forEach(b=>{
     if(b.readHistory){
       b.readHistory.forEach(h=>{
         if(h.finishedAt){
           const parts=h.finishedAt.split('/');
-          if(parts.length===3){const m=parseInt(parts[1])-1;if(m>=0&&m<12)monthCounts[m]++;}
+          if(parts.length===3){
+            const yr=parseInt(parts[2]);
+            const m=parseInt(parts[1])-1;
+            if(m>=0&&m<12&&(!filterYear||yr===filterYear))monthCounts[m]++;
+          }
         }
       });
     }
@@ -4283,6 +4323,29 @@ function renderStats(){
       </div>`;
     }).join('');
   }
+}
+
+// ═══════════════════════════════════════════════
+// STATS HELPERS
+// ═══════════════════════════════════════════════
+let _statsYear='all';
+
+function setStatsYear(btn,year){
+  document.querySelectorAll('.stats-year-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _statsYear=year;
+  renderStats();
+}
+
+function exportStats(){
+  // Store current page, navigate to stats, print, restore
+  const wasPage=document.querySelector('.page.on')?.id;
+  document.querySelectorAll('.page').forEach(p=>{p._wasOn=p.classList.contains('on');p.classList.remove('on');});
+  document.getElementById('p-stats').classList.add('on');
+  setTimeout(()=>{
+    window.print();
+    document.querySelectorAll('.page').forEach(p=>{if(p._wasOn)p.classList.add('on');});
+  },120);
 }
 
 // ═══════════════════════════════════════════════
