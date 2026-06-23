@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shelfie — Tu shelfie social</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1020,7 +1021,7 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
 <div class="auth-screen on" id="auth-login">
-  <div class="auth-box">
+  <div class="auth-box" id="login-box">
     <div class="auth-logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
       <div class="logo-text">shelf<em>ie</em></div>
@@ -1042,7 +1043,7 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: REGISTER ══════════════════════ -->
 <div class="auth-screen" id="auth-register">
-  <div class="auth-box">
+  <div class="auth-box" id="register-box">
     <div class="auth-logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
       <div class="logo-text">shelf<em>ie</em></div>
@@ -2212,6 +2213,196 @@ a{color:inherit}
 </div><!-- /app -->
 
 <script>
+// ══════════════════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════════════════
+const SUPA_URL='https://zkoarvxhjunwmyiaynyc.supabase.co';
+const SUPA_KEY='sb_publishable_EkLevW97vxNd1UTKf3SLcw_FyT0S-iU';
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+let SUPA_USER=null; // auth.User object when logged in
+
+// ── Auth state listener (handles refresh / tab reopen) ──
+supa.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session&&!isLoggedIn){
+    SUPA_USER=session.user;
+    await _supaEnterApp();
+  } else if(event==='SIGNED_OUT'){
+    SUPA_USER=null;
+  }
+});
+
+// ── Load profile from DB into PROFILE ──
+async function loadSupaProfile(){
+  const{data,error}=await supa.from('profiles').select('*').eq('id',SUPA_USER.id).single();
+  if(error||!data)return;
+  PROFILE.name=data.name||PROFILE.name;
+  PROFILE.username=data.username||PROFILE.username;
+  PROFILE.bio=data.bio||PROFILE.bio;
+  PROFILE.city=data.city||'';
+  PROFILE.photo=data.photo||null;
+  PROFILE.public=data.public!==false;
+  PROFILE.email=SUPA_USER.email||'';
+}
+
+// ── Load books from DB into DB ──
+async function loadSupaBooks(){
+  const{data,error}=await supa.from('user_books').select('*').eq('user_id',SUPA_USER.id);
+  if(error||!data)return;
+  DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
+  data.forEach(row=>{
+    if(!DB[row.status])return;
+    DB[row.status].push({
+      id:row.id,
+      localId:row.local_id,
+      title:row.title,
+      author:row.author,
+      cover:row.cover||null,
+      color:row.color||COLORS[(row.title.charCodeAt(0)||0)%COLORS.length],
+      status:row.status,
+      stars:row.stars||0,
+      review:row.review||'',
+      pages:row.pages||null,
+      curPage:row.cur_page||0,
+      year:row.year||'',
+      genres:row.genres||[],
+      readHistory:row.read_history||[],
+      finishedAt:row.finished_at||null,
+      isFavorite:row.is_favorite||false,
+      rankPos:row.rank_pos||null,
+      publisher:row.publisher||null,
+      isbn:row.isbn||null,
+      editionYear:row.edition_year||null,
+      olKey:row.ol_key||null,
+      authorOlKey:row.author_ol_key||null,
+      synopsis:row.synopsis||null,
+      addedAt:row.added_at?new Date(row.added_at).toLocaleDateString('es-ES'):new Date().toLocaleDateString('es-ES'),
+    });
+  });
+}
+
+// ── Save book to DB ──
+async function saveSupaBook(book){
+  if(!SUPA_USER)return;
+  const row={
+    id:book.id,
+    user_id:SUPA_USER.id,
+    local_id:book.localId||book.id,
+    title:book.title,
+    author:book.author,
+    cover:book.cover||null,
+    color:book.color||null,
+    status:book.status,
+    stars:book.stars||0,
+    review:book.review||'',
+    pages:book.pages||null,
+    cur_page:book.curPage||0,
+    year:book.year||'',
+    genres:book.genres||[],
+    read_history:book.readHistory||[],
+    finished_at:book.finishedAt||null,
+    is_favorite:book.isFavorite||false,
+    rank_pos:book.rankPos||null,
+    publisher:book.publisher||null,
+    isbn:book.isbn||null,
+    edition_year:book.editionYear||null,
+    ol_key:book.olKey||null,
+    author_ol_key:book.authorOlKey||null,
+    synopsis:book.synopsis||null,
+  };
+  await supa.from('user_books').upsert(row,{onConflict:'id'});
+}
+
+// ── Delete book from DB ──
+async function deleteSupaBook(id){
+  if(!SUPA_USER)return;
+  await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+}
+
+// ── Load posts from DB ──
+async function loadSupaPosts(){
+  const{data,error}=await supa.from('posts')
+    .select('*, comments(*), likes(*)')
+    .eq('user_id',SUPA_USER.id)
+    .order('created_at',{ascending:false})
+    .limit(50);
+  if(error||!data)return;
+  USER_POSTS=data.map(row=>({
+    id:row.id,
+    type:row.type,
+    text:row.text||'',
+    book:row.book_title?{title:row.book_title,author:row.book_author,cover:row.book_cover,color:row.book_color,stars:row.rating||0}:null,
+    rating:row.rating||0,
+    spoiler:row.spoiler||false,
+    createdAt:new Date(row.created_at).getTime(),
+    editedAt:row.edited_at?new Date(row.edited_at).getTime():null,
+    likes:(row.likes||[]).length,
+    likedByMe:(row.likes||[]).some(l=>l.user_id===SUPA_USER.id),
+    comments:(row.comments||[]).map(c=>({id:c.id,name:c.user_id===SUPA_USER.id?(PROFILE.name||'Tú'):'Usuario',text:c.text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'})),
+  }));
+}
+
+// ── Save post to DB ──
+async function saveSupaPost(post){
+  if(!SUPA_USER)return;
+  const row={
+    id:post.id,
+    user_id:SUPA_USER.id,
+    type:post.type,
+    text:post.text||'',
+    book_title:post.book?.title||null,
+    book_author:post.book?.author||null,
+    book_cover:post.book?.cover||null,
+    book_color:post.book?.color||null,
+    rating:post.book?.stars||post.rating||null,
+    spoiler:post.spoiler||false,
+  };
+  await supa.from('posts').upsert(row,{onConflict:'id'});
+}
+
+// ── Delete post from DB ──
+async function deleteSupaPost(id){
+  if(!SUPA_USER)return;
+  await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+}
+
+// ── Save comment to DB ──
+async function saveSupaComment(postId,text){
+  if(!SUPA_USER)return;
+  const{data}=await supa.from('comments').insert({post_id:postId,user_id:SUPA_USER.id,text}).select().single();
+  return data;
+}
+
+// ── Toggle like ──
+async function toggleSupaLike(postId,liked){
+  if(!SUPA_USER)return;
+  if(liked){
+    await supa.from('likes').upsert({post_id:postId,user_id:SUPA_USER.id},{onConflict:'post_id,user_id'});
+  } else {
+    await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+  }
+}
+
+// ── Save profile to DB ──
+async function saveSupaProfile(){
+  if(!SUPA_USER)return;
+  await supa.from('profiles').update({
+    name:PROFILE.name,
+    username:PROFILE.username,
+    bio:PROFILE.bio,
+    city:PROFILE.city,
+    photo:PROFILE.photo,
+    public:PROFILE.public,
+  }).eq('id',SUPA_USER.id);
+}
+
+// ── Internal: enter app after auth ──
+async function _supaEnterApp(){
+  await loadSupaProfile();
+  await loadSupaBooks();
+  await loadSupaPosts();
+  enterApp(true); // true = skip demo seed
+}
+
 // ═══════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════
@@ -2703,37 +2894,46 @@ function showAuth(which){
 
 function authErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');}
 
-function doLogin(){
+async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-pass').value;
   if(!email||!email.includes('@')){authErr('login-error','Introduce un email válido');return;}
   if(!pass||pass.length<3){authErr('login-error','Introduce tu contraseña');return;}
-  const name=email.split('@')[0];
-  PROFILE.name=PROFILE.name||capitalize(name);
-  PROFILE.username=PROFILE.username||name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_reads';
-  PROFILE.email=email;
-  enterApp();
+  const btn=document.querySelector('#login-box .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Iniciando sesión...';}
+  const{data,error}=await supa.auth.signInWithPassword({email,password:pass});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Iniciar sesión';}
+  if(error){authErr('login-error',error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message);return;}
+  SUPA_USER=data.user;
+  await _supaEnterApp();
 }
 
-function doRegister(){
+async function doRegister(){
   const name=document.getElementById('reg-name').value.trim();
   const email=document.getElementById('reg-email').value.trim();
   const pass=document.getElementById('reg-pass').value;
   if(!name){authErr('register-error','Escribe tu nombre');return;}
   if(!email||!email.includes('@')){authErr('register-error','Introduce un email válido');return;}
   if(!pass||pass.length<6){authErr('register-error','La contraseña debe tener al menos 6 caracteres');return;}
+  const btn=document.querySelector('#register-box .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
+  const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name}}});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
+  if(error){authErr('register-error',error.message);return;}
+  SUPA_USER=data.user;
+  // Profile is auto-created by DB trigger; set name locally
   PROFILE.name=name;
-  PROFILE.username=name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_reads';
   PROFILE.email=email;
-  enterApp();
+  PROFILE.username=name.toLowerCase().replace(/[^a-z0-9]/g,'')+'_reads';
+  await _supaEnterApp();
   toast(`✅ ¡Bienvenido a Shelfie, ${name}!`);
 }
 
-function socialLogin(provider){
-  PROFILE.name=PROFILE.name||'Lector de '+provider;
-  PROFILE.username=PROFILE.username||('lector_'+provider).toLowerCase();
-  enterApp();
-  toast(`✅ Sesión iniciada con ${provider}`);
+async function socialLogin(provider){
+  const p=provider==='Google'?'google':provider==='Apple'?'apple':provider.toLowerCase();
+  const{error}=await supa.auth.signInWithOAuth({provider:p,options:{redirectTo:window.location.href}});
+  if(error)toast('❌ '+error.message);
+  // onAuthStateChange will handle SIGNED_IN after redirect
 }
 
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
@@ -2887,12 +3087,12 @@ function seedDemoData(){
   toast('🎉 Shelfie de demostración cargado — 30 libros listos para explorar');
 }
 
-function enterApp(){
+function enterApp(skipDemo){
   isLoggedIn=true;
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('app-shell').classList.add('on');
   checkYearRollover();
-  if(!DEMO_SEEDED){seedDemoData();DEMO_SEEDED=true;}
+  if(!skipDemo&&!DEMO_SEEDED){seedDemoData();DEMO_SEEDED=true;}
   updateAll();updateCounts();renderFriends();
   const h=new Date().getHours();
   document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
@@ -2917,9 +3117,15 @@ function checkYearRollover(){
   toast(`📅 Nuevo año — tu Shelfie ${CURRENT_SHELFIE_YEAR} empieza vacío`);
 }
 
-function doLogout(){
+async function doLogout(){
   if(!confirm('¿Cerrar sesión?'))return;
+  await supa.auth.signOut();
   isLoggedIn=false;
+  SUPA_USER=null;
+  DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
+  USER_POSTS=[];
+  PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
+  DEMO_SEEDED=false;
   document.getElementById('app-shell').classList.remove('on');
   showAuth('login');
   toast('Sesión cerrada');
@@ -3407,6 +3613,7 @@ function confirmAdd(){
       const pages=parseInt(document.getElementById('qadd-pages').value)||null;
       if(pages)book.pages=pages;
       DB.leyendo.unshift(book);
+      saveSupaBook(book);
     }
     closeModal('modal-add');
     updateAll();renderShelf();
@@ -3423,6 +3630,7 @@ function confirmAdd(){
   const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null,publisher:pendingBook.publisher||null,isbn:pendingBook.isbn||null,editionYear:pendingBook.editionYear||null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
+  saveSupaBook(book);
   closeModal('modal-add');
   updateAll();
   renderShelf();
@@ -3441,6 +3649,7 @@ function saveManual(){
   const book={id:'b'+Date.now(),title,author,year:'',status,stars:starManualVal,review,cover:customCover||null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
+  saveSupaBook(book);
   closeModal('modal-add');
   updateAll();
   renderShelf();
@@ -3483,6 +3692,7 @@ function saveProfile(){
   PROFILE.city=document.getElementById('prof-city').value.trim();
   PROFILE.public=document.getElementById('prof-public').value==='1';
   if(PROFILE._pendingPhoto){PROFILE.photo=PROFILE._pendingPhoto;delete PROFILE._pendingPhoto;}
+  saveSupaProfile();
   closeModal('modal-profile-edit');
   renderProfile();updateHome();
   toast('✓ Perfil actualizado');
@@ -3703,6 +3913,7 @@ function addPages(id){
   const pct=Math.round(book.curPage/book.pages*100);
   ['hp-','sp-'].forEach(p=>{const el=document.getElementById(p+id);if(el)el.style.width=pct+'%';});
   ['hpt-','spt-'].forEach(p=>{const el=document.getElementById(p+id);if(el)el.textContent=`Pág. ${book.curPage}/${book.pages} · ${pct}%`;});
+  saveSupaBook(book);
   toast(`+${n} páginas · ${pct}%`);
   if(pct>=100)setTimeout(()=>markFinishedFrom(id,'leyendo'),400);
 }
@@ -3737,6 +3948,7 @@ function confirmFinishBook(){
   if(!book.readHistory)book.readHistory=[];
   book.readHistory.push({stars:finishStarVal,finishedAt:finishedDate});
   DB.leidos.unshift(book);
+  saveSupaBook(book);
   RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   updateAll();
   closeModal('modal-finish-book');
@@ -3766,6 +3978,7 @@ function confirmReread(){
   book.status='leyendo';
   book.curPage=0;
   DB.leyendo.unshift(book);
+  saveSupaBook(book);
   updateAll();renderShelf();
   closeModal('modal-reread');
   toast(`📖 Has empezado a releer «${book.title}»`);
@@ -4039,6 +4252,7 @@ function moveBook(id,from,to){
   book.status=to;
   if(to==='leidos'&&!book.stars){const s=parseInt(prompt(`Valora «${book.title}» (1-5★)`,'5'));book.stars=s>=1&&s<=5?s:5;RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));}
   DB[to].unshift(book);
+  saveSupaBook(book);
   updateAll();renderShelf();
   toast(`«${book.title}» movido`);
 }
@@ -4067,6 +4281,7 @@ function removeBook(id,from){
   if(!confirm('¿Eliminar este libro de tu shelfie?'))return;
   DB[from]=DB[from].filter(b=>b.id!==id);
   YEAR_GOAL_IDS.delete(id);
+  deleteSupaBook(id);
   updateAll();renderShelf();
   toast('Libro eliminado');
 }
@@ -4490,6 +4705,7 @@ function addBookToRanking(id){
   if(getFavoriteBooks().length>=MAX_FAVORITES){toast(`⚠️ Ya tienes ${MAX_FAVORITES} favoritos. Quita alguno primero.`);return;}
   book.isFavorite=true;
   book.rankPos=getFavoriteBooks().length; // place at the end of current order
+  saveSupaBook(book);
   document.getElementById('rank-srch-inp').value='';
   document.getElementById('rank-srch-drop').style.display='none';
   renderRanking();
@@ -4501,6 +4717,7 @@ function removeFromFavorites(id){
   if(!book)return;
   book.isFavorite=false;
   delete book.rankPos;
+  saveSupaBook(book);
   renderRanking();
   toast(`«${book.title}» quitado de favoritos`);
 }
@@ -6600,6 +6817,7 @@ function publishPost(){
   if(!buildPostFieldsFromComposer(post))return;
 
   USER_POSTS.unshift(post);
+  saveSupaPost(post);
   renderUserPosts();
   resetComposer();
   const labels={marginalia:'📖 Marginalia publicada',cita:'❝ Cita publicada',hilo:'✅ Historia publicada',tweet:'✅ Publicación publicada',shelfiepost:'📚 Shelfie compartido'};
@@ -6814,6 +7032,7 @@ function togglePostLike(id,btn){
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
   btn.querySelector('span').textContent=post.likes;
+  toggleSupaLike(id,post.likedByMe);
 }
 
 function toggleCommentBox(id){
@@ -6832,6 +7051,7 @@ function sendComment(id){
   if(!post)return;
   if(!post.comments)post.comments=[];
   post.comments.push({name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'});
+  saveSupaComment(id,text);
   input.value='';
   renderUserPosts();
   toast('💬 Comentario añadido');
@@ -6840,6 +7060,7 @@ function sendComment(id){
 function deleteUserPost(id){
   if(!confirm('¿Eliminar esta publicación?'))return;
   USER_POSTS=USER_POSTS.filter(p=>p.id!==id);
+  deleteSupaPost(id);
   renderUserPosts();
   toast('Publicación eliminada');
 }
@@ -6867,6 +7088,15 @@ document.addEventListener('keydown',e=>{
 // enter key on auth forms
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+
+// ── Check for existing Supabase session on load ──
+(async()=>{
+  const{data:{session}}=await supa.auth.getSession();
+  if(session){
+    SUPA_USER=session.user;
+    await _supaEnterApp();
+  }
+})();
 </script>
 <!-- Global book action menu — single instance at body level, avoids transform stacking-context bugs -->
 <div id="g-book-menu"></div>
