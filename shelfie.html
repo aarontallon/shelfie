@@ -143,18 +143,18 @@ a{color:inherit}
 .grid-a{font-size:11px;color:var(--ink3);margin-top:2px}
 .grid-s{font-size:11px;color:var(--amber);margin-top:2px}
 
-/* "Mi shelfie" hero — iconic header that gives the section its own identity */
-.shelf-hero{background:linear-gradient(120deg,#241A14,#1C1917 65%);border-radius:18px;padding:26px 30px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;position:relative;overflow:hidden}
-.shelf-hero::before{content:'';position:absolute;right:-50px;bottom:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(232,93,74,0.18),transparent 70%)}
-.shelf-hero-left{display:flex;align-items:center;gap:16px;position:relative;z-index:2}
-.shelf-hero-icon{width:54px;height:54px;border-radius:14px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 16px rgba(232,93,74,0.35)}
-.shelf-hero-icon i{font-size:26px;color:white}
-.shelf-hero-title{font-family:'Playfair Display',serif;font-size:26px;color:white;letter-spacing:-0.3px}
-.shelf-hero-sub{font-size:13px;color:rgba(255,255,255,0.45);margin-top:2px}
-.shelf-hero-stats{display:flex;gap:28px;position:relative;z-index:2}
-.shelf-hero-stat{text-align:center}
-.shelf-hero-stat-n{font-family:'Inter',sans-serif;font-size:24px;font-weight:600;color:var(--red);line-height:1;letter-spacing:-0.03em}
-.shelf-hero-stat-l{font-size:11px;color:rgba(255,255,255,0.4);margin-top:3px;white-space:nowrap}
+/* "Mi shelfie" hero */
+.shelf-hero{background:#1C1917;border-radius:20px;padding:32px 36px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:32px;position:relative;overflow:hidden;min-height:130px}
+.shelf-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(232,93,74,0.12) 0%,transparent 70%);pointer-events:none}
+.shelf-hero-left{position:relative;z-index:2}
+.shelf-hero-eyebrow{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+.shelf-hero-title{font-family:'Inter',sans-serif;font-size:32px;font-weight:800;color:#fff;letter-spacing:-0.04em;line-height:1;margin-bottom:6px}
+.shelf-hero-sub{font-size:13px;color:rgba(255,255,255,0.4);margin-top:0}
+.shelf-hero-right{display:flex;gap:0;position:relative;z-index:2;background:rgba(255,255,255,0.05);border-radius:14px;overflow:hidden}
+.shelf-hero-stat{text-align:center;padding:16px 24px;border-right:1px solid rgba(255,255,255,0.07)}
+.shelf-hero-stat:last-child{border-right:none}
+.shelf-hero-stat-n{font-family:'Inter',sans-serif;font-size:28px;font-weight:700;color:#fff;line-height:1;letter-spacing:-0.04em}
+.shelf-hero-stat-l{font-size:11px;color:rgba(255,255,255,0.35);margin-top:5px;white-space:nowrap;letter-spacing:0.02em}
 
 /* Redesigned shelf tabs — pill-style with icon per section, distinct from generic .tabs */
 .shelf-tabs-row{display:flex;gap:8px;margin:16px 0;overflow-x:auto;flex-wrap:wrap}
@@ -1411,14 +1411,12 @@ a{color:inherit}
 <div id="p-shelf" class="page">
   <div class="shelf-hero">
     <div class="shelf-hero-left">
-      <div class="shelf-hero-icon"><i class="ti ti-books"></i></div>
-      <div>
-        <h1 class="shelf-hero-title">Mi shelfie</h1>
-        <p class="shelf-hero-sub" id="shelf-sub">Tu biblioteca personal</p>
-      </div>
+      <div class="shelf-hero-eyebrow">Tu biblioteca</div>
+      <h1 class="shelf-hero-title">Mi shelfie</h1>
+      <p class="shelf-hero-sub" id="shelf-sub">Tu biblioteca personal</p>
     </div>
-    <div class="shelf-hero-stats">
-      <div class="shelf-hero-stat"><div class="shelf-hero-stat-n" id="shelf-stat-total">0</div><div class="shelf-hero-stat-l">En tu shelfie</div></div>
+    <div class="shelf-hero-right">
+      <div class="shelf-hero-stat"><div class="shelf-hero-stat-n" id="shelf-stat-total">0</div><div class="shelf-hero-stat-l">Libros</div></div>
       <div class="shelf-hero-stat"><div class="shelf-hero-stat-n" id="shelf-stat-leidos">0</div><div class="shelf-hero-stat-l">Leídos</div></div>
       <div class="shelf-hero-stat"><div class="shelf-hero-stat-n" id="shelf-stat-autores">0</div><div class="shelf-hero-stat-l">Autores</div></div>
     </div>
