@@ -321,6 +321,13 @@ a{color:inherit}
 .author-page-meta{font-size:13px;color:var(--ink3);margin-top:4px}
 .author-page-rating{display:flex;align-items:center;gap:8px;margin-top:10px}
 .author-page-bio{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:12px;max-width:620px}
+.author-work-row-full{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.author-work-row-full:last-child{border-bottom:none}
+.author-work-buy{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.author-work-buy-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;background:var(--paper);white-space:nowrap;transition:background .12s}
+.author-work-buy-btn:hover{background:var(--bg);color:var(--ink)}
+.author-work-badge{font-size:11px;color:var(--ink3);white-space:nowrap}
+.author-work-want{white-space:nowrap;font-size:11px}
 .author-work-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #F5F5F4;cursor:pointer}
 .author-work-row:last-child{border-bottom:none}
 .author-work-row:hover{background:var(--paper)}
@@ -4212,7 +4219,6 @@ function renderAuthorPage(authorName){
   const data=getAuthorData(authorName);
   const cont=document.getElementById('author-page-content');
 
-  // Check if any user book has an OL author key for this author
   const authorBooks=allBooks().filter(b=>b.author&&b.author.toLowerCase()===authorName.toLowerCase());
   const olAuthorKey=authorBooks.find(b=>b.authorOlKey)?.authorOlKey||null;
 
@@ -4243,44 +4249,101 @@ function renderAuthorPage(authorName){
       </div>
     </div>
 
-    <div class="g2">
-      <div class="card">
-        <div class="card-title" style="margin-bottom:6px"><i class="ti ti-books" style="color:var(--red)"></i> ${data?.works?.length?'Obras':'Libros en tu shelfie'}</div>
-        ${(data?.works||authorBooks.map(b=>({title:b.title,year:b.year,rating:b.stars||0}))).map(w=>{
-          const matchBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
-          const clickAttr=matchBook?`onclick="go('bookdetail',null,'${matchBook.id}')"`:`onclick="toast('Aún no tienes este libro en tu shelfie')"`;
-          return `<div class="author-work-row" ${clickAttr}>
-            <div><div class="author-work-title">${escapeHtml(w.title)}</div><div class="author-work-year">${w.year||''}</div></div>
-            ${w.rating?`<div class="author-work-rating">${'★'.repeat(Math.round(w.rating))} ${w.rating}</div>`:''}
-          </div>`;
-        }).join('')}
+    <div id="author-works-section">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:10px"><i class="ti ti-books" style="color:var(--red)"></i> Obras <span id="author-works-count" style="font-weight:400;color:var(--ink3);font-size:12px"></span></div>
+        <div id="author-works-list"><div style="color:var(--ink3);font-size:13px"><i class="ti ti-loader-2 spin"></i> Cargando obras…</div></div>
       </div>
-      ${data?.quotes?.length?`<div class="card">
-        <div class="card-title" style="margin-bottom:10px"><i class="ti ti-quote" style="color:var(--amber)"></i> Citas</div>
-        ${data.quotes.map(q=>`<div class="author-quote-card">${escapeHtml(q)}</div>`).join('')}
-      </div>`:''}
     </div>
+
+    ${data?.quotes?.length?`<div class="card">
+      <div class="card-title" style="margin-bottom:10px"><i class="ti ti-quote" style="color:var(--amber)"></i> Citas</div>
+      ${data.quotes.map(q=>`<div class="author-quote-card">${escapeHtml(q)}</div>`).join('')}
+    </div>`:''}
   `;
 
-  // If no static bio, fetch from OL
-  if(!bio&&olAuthorKey){
-    fetch(`https://openlibrary.org/authors/${olAuthorKey}.json`)
-      .then(r=>r.json())
-      .then(d=>{
-        const olBio=typeof d.bio==='string'?d.bio:(d.bio?.value||'');
-        const slot=document.getElementById('ol-bio-slot');
-        if(slot&&olBio)slot.textContent=olBio.substring(0,600)+(olBio.length>600?'…':'');
-        else if(slot)slot.textContent='';
-        // Also update birth date if available
-        if(d.birth_date){
-          const metaEl=cont.querySelector('.author-page-meta');
-          if(metaEl&&!metaEl.textContent)metaEl.textContent=d.birth_date;
-        }
-      }).catch(()=>{
-        const slot=document.getElementById('ol-bio-slot');
-        if(slot)slot.textContent='';
-      });
-  }
+  // Fetch OL bio and works in parallel
+  const bioFetch=(!bio&&olAuthorKey)
+    ?fetch(`https://openlibrary.org/authors/${olAuthorKey}.json`).then(r=>r.json()).catch(()=>({}))
+    :Promise.resolve(null);
+
+  const worksFetch=olAuthorKey
+    ?fetch(`https://openlibrary.org/authors/${olAuthorKey}/works.json?limit=50`).then(r=>r.json()).catch(()=>({}))
+    :Promise.resolve(null);
+
+  Promise.all([bioFetch,worksFetch]).then(([bioData,worksData])=>{
+    // Update bio
+    if(bioData){
+      const olBio=typeof bioData.bio==='string'?bioData.bio:(bioData.bio?.value||'');
+      const slot=document.getElementById('ol-bio-slot');
+      if(slot&&olBio)slot.textContent=olBio.substring(0,600)+(olBio.length>600?'…':'');
+      else if(slot)slot.textContent='';
+      if(bioData.birth_date){
+        const metaEl=cont.querySelector('.author-page-meta');
+        if(metaEl&&!metaEl.textContent)metaEl.textContent=bioData.birth_date;
+      }
+    }
+
+    // Render works list
+    const listEl=document.getElementById('author-works-list');
+    if(!listEl)return;
+
+    // Merge OL works + static works + user shelf books for this author
+    const olWorks=(worksData?.entries||[]).map(w=>({
+      title:w.title,
+      year:w.first_publish_date?w.first_publish_date.replace(/\D.*$/,''):null,
+      olKey:w.key||null,
+      cover:w.covers?.[0]>0?`https://covers.openlibrary.org/b/id/${w.covers[0]}-M.jpg`:null
+    }));
+
+    // Fill in with static works if OL returned nothing
+    const staticWorks=(data?.works||[]).map(w=>({title:w.title,year:w.year?String(w.year):null,olKey:null,cover:null}));
+    const works=olWorks.length?olWorks:staticWorks;
+
+    document.getElementById('author-works-count').textContent=works.length?`(${works.length} obras)`:'';
+
+    if(!works.length){
+      listEl.innerHTML='<div style="color:var(--ink3);font-size:13px">No se encontraron obras</div>';
+      return;
+    }
+
+    listEl.innerHTML=works.map(w=>{
+      const userBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
+      const coverHtml=w.cover
+        ?`<img src="${w.cover}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
+        :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
+
+      const searchQ=encodeURIComponent(w.title+' '+name);
+      const buyLinksHtml=`
+        <div class="author-work-buy" onclick="event.stopPropagation()">
+          <a href="https://www.amazon.es/s?k=${searchQ}" target="_blank" class="author-work-buy-btn" title="Amazon"><i class="ti ti-brand-amazon"></i> Amazon</a>
+          <a href="https://www.casadellibro.com/busqueda-generica?q=${encodeURIComponent(w.title)}" target="_blank" class="author-work-buy-btn" title="Casa del Libro"><i class="ti ti-building-store"></i> Casa del libro</a>
+        </div>`;
+
+      let actionHtml='';
+      if(userBook){
+        const labels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
+        actionHtml=`<span class="author-work-badge">${labels[userBook.status]||''}</span>`;
+      } else {
+        actionHtml=`<button class="btn btn-sm btn-white author-work-want" onclick="event.stopPropagation();quickAddDirect('${escapeHtml(w.title).replace(/'/g,"\\'")}','${escapeHtml(name).replace(/'/g,"\\'")}','quiero');this.textContent='🔖 Añadido';this.disabled=true">🔖 Quiero leer</button>`;
+      }
+
+      const clickAttr=userBook?`onclick="go('bookdetail',null,'${userBook.id}')" style="cursor:pointer"`:'';
+      return `<div class="author-work-row-full" ${clickAttr}>
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          ${coverHtml}
+          <div style="min-width:0">
+            <div class="author-work-title">${escapeHtml(w.title)}</div>
+            ${w.year?`<div class="author-work-year">${w.year}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          ${actionHtml}
+          ${buyLinksHtml}
+        </div>
+      </div>`;
+    }).join('');
+  });
 }
 
 
