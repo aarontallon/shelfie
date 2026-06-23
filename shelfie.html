@@ -958,6 +958,14 @@ a{color:inherit}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .spin{animation:spin 0.8s linear infinite;display:inline-block}
 .qadd-panel{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border)}
+.srch-mode-btn{flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--paper);font-size:12px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.srch-mode-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+.edition-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;transition:background .12s;border:1px solid transparent}
+.edition-item:hover{background:var(--bg);border-color:var(--border)}
+.edition-cover{width:32px;height:46px;border-radius:3px;background:#ddd;background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.edition-info{flex:1;min-width:0}
+.edition-pub{font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edition-meta{font-size:11px;color:var(--ink3);margin-top:1px}
 .qadd-book{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .qadd-cover{width:40px;height:58px;border-radius:4px;background-size:cover;background-position:center;flex-shrink:0}
 .qadd-title{font-size:14px;font-weight:600;color:var(--ink)}
@@ -1052,13 +1060,32 @@ a{color:inherit}
   <button class="modal-close" onclick="closeModal('modal-add')"><i class="ti ti-x"></i></button>
   <h2>Añadir libro a tu shelfie</h2>
   <p class="sub">Busca un libro — aparecen portadas reales</p>
-  <div class="f-row">
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <button id="srch-mode-title" class="srch-mode-btn active" onclick="setSearchMode('title')"><i class="ti ti-search" style="font-size:12px"></i> Título / Autor</button>
+    <button id="srch-mode-isbn" class="srch-mode-btn" onclick="setSearchMode('isbn')"><i class="ti ti-barcode" style="font-size:12px"></i> ISBN</button>
+  </div>
+  <div id="title-search-row" class="f-row">
     <label class="f-label">Buscar por título o autor</label>
     <div class="srch-wrap">
       <i class="ti ti-search srch-ico"></i>
       <input class="srch-inp" id="modal-srch-inp" placeholder="Ej: García Márquez, Cien años..." oninput="onModalSearch(this.value)" autocomplete="off">
       <div class="srch-drop" id="modal-srch-drop" style="display:none"></div>
     </div>
+  </div>
+  <div id="isbn-search-row" style="display:none" class="f-row">
+    <label class="f-label">Buscar por ISBN</label>
+    <div class="srch-wrap">
+      <i class="ti ti-barcode srch-ico"></i>
+      <input class="srch-inp" id="isbn-inp" placeholder="Ej: 9788466346122" oninput="onISBNSearch(this.value)" autocomplete="off" inputmode="numeric">
+    </div>
+    <div id="isbn-status" style="font-size:12px;color:var(--ink3);margin-top:5px;min-height:18px"></div>
+  </div>
+  <div id="edition-picker" style="display:none;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--ink)">Elige tu edición <span style="font-weight:400;color:var(--ink3)" id="edition-picker-count"></span></div>
+      <button onclick="skipEditionPicker()" style="font-size:12px;color:var(--ink3);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Saltar →</button>
+    </div>
+    <div id="edition-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:6px"></div>
   </div>
   <div class="qadd-panel" id="qadd-panel" style="display:none">
     <div class="qadd-book">
@@ -2965,8 +2992,12 @@ function closeModal(id){document.getElementById(id).style.display='none';}
 function resetAddModal(){
   starVal=0;starManualVal=0;pendingBook=null;customCover=null;
   document.getElementById('modal-srch-inp').value='';
+  document.getElementById('isbn-inp').value='';
+  document.getElementById('isbn-status').textContent='';
   document.getElementById('modal-srch-drop').style.display='none';
   document.getElementById('qadd-panel').style.display='none';
+  document.getElementById('edition-picker').style.display='none';
+  setSearchMode('title');
   document.getElementById('m-title').value='';
   document.getElementById('m-author').value='';
   document.getElementById('m-review').value='';
@@ -3047,21 +3078,134 @@ async function fetchOLWorkDetails(bookData){
   }catch(_){}
 }
 
+function setSearchMode(mode){
+  document.getElementById('title-search-row').style.display=mode==='title'?'block':'none';
+  document.getElementById('isbn-search-row').style.display=mode==='isbn'?'block':'none';
+  document.getElementById('srch-mode-title').classList.toggle('active',mode==='title');
+  document.getElementById('srch-mode-isbn').classList.toggle('active',mode==='isbn');
+  document.getElementById('modal-srch-drop').style.display='none';
+  document.getElementById('isbn-status').textContent='';
+  document.getElementById('edition-picker').style.display='none';
+}
+
+let _isbnTimer=null;
+function onISBNSearch(val){
+  clearTimeout(_isbnTimer);
+  const isbn=val.replace(/[^0-9X]/gi,'');
+  const status=document.getElementById('isbn-status');
+  if(isbn.length<10){status.textContent='';return;}
+  status.innerHTML='<i class="ti ti-loader-2 spin"></i> Buscando edición…';
+  _isbnTimer=setTimeout(async()=>{
+    try{
+      const res=await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+      if(!res.ok){status.textContent='ISBN no encontrado. Prueba otro o busca por título.';return;}
+      const d=await res.json();
+      const title=d.title||'Sin título';
+      const publisher=(d.publishers||[])[0]||'';
+      const year=d.publish_date||'';
+      const pages=d.number_of_pages||null;
+      const coverUrl=`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      const worksKey=d.works?.[0]?.key||null;
+      const authorOlKey=null;
+      const bookData={title,author:publisher||'Desconocido',year,pages,cover:coverUrl,olKey:worksKey,authorOlKey,isbn};
+      // fetch author from works
+      if(worksKey){
+        try{
+          const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
+          const wd=await wr.json();
+          const desc=typeof wd.description==='string'?wd.description:(wd.description?.value||'');
+          if(desc) bookData.synopsis=desc.substring(0,1200);
+          const ak=wd.authors?.[0]?.author?.key;
+          if(ak){
+            bookData.authorOlKey=ak.replace('/authors/','');
+            const ar=await fetch(`https://openlibrary.org${ak}.json`);
+            const ad=await ar.json();
+            bookData.author=ad.name||bookData.author;
+          }
+        }catch(_){}
+      }
+      status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
+      selectBookForAdd(bookData);
+    }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
+  },600);
+}
+
+async function fetchEditionsAndPick(bookData){
+  if(!bookData.olKey){selectBookForAdd(bookData);return;}
+  const picker=document.getElementById('edition-picker');
+  const list=document.getElementById('edition-list');
+  picker.style.display='block';
+  list.innerHTML='<div style="padding:10px;text-align:center;color:var(--ink3);font-size:13px"><i class="ti ti-loader-2 spin"></i> Cargando ediciones…</div>';
+  try{
+    const res=await fetch(`https://openlibrary.org${bookData.olKey}/editions.json?limit=20`);
+    const data=await res.json();
+    const editions=(data.entries||[]).filter(e=>e.publishers?.length||e.publish_date);
+    document.getElementById('edition-picker-count').textContent=editions.length?`(${editions.length} ediciones)`:'';
+    if(!editions.length){list.innerHTML='<div style="padding:10px;text-align:center;color:var(--ink3);font-size:12px">No hay ediciones disponibles</div>';return;}
+    list.innerHTML='';
+    editions.forEach(ed=>{
+      const pub=(ed.publishers||[])[0]||'Editorial desconocida';
+      const yr=ed.publish_date||'';
+      const lang=(ed.languages?.[0]?.key||'').replace('/languages/','');
+      const isbn=(ed.isbn_13||ed.isbn_10||[])[0]||null;
+      const coverId=ed.covers?.[0]||null;
+      const coverUrl=coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`:null;
+      const pages=ed.number_of_pages||null;
+      const item=document.createElement('div');
+      item.className='edition-item';
+      item.innerHTML=`
+        <div class="edition-cover" id="ecov-${isbn||coverId||Math.random()}" style="${coverUrl?`background-image:url(${coverUrl});background-size:cover;background-position:center`:'background:#E8E5DF'}">
+          ${!coverUrl?`<i class="ti ti-book" style="font-size:14px;color:var(--ink3)"></i>`:''}
+        </div>
+        <div class="edition-info">
+          <div class="edition-pub">${escapeHtml(pub)}</div>
+          <div class="edition-meta">${[yr,lang?lang.toUpperCase():'',pages?pages+' p':''].filter(Boolean).join(' · ')}</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--ink3);font-size:14px;flex-shrink:0"></i>`;
+      item.addEventListener('click',()=>{
+        const bestCover=coverUrl?(coverId?`https://covers.openlibrary.org/b/id/${coverId}-L.jpg`:isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`:null):null;
+        selectBookForAdd({...bookData,cover:bestCover||bookData.cover});
+        picker.style.display='none';
+      });
+      list.appendChild(item);
+    });
+  }catch(e){list.innerHTML='<div style="padding:10px;text-align:center;color:var(--ink3);font-size:12px">Error cargando ediciones</div>';}
+}
+
+function skipEditionPicker(){
+  document.getElementById('edition-picker').style.display='none';
+  document.getElementById('qadd-panel').style.display='block';
+}
+
+function selectBookForAdd(book){
+  pendingBook=book;
+  document.getElementById('qadd-title').textContent=book.title;
+  document.getElementById('qadd-author').textContent=book.author+(book.year?' · '+book.year:'');
+  const cov=document.getElementById('qadd-cover');
+  if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.backgroundSize='cover';cov.style.backgroundPosition='center';cov.style.background='';}
+  else{cov.style.backgroundImage='';cov.style.background=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];}
+  document.getElementById('qadd-panel').style.display='block';
+  document.getElementById('edition-picker').style.display='none';
+  starVal=0;
+  document.querySelectorAll('#qadd-stars span').forEach(s=>s.classList.remove('on'));
+  document.getElementById('qadd-review').value='';
+  document.getElementById('qadd-pages').value=book.pages||'';
+}
+
 function onModalSearch(q){
   clearTimeout(searchTimers.modal);
   searchTimers.modal=setTimeout(()=>searchOL(q,'modal-srch-drop', book=>{
-    pendingBook=book;
-    document.getElementById('qadd-title').textContent=book.title;
-    document.getElementById('qadd-author').textContent=book.author+(book.year?' · '+book.year:'');
-    const cov=document.getElementById('qadd-cover');
-    if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.backgroundSize='cover';cov.style.backgroundPosition='center';cov.style.background='none';}
-    else{cov.style.backgroundImage='';cov.style.background=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];}
-    document.getElementById('qadd-panel').style.display='block';
     document.getElementById('modal-srch-inp').value='';
-    starVal=0;
-    document.querySelectorAll('#qadd-stars span').forEach(s=>s.classList.remove('on'));
-    document.getElementById('qadd-review').value='';
-    document.getElementById('qadd-pages').value=book.pages||'';
+    document.getElementById('edition-picker').style.display='none';
+    document.getElementById('qadd-panel').style.display='none';
+    fetchOLWorkDetails(book);
+    if(book.olKey){
+      // show book info immediately, then offer editions
+      pendingBook=book;
+      fetchEditionsAndPick(book);
+    } else {
+      selectBookForAdd(book);
+    }
   }),450);
 }
 
@@ -3073,14 +3217,10 @@ function onGlobalSearch(q){
     document.getElementById('g-inp').value='';
     drop.style.display='none';
     openModal('modal-add');
+    fetchOLWorkDetails(book);
     setTimeout(()=>{
-      pendingBook=book;
-      document.getElementById('qadd-title').textContent=book.title;
-      document.getElementById('qadd-author').textContent=book.author+(book.year?' · '+book.year:'');
-      const cov=document.getElementById('qadd-cover');
-      if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.background='none';}
-      else{cov.style.backgroundImage='';cov.style.background=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];}
-      document.getElementById('qadd-panel').style.display='block';
+      if(book.olKey){pendingBook=book;fetchEditionsAndPick(book);}
+      else{selectBookForAdd(book);}
     },150);
   }),450);
 }
