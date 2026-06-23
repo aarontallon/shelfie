@@ -3120,23 +3120,17 @@ function onISBNSearch(val){
       const pages=d.number_of_pages||null;
       const worksKey=d.works?.[0]?.key||null;
       const authorOlKey=null;
-      // seed with this edition's own cover IDs
-      let coverIds=new Set((d.covers||[]).filter(c=>c>0));
-      const defaultCover=coverIds.size
-        ?`https://covers.openlibrary.org/b/id/${[...coverIds][0]}-L.jpg`
-        :`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      // only use cover IDs from THIS specific edition — not from other editions
+      const editionCoverIds=(d.covers||[]).filter(c=>c>0);
+      const defaultCover=editionCoverIds.length
+        ?`https://covers.openlibrary.org/b/id/${editionCoverIds[0]}-L.jpg`
+        :null;
       const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:defaultCover,olKey:worksKey,authorOlKey,isbn,publisher:publisher||null,editionYear:year||null};
-      // fetch author, synopsis, and MORE covers from the work record and its editions in parallel
-      status.innerHTML='<i class="ti ti-loader-2 spin"></i> Buscando portadas…';
-      await (async()=>{
-        if(!worksKey)return;
+      // fetch author + synopsis from work record
+      if(worksKey){
         try{
-          const [wr,er]=await Promise.all([
-            fetch(`https://openlibrary.org${worksKey}.json`),
-            fetch(`https://openlibrary.org${worksKey}/editions.json?limit=50`)
-          ]);
+          const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
           const wd=await wr.json();
-          const ed=await er.json();
           const desc=typeof wd.description==='string'?wd.description:(wd.description?.value||'');
           if(desc) bookData.synopsis=desc.substring(0,1200);
           const ak=wd.authors?.[0]?.author?.key;
@@ -3144,15 +3138,16 @@ function onISBNSearch(val){
             bookData.authorOlKey=ak.replace('/authors/','');
             try{const ar=await fetch(`https://openlibrary.org${ak}.json`);const ad=await ar.json();bookData.author=ad.name||'';}catch(_){}
           }
-          // collect cover IDs from work record
-          (wd.covers||[]).filter(c=>c>0).forEach(c=>coverIds.add(c));
-          // collect cover IDs from all editions
-          (ed.entries||[]).forEach(e=>(e.covers||[]).filter(c=>c>0).forEach(c=>coverIds.add(c)));
         }catch(_){}
-      })();
+      }
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
-      // always show cover picker so user can pick their exact copy
-      showCoverPicker(bookData,[...coverIds]);
+      if(editionCoverIds.length>1){
+        // multiple covers for this edition — let user pick
+        showCoverPicker(bookData,editionCoverIds);
+      } else {
+        // 0 or 1 cover — go straight to add (cover already set or null)
+        selectBookForAdd(bookData);
+      }
     }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
 }
