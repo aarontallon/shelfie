@@ -2990,15 +2990,23 @@ async function doRegister(){
     else authErr('register-error',msg||'Error al crear la cuenta. Inténtalo de nuevo.');
     return;
   }
-  SUPA_USER=data.user;
-  // Save username immediately (trigger creates the row, we update username)
+  SUPA_USER=data.user||data.session?.user||null;
+  // If email confirmation is on, user will be null — get session instead
+  if(!SUPA_USER){
+    const{data:sd}=await supa.auth.getSession();
+    SUPA_USER=sd?.session?.user||null;
+  }
+  // Save username
   if(SUPA_USER){
     await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
   }
   PROFILE.name=fullName;
   PROFILE.email=email;
   PROFILE.username=username;
-  await _supaEnterApp();
+  if(SUPA_USER){
+    await _supaEnterApp();
+  }
+  // If SUPA_USER is null, onAuthStateChange will fire SIGNED_IN and enter the app
   toast(`✅ ¡Bienvenido a Shelfie, ${nombre}!`);
 }
 
