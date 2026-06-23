@@ -2975,12 +2975,11 @@ async function doRegister(){
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
   let data,error;
   try{
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
-    const result=await Promise.race([supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}}),timeout]);
-    data=result.data;error=result.error;
+    const res=await supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}});
+    data=res.data;error=res.error;
   }catch(e){
     if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
-    authErr('register-error','No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
+    authErr('register-error','Error: '+e.message);
     return;
   }
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
