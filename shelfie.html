@@ -166,7 +166,7 @@ a{color:inherit}
 /* View toggle: grid vs list */
 .view-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
 .view-toggle-btn{background:white;border:none;padding:8px 10px;cursor:pointer;color:var(--ink3);display:flex;align-items:center;font-size:15px;transition:all 0.12s}
-.view-toggle-btn:first-child{border-right:1px solid var(--border)}
+.view-toggle-btn:not(:last-child){border-right:1px solid var(--border)}
 .view-toggle-btn.on{background:var(--ink);color:white}
 .view-toggle-btn:hover:not(.on){background:var(--paper)}
 
@@ -1429,9 +1429,9 @@ a{color:inherit}
     </div>
     <div class="tb-right">
       <div class="view-toggle">
+        <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfView('shelf')"><i class="ti ti-books"></i></button>
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
         <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfView('list')"><i class="ti ti-list"></i></button>
-        <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfView('shelf')"><i class="ti ti-bookmarks"></i></button>
       </div>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
       <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="renderShelf()">
