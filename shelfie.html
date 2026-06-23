@@ -1444,12 +1444,6 @@ a{color:inherit}
 <div id="p-discover" class="page">
   <div class="tb"><div><h1>Descubrir</h1><p>Encuentra tu próxima lectura</p></div></div>
 
-  <!-- Search -->
-  <div class="disc-search-wrap">
-    <i class="ti ti-search disc-search-icon"></i>
-    <input class="disc-search" id="disc-search-input" placeholder="Buscar libro o autor…" oninput="discoverSearch(this.value)">
-  </div>
-
   <!-- Genre tabs -->
   <div class="disc-genres">
     <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
@@ -1459,12 +1453,6 @@ a{color:inherit}
     <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
     <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
     <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
-  </div>
-
-  <!-- Search results -->
-  <div id="disc-search-results" style="display:none">
-    <div class="disc-section-head"><span class="disc-section-title" id="disc-search-label"></span></div>
-    <div class="disc-grid" id="disc-search-grid"></div>
   </div>
 
   <!-- Main sections -->
