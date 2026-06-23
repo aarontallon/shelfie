@@ -615,10 +615,10 @@ a{color:inherit}
 .ps-streak .ps-n{color:var(--amber)}
 .ps-streak .ps-l{color:rgba(217,119,6,0.6)}
 /* profile streak badge — top-right, big */
-.profile-streak-badge{position:absolute;top:24px;right:28px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(217,119,6,0.12);border:1.5px solid rgba(217,119,6,0.35);border-radius:18px;padding:14px 18px}
-.profile-streak-badge-flame{font-size:36px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 4px 10px rgba(217,119,6,0.7))}
-.profile-streak-badge-num{font-family:'Playfair Display',serif;font-size:30px;color:var(--amber);line-height:1;font-weight:700}
-.profile-streak-badge-lbl{font-size:10px;color:rgba(217,119,6,0.6);letter-spacing:.04em;white-space:nowrap}
+.profile-streak-badge{position:absolute;top:22px;right:26px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(145deg,#92400E,#B45309);border:2px solid rgba(255,255,255,0.15);border-radius:18px;padding:14px 20px;box-shadow:0 8px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(217,119,6,0.3)}
+.profile-streak-badge-flame{font-size:34px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))}
+.profile-streak-badge-num{font-family:'Playfair Display',serif;font-size:32px;color:#FFF;line-height:1;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.profile-streak-badge-lbl{font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;font-weight:600}
 /* profile reading-now banner */
 .profile-reading-now{background:linear-gradient(120deg,#F5F3EF,white);border:1px solid #E8E4DC;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:center}
 .profile-reading-now-spine{width:42px;height:64px;border-radius:4px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding:4px;overflow:hidden;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
@@ -2619,8 +2619,8 @@ function seedDemoData(){
     ],
   });
 
-  // ── Reading streak: marca los últimos 9 días como leídos ──
-  for(let i=0;i<9;i++){
+  // ── Reading streak: marca los últimos 8 días SIN hoy, para mostrar la animación del botón ──
+  for(let i=1;i<=8;i++){
     const d=new Date();d.setDate(d.getDate()-i);
     READING_DAYS.add(todayKey(d));
   }
