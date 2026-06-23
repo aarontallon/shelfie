@@ -2930,10 +2930,13 @@ async function doRegister(){
 }
 
 async function socialLogin(provider){
+  if(window.location.protocol==='file:'){
+    toast('⚠️ Login social requiere servidor HTTP. Usa email y contraseña.');
+    return;
+  }
   const p=provider==='Google'?'google':provider==='Apple'?'apple':provider.toLowerCase();
   const{error}=await supa.auth.signInWithOAuth({provider:p,options:{redirectTo:window.location.href}});
   if(error)toast('❌ '+error.message);
-  // onAuthStateChange will handle SIGNED_IN after redirect
 }
 
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
