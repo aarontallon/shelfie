@@ -2990,15 +2990,22 @@ async function doRegister(){
   if(passStrength(pass)<2){authErr('register-error','La contraseña es demasiado débil. Usa mayúsculas, números o símbolos.');return;}
   const btn=document.querySelector('#register-box .btn-red');
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
-  const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}});
+  let data,error;
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+    const result=await Promise.race([supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}}),timeout]);
+    data=result.data;error=result.error;
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
+    authErr('register-error','No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
+    return;
+  }
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
   if(error){
     const msg=error.message||JSON.stringify(error);
     if(msg.includes('already registered')||msg.includes('already been registered'))
       authErr('register-error','Ya existe una cuenta con ese email. Inicia sesión.');
-    else if(msg.includes('email')||msg==='{}'||!msg)
-      authErr('register-error','Error al crear la cuenta. Comprueba que el email es correcto o inténtalo más tarde.');
-    else authErr('register-error',msg);
+    else authErr('register-error',msg||'Error al crear la cuenta. Inténtalo de nuevo.');
     return;
   }
   SUPA_USER=data.user;
