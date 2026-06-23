@@ -2235,12 +2235,16 @@ const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 let SUPA_USER=null; // auth.User object when logged in
 
 // ── Auth state listener (handles refresh / tab reopen) ──
+let _appEntering=false;
 supa.auth.onAuthStateChange(async(event,session)=>{
-  if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn){
+  if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn&&!_appEntering){
+    _appEntering=true;
     SUPA_USER=session.user;
     await _supaEnterApp();
+    _appEntering=false;
   } else if(event==='SIGNED_OUT'){
     SUPA_USER=null;
+    isLoggedIn=false;
   }
 });
 
@@ -2917,8 +2921,7 @@ async function doLogin(){
   const{data,error}=await supa.auth.signInWithPassword({email,password:pass});
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Iniciar sesión';}
   if(error){authErr('login-error',error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message);return;}
-  SUPA_USER=data.user;
-  await _supaEnterApp();
+  // onAuthStateChange will fire SIGNED_IN and enter the app
 }
 
 let _usernameCheckTimer=null;
@@ -3003,10 +3006,7 @@ async function doRegister(){
   PROFILE.name=fullName;
   PROFILE.email=email;
   PROFILE.username=username;
-  if(SUPA_USER){
-    await _supaEnterApp();
-  }
-  // If SUPA_USER is null, onAuthStateChange will fire SIGNED_IN and enter the app
+  // onAuthStateChange will fire SIGNED_IN and enter the app
   toast(`✅ ¡Bienvenido a Shelfie, ${nombre}!`);
 }
 
@@ -7189,18 +7189,7 @@ document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key===
 document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
 document.getElementById('reg-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('reg-pass').focus();});
 
-// ── Check for existing Supabase session on load ──
-(async()=>{
-  // Handle OAuth redirect tokens in URL hash
-  if(window.location.hash&&window.location.hash.includes('access_token')){
-    await supa.auth.getSession(); // let SDK parse the hash
-  }
-  const{data:{session}}=await supa.auth.getSession();
-  if(session&&!isLoggedIn){
-    SUPA_USER=session.user;
-    await _supaEnterApp();
-  }
-})();
+// Session is handled entirely by onAuthStateChange (INITIAL_SESSION + SIGNED_IN)
 </script>
 <!-- Global book action menu — single instance at body level, avoids transform stacking-context bugs -->
 <div id="g-book-menu"></div>
