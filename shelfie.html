@@ -960,6 +960,7 @@ a{color:inherit}
 .qadd-panel{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border)}
 .srch-mode-btn{flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--paper);font-size:12px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
 .srch-mode-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+.book-page-edition-badge{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;color:var(--ink3);background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .edition-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;transition:background .12s;border:1px solid transparent}
 .edition-item:hover{background:var(--bg);border-color:var(--border)}
 .edition-cover{width:32px;height:46px;border-radius:3px;background:#ddd;background-size:cover;background-position:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -3107,7 +3108,7 @@ function onISBNSearch(val){
       const coverUrl=`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
       const worksKey=d.works?.[0]?.key||null;
       const authorOlKey=null;
-      const bookData={title,author:publisher||'Desconocido',year,pages,cover:coverUrl,olKey:worksKey,authorOlKey,isbn};
+      const bookData={title,author:'',year:d.first_publish_year||'',pages,cover:coverUrl,olKey:worksKey,authorOlKey,isbn,publisher:publisher||null,editionYear:year||null};
       // fetch author from works
       if(worksKey){
         try{
@@ -3120,7 +3121,7 @@ function onISBNSearch(val){
             bookData.authorOlKey=ak.replace('/authors/','');
             const ar=await fetch(`https://openlibrary.org${ak}.json`);
             const ad=await ar.json();
-            bookData.author=ad.name||bookData.author;
+            bookData.author=ad.name||'';
           }
         }catch(_){}
       }
@@ -3184,7 +3185,7 @@ async function fetchEditionsAndPick(bookData){
         </div>
         <i class="ti ti-chevron-right" style="color:var(--ink3);font-size:14px;flex-shrink:0"></i>`;
       item.addEventListener('click',()=>{
-        selectBookForAdd({...bookData,cover:fullUrl||bookData.cover,pages:pages||bookData.pages});
+        selectBookForAdd({...bookData,cover:fullUrl||bookData.cover,pages:pages||bookData.pages,publisher:pub,isbn:isbn||null,editionYear:yr||null});
         picker.style.display='none';
       });
       list.appendChild(item);
@@ -3321,7 +3322,7 @@ function confirmAdd(){
   // allow duplicate titles (different editions) — just warn if exact same cover
   const existing=Object.values(DB).flat().filter(b=>b.title.toLowerCase()===pendingBook.title.toLowerCase());
   if(existing.length&&existing.some(b=>b.cover===pendingBook.cover&&b.cover)){toast(`Ya tienes esta edición de «${pendingBook.title}»`);return;}
-  const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null};
+  const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null,publisher:pendingBook.publisher||null,isbn:pendingBook.isbn||null,editionYear:pendingBook.editionYear||null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   closeModal('modal-add');
@@ -4085,7 +4086,9 @@ function renderBookPage(id){
       <div class="book-page-info">
         <div class="book-page-title">${escapeHtml(book.title)}</div>
         ${authorLinkHtml}
-        <div class="book-page-meta">${book.year?escapeHtml(book.year):''}${book.pages?(book.year?' · ':'')+book.pages+' páginas':''}</div>
+        <div class="book-page-meta">${book.year?escapeHtml(String(book.year)):''}${book.pages?(book.year?' · ':'')+book.pages+' páginas':''}</div>
+        ${(book.publisher||book.isbn||book.editionYear)?`<div class="book-page-edition-badge"><i class="ti ti-building-store" style="font-size:11px"></i> ${[book.publisher,book.editionYear].filter(Boolean).join(', ')}${book.isbn?` · ISBN ${book.isbn}`:''}</div>`:''}
+
         ${genreTagsHtml}
         ${book.stars?`<div class="book-page-stars-row"><span class="book-page-stars">${'★'.repeat(book.stars)}${'☆'.repeat(5-book.stars)}</span><span class="book-page-stars-n">Tu valoración: ${book.stars}.0</span></div>`:''}
         <div>${statusBadge}${history.length>1?`<span class="book-page-reread-tag"><i class="ti ti-refresh"></i> Releído ${history.length} veces</span>`:''}${yearTag}</div>
