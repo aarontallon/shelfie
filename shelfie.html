@@ -2929,11 +2929,16 @@ async function checkUsername(clean){
   if(clean.length<3){el.textContent=clean.length?'Mínimo 3 caracteres':'';el.style.color='var(--ink3)';_usernameAvailable=false;return;}
   el.textContent='Comprobando...';el.style.color='var(--ink3)';
   try{
-    const{data,error}=await supa.from('profiles').select('id').eq('username',clean).maybeSingle();
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),4000));
+    const query=supa.from('profiles').select('id').eq('username',clean).maybeSingle();
+    const{data,error}=await Promise.race([query,timeout]);
     if(error)throw error;
     if(data){el.textContent='@'+clean+' ya está en uso';el.style.color='#e53e3e';_usernameAvailable=false;}
-    else{el.textContent='@'+clean+' está disponible ✓';el.style.color='#38a169';_usernameAvailable=true;}
-  }catch(e){el.textContent='Error comprobando usuario';el.style.color='var(--ink3)';_usernameAvailable=false;}
+    else{el.textContent='@'+clean+' disponible ✓';el.style.color='#38a169';_usernameAvailable=true;}
+  }catch(e){
+    // On timeout or error, optimistically allow — DB unique constraint will catch real duplicates
+    el.textContent='';_usernameAvailable=true;
+  }
 }
 
 function onUsernameInput(val){
