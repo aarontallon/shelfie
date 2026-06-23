@@ -2240,24 +2240,22 @@ supa.auth.onAuthStateChange(async(event,session)=>{
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn&&!_appEntering){
     _appEntering=true;
     SUPA_USER=session.user;
-    await _supaEnterApp();
-    _appEntering=false;
+    try{await _supaEnterApp();}finally{_appEntering=false;}
   } else if(event==='SIGNED_OUT'){
     SUPA_USER=null;
     isLoggedIn=false;
   }
 });
 
-// ── Fallback: if onAuthStateChange INITIAL_SESSION fires before DOM is ready ──
+// ── Fallback: call getSession() directly in case INITIAL_SESSION was missed ──
 (async()=>{
-  await new Promise(r=>setTimeout(r,500));
+  await new Promise(r=>setTimeout(r,0)); // one tick so INITIAL_SESSION can fire first
   if(!isLoggedIn&&!_appEntering){
     const{data:{session}}=await supa.auth.getSession();
     if(session&&!isLoggedIn&&!_appEntering){
       _appEntering=true;
       SUPA_USER=session.user;
-      await _supaEnterApp();
-      _appEntering=false;
+      try{await _supaEnterApp();}finally{_appEntering=false;}
     }
   }
 })();
@@ -2434,7 +2432,7 @@ async function _supaEnterApp(){
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
-  enterApp(true);
+  try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
 }
 
 // ═══════════════════════════════════════════════
@@ -3011,20 +3009,22 @@ async function doRegister(){
     return;
   }
   SUPA_USER=data.user||data.session?.user||null;
-  // If email confirmation is on, user will be null — get session instead
   if(!SUPA_USER){
     const{data:sd}=await supa.auth.getSession();
     SUPA_USER=sd?.session?.user||null;
   }
-  // Save username
   if(SUPA_USER){
     await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
   }
   PROFILE.name=fullName;
   PROFILE.email=email;
   PROFILE.username=username;
-  // onAuthStateChange will fire SIGNED_IN and enter the app
   toast(`✅ ¡Bienvenido a Shelfie, ${nombre}!`);
+  // Enter the app explicitly — profile is already updated, don't wait for onAuthStateChange
+  if(!isLoggedIn&&!_appEntering){
+    _appEntering=true;
+    try{await _supaEnterApp();}finally{_appEntering=false;}
+  }
 }
 
 async function socialLogin(provider){
@@ -3196,7 +3196,7 @@ function enterApp(skipDemo){
   if(!skipDemo&&!DEMO_SEEDED){seedDemoData();DEMO_SEEDED=true;}
   updateAll();updateCounts();renderFriends();
   const h=new Date().getHours();
-  document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
+  document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name||'lector'} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
 }
 
 function checkYearRollover(){
@@ -3225,6 +3225,8 @@ async function doLogout(){
   SUPA_USER=null;
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   USER_POSTS=[];
+  READING_DAYS=new Set();
+  RETOS=[];
   PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
   DEMO_SEEDED=false;
   document.getElementById('app-shell').classList.remove('on');
@@ -4352,9 +4354,9 @@ function moveBook(id,from,to){
     startReadingWithEdition(book,from);
     return;
   }
+  if(to==='leidos'){markFinishedFrom(id,from);return;}
   DB[from].splice(idx,1);
   book.status=to;
-  if(to==='leidos'&&!book.stars){const s=parseInt(prompt(`Valora «${book.title}» (1-5★)`,'5'));book.stars=s>=1&&s<=5?s:5;RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));}
   DB[to].unshift(book);
   saveSupaBook(book);
   updateAll();renderShelf();
