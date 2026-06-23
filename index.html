@@ -1061,7 +1061,7 @@ a{color:inherit}
       <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
       <div style="position:relative">
         <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
-        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" onblur="checkUsername(this.value.toLowerCase().replace(/[^a-z0-9_]/g,''))" autocomplete="off">
       </div>
       <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
     </div>
@@ -2924,18 +2924,24 @@ async function doLogin(){
 let _usernameCheckTimer=null;
 let _usernameAvailable=false;
 
-function onUsernameInput(val){
+async function checkUsername(clean){
   const el=document.getElementById('username-status');
-  const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
-  if(val!==clean)document.getElementById('reg-username').value=clean;
   if(clean.length<3){el.textContent=clean.length?'Mínimo 3 caracteres':'';el.style.color='var(--ink3)';_usernameAvailable=false;return;}
   el.textContent='Comprobando...';el.style.color='var(--ink3)';
-  clearTimeout(_usernameCheckTimer);
-  _usernameCheckTimer=setTimeout(async()=>{
-    const{data}=await supa.from('profiles').select('id').eq('username',clean).maybeSingle();
+  try{
+    const{data,error}=await supa.from('profiles').select('id').eq('username',clean).maybeSingle();
+    if(error)throw error;
     if(data){el.textContent='@'+clean+' ya está en uso';el.style.color='#e53e3e';_usernameAvailable=false;}
     else{el.textContent='@'+clean+' está disponible ✓';el.style.color='#38a169';_usernameAvailable=true;}
-  },500);
+  }catch(e){el.textContent='Error comprobando usuario';el.style.color='var(--ink3)';_usernameAvailable=false;}
+}
+
+function onUsernameInput(val){
+  const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
+  if(val!==clean)document.getElementById('reg-username').value=clean;
+  _usernameAvailable=false;
+  clearTimeout(_usernameCheckTimer);
+  _usernameCheckTimer=setTimeout(()=>checkUsername(clean),400);
 }
 
 function passStrength(p){
@@ -2981,7 +2987,12 @@ async function doRegister(){
   if(btn){btn.disabled=true;btn.textContent='Creando cuenta...';}
   const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{name:fullName}}});
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta';}
-  if(error){authErr('register-error',error.message);return;}
+  if(error){
+    if(error.message.includes('already registered')||error.message.includes('already been registered'))
+      authErr('register-error','Ya existe una cuenta con ese email. ¿Quieres iniciar sesión?');
+    else authErr('register-error',error.message);
+    return;
+  }
   SUPA_USER=data.user;
   // Save username immediately (trigger creates the row, we update username)
   if(SUPA_USER){
