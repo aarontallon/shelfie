@@ -2410,10 +2410,10 @@ async function saveSupaProfile(){
 
 // ── Internal: enter app after auth ──
 async function _supaEnterApp(){
-  await loadSupaProfile();
-  await loadSupaBooks();
-  await loadSupaPosts();
-  enterApp(true); // true = skip demo seed
+  try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
+  try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
+  try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
+  enterApp(true);
 }
 
 // ═══════════════════════════════════════════════
