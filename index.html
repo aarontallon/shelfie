@@ -2236,7 +2236,7 @@ let SUPA_USER=null; // auth.User object when logged in
 
 // ── Auth state listener (handles refresh / tab reopen) ──
 supa.auth.onAuthStateChange(async(event,session)=>{
-  if(event==='SIGNED_IN'&&session&&!isLoggedIn){
+  if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn){
     SUPA_USER=session.user;
     await _supaEnterApp();
   } else if(event==='SIGNED_OUT'){
@@ -5326,7 +5326,7 @@ function renderRetos(){
   updateCounts();
   const cont=document.getElementById('my-retos');
   if(!RETOS.length){
-    cont.innerHTML=`<div class="empty card"><i class="ti ti-target"></i><p>Aún no tienes retos</p><span>Crea tu propio reto o únete a uno de la comunidad</span><button class="btn btn-red" style="margin-top:14px" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;
+    cont.innerHTML=`<div class="empty card" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 20px"><i class="ti ti-target" style="font-size:32px;color:var(--ink3);margin-bottom:12px"></i><p style="font-weight:600;margin-bottom:6px">Aún no tienes retos</p><span style="color:var(--ink3);font-size:13px">Crea tu propio reto o únete a uno de la comunidad</span><button class="btn btn-red" style="margin-top:18px" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;
     return;
   }
   cont.innerHTML=RETOS.map((r,i)=>{
