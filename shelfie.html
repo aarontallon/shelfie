@@ -4287,9 +4287,6 @@ function discoverBookCard(b){
 
 function renderDiscover(){
   _discoverQuery='';
-  const inp=document.getElementById('disc-search-input');
-  if(inp)inp.value='';
-  document.getElementById('disc-search-results').style.display='none';
   document.getElementById('disc-main-sections').style.display='';
   document.getElementById('disc-similar-results').style.display='none';
 
@@ -4363,24 +4360,6 @@ function openDiscoverList(idx){
   openModal('modal-disc-list');
 }
 
-function discoverSearch(q){
-  _discoverQuery=q.trim().toLowerCase();
-  const hasQ=!!_discoverQuery;
-  document.getElementById('disc-search-results').style.display=hasQ?'':'none';
-  document.getElementById('disc-main-sections').style.display=hasQ?'none':'';
-  if(!hasQ)return;
-  const seen=new Set();
-  const results=DISCOVER_CATALOG.filter(b=>{
-    if(seen.has(b.title))return false;
-    if(b.title.toLowerCase().includes(_discoverQuery)||b.author.toLowerCase().includes(_discoverQuery)){seen.add(b.title);return true;}
-    return false;
-  });
-  document.getElementById('disc-search-label').textContent=results.length
-    ?`${results.length} resultado${results.length!==1?'s':''} para "${q.trim()}"`:`Sin resultados para "${q.trim()}"`;
-  document.getElementById('disc-search-grid').innerHTML=results.length
-    ?results.map(b=>discoverBookCard(b)).join('')
-    :'<div class="disc-no-results">Prueba con otro título o autor</div>';
-}
 
 function setDiscoverGenre(btn,genre){
   document.querySelectorAll('.dg-tab').forEach(b=>b.classList.remove('on'));
