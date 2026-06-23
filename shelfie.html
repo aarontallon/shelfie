@@ -3009,26 +3009,42 @@ async function searchOL(q, dropId, onAddClick){
   drop.style.display='block';
   drop.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando en Open Library...</div>';
   try{
-    const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=7&fields=title,author_name,first_publish_year,cover_i`);
+    const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,key,author_key,subject`);
     const data=await res.json();
     if(!data.docs?.length){drop.innerHTML='<div class="s-loading">Sin resultados. Usa la entrada manual.</div>';return;}
     drop.innerHTML='';
     data.docs.forEach((d,i)=>{
-      const coverUrl=d.cover_i?`https://covers.openlibrary.org/b/id/${d.cover_i}-S.jpg`:null;
+      const coverUrl=d.cover_i?`https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`:null;
       const title=d.title||'Sin título';
       const author=d.author_name?.[0]||'Desconocido';
       const year=d.first_publish_year||'';
+      const pages=d.number_of_pages_median||null;
+      const olKey=d.key||null;
+      const authorOlKey=d.author_key?.[0]||null;
       const row=document.createElement('div');
       row.className='s-item';
       row.innerHTML=`
-        ${coverUrl?`<img class="s-cover" src="${coverUrl}" alt="" onerror="this.style.background='${COLORS[i%COLORS.length]}';this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
-        <div class="s-info"><div class="s-title">${title}</div><div class="s-author">${author}${year?' · '+year:''}</div></div>
+        ${coverUrl?`<img class="s-cover" src="${coverUrl}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="object-fit:cover"><div class="s-cover" style="background:${COLORS[i%COLORS.length]};display:none"></div>`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
+        <div class="s-info"><div class="s-title">${escapeHtml(title)}</div><div class="s-author">${escapeHtml(author)}${year?' · '+year:''}${pages?' · '+pages+' p':''}</div></div>
         <button class="btn btn-sm btn-red">Añadir</button>`;
-      row.querySelector('.btn').addEventListener('click', e=>{e.stopPropagation();drop.style.display='none';onAddClick({title,author,year,cover:coverUrl});});
-      row.addEventListener('click', ()=>{drop.style.display='none';onAddClick({title,author,year,cover:coverUrl});});
+      const bookData={title,author,year,pages,cover:coverUrl,olKey,authorOlKey};
+      row.querySelector('.btn').addEventListener('click', e=>{e.stopPropagation();drop.style.display='none';onAddClick(bookData);fetchOLWorkDetails(bookData);});
+      row.addEventListener('click', ()=>{drop.style.display='none';onAddClick(bookData);fetchOLWorkDetails(bookData);});
       drop.appendChild(row);
     });
   }catch(e){drop.innerHTML='<div class="s-loading">Error de red. Usa la entrada manual.</div>';}
+}
+
+async function fetchOLWorkDetails(bookData){
+  if(!bookData.olKey||!pendingBook||pendingBook.title!==bookData.title)return;
+  try{
+    const res=await fetch(`https://openlibrary.org${bookData.olKey}.json`);
+    const d=await res.json();
+    const desc=typeof d.description==='string'?d.description:(d.description?.value||'');
+    if(desc&&pendingBook&&pendingBook.title===bookData.title){
+      pendingBook.synopsis=desc.substring(0,1200);
+    }
+  }catch(_){}
 }
 
 function onModalSearch(q){
@@ -3038,14 +3054,14 @@ function onModalSearch(q){
     document.getElementById('qadd-title').textContent=book.title;
     document.getElementById('qadd-author').textContent=book.author+(book.year?' · '+book.year:'');
     const cov=document.getElementById('qadd-cover');
-    if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.background='none';}
+    if(book.cover){cov.style.backgroundImage=`url(${book.cover})`;cov.style.backgroundSize='cover';cov.style.backgroundPosition='center';cov.style.background='none';}
     else{cov.style.backgroundImage='';cov.style.background=COLORS[(book.title.charCodeAt(0)||0)%COLORS.length];}
     document.getElementById('qadd-panel').style.display='block';
     document.getElementById('modal-srch-inp').value='';
     starVal=0;
     document.querySelectorAll('#qadd-stars span').forEach(s=>s.classList.remove('on'));
     document.getElementById('qadd-review').value='';
-    document.getElementById('qadd-pages').value='';
+    document.getElementById('qadd-pages').value=book.pages||'';
   }),450);
 }
 
@@ -3143,7 +3159,7 @@ function confirmAdd(){
   const review=document.getElementById('qadd-review').value.trim();
   const pages=parseInt(document.getElementById('qadd-pages').value)||null;
   if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===pendingBook.title.toLowerCase())){toast(`«${pendingBook.title}» ya está en tu shelfie`);return;}
-  const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
+  const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   closeModal('modal-add');
@@ -3829,10 +3845,11 @@ function renderBookPage(id){
 
   // Global community data (synopsis, who-has-it counts, rating breakdown, third-party reviews)
   const gData=getBookGlobalData(book.title);
-  const synopsisHtml=gData?`
+  const synopsisText=book.synopsis||(gData?.synopsis)||null;
+  const synopsisHtml=synopsisText?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
-      <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(gData.synopsis)}</p>
+      <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(synopsisText)}</p>
     </div>`:'';
 
   const communityCountsHtml=gData?`
@@ -3952,40 +3969,76 @@ function setBookActivityTab(btn,tab){
 function renderAuthorPage(authorName){
   const data=getAuthorData(authorName);
   const cont=document.getElementById('author-page-content');
-  if(!data){
+
+  // Check if any user book has an OL author key for this author
+  const authorBooks=allBooks().filter(b=>b.author&&b.author.toLowerCase()===authorName.toLowerCase());
+  const olAuthorKey=authorBooks.find(b=>b.authorOlKey)?.authorOlKey||null;
+
+  if(!data&&!olAuthorKey){
     cont.innerHTML=`<div class="empty"><i class="ti ti-user-question"></i><p>Sin información de este autor todavía</p></div>`;
     return;
   }
-  const initials=data.name.split(' ').filter(w=>w[0]&&w[0]===w[0].toUpperCase()).slice(0,2).map(w=>w[0]).join('')||data.name.slice(0,2);
+
+  const name=data?.name||authorName;
+  const initials=name.split(' ').filter(w=>w[0]===w[0].toUpperCase()).slice(0,2).map(w=>w[0]).join('')||name.slice(0,2);
+  const photoUrl=olAuthorKey?`https://covers.openlibrary.org/a/olid/${olAuthorKey}-M.jpg`:null;
+  const avatarHtml=photoUrl
+    ?`<img src="${photoUrl}" alt="${escapeHtml(name)}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 10px 24px rgba(0,0,0,0.15)" onerror="this.outerHTML='<div class=\\'author-avatar-big\\'>${initials}</div>'">`
+    :`<div class="author-avatar-big">${initials}</div>`;
+
+  const bio=data?.bio||'';
+  const meta=[data?.years,data?.nationality].filter(Boolean).join(' · ');
+  const avgRating=data?.avgRating||0;
+
   cont.innerHTML=`
     <div class="author-page-hero">
-      <div class="author-avatar-big">${initials}</div>
+      ${avatarHtml}
       <div style="flex:1;min-width:240px">
-        <div class="author-page-name">${escapeHtml(data.name)}</div>
-        <div class="author-page-meta">${data.years?escapeHtml(data.years)+' · ':''}${escapeHtml(data.nationality)}</div>
-        <div class="author-page-rating"><span style="color:var(--amber);font-size:18px">${'★'.repeat(Math.round(data.avgRating))}${'☆'.repeat(5-Math.round(data.avgRating))}</span><span style="font-family:'Playfair Display',serif;font-size:16px;color:var(--ink)">${data.avgRating}</span><span class="text-xs text-muted">valoración media de su obra</span></div>
-        <p class="author-page-bio">${escapeHtml(data.bio)}</p>
+        <div class="author-page-name">${escapeHtml(name)}</div>
+        ${meta?`<div class="author-page-meta">${escapeHtml(meta)}</div>`:''}
+        ${avgRating?`<div class="author-page-rating"><span style="color:var(--amber);font-size:18px">${'★'.repeat(Math.round(avgRating))}${'☆'.repeat(5-Math.round(avgRating))}</span><span style="font-size:16px;color:var(--ink);margin-left:4px">${avgRating}</span><span class="text-xs text-muted"> valoración media</span></div>`:''}
+        ${bio?`<p class="author-page-bio">${escapeHtml(bio)}</p>`:'<p class="author-page-bio" id="ol-bio-slot">Cargando información del autor…</p>'}
       </div>
     </div>
 
     <div class="g2">
       <div class="card">
-        <div class="card-title" style="margin-bottom:6px"><i class="ti ti-books" style="color:var(--red)"></i> Obras</div>
-        ${data.works.map(w=>{
+        <div class="card-title" style="margin-bottom:6px"><i class="ti ti-books" style="color:var(--red)"></i> ${data?.works?.length?'Obras':'Libros en tu shelfie'}</div>
+        ${(data?.works||authorBooks.map(b=>({title:b.title,year:b.year,rating:b.stars||0}))).map(w=>{
           const matchBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
           const clickAttr=matchBook?`onclick="go('bookdetail',null,'${matchBook.id}')"`:`onclick="toast('Aún no tienes este libro en tu shelfie')"`;
           return `<div class="author-work-row" ${clickAttr}>
             <div><div class="author-work-title">${escapeHtml(w.title)}</div><div class="author-work-year">${w.year||''}</div></div>
-            <div class="author-work-rating">${'★'.repeat(Math.round(w.rating))} ${w.rating}</div>
+            ${w.rating?`<div class="author-work-rating">${'★'.repeat(Math.round(w.rating))} ${w.rating}</div>`:''}
           </div>`;
         }).join('')}
       </div>
-      <div class="card">
+      ${data?.quotes?.length?`<div class="card">
         <div class="card-title" style="margin-bottom:10px"><i class="ti ti-quote" style="color:var(--amber)"></i> Citas</div>
         ${data.quotes.map(q=>`<div class="author-quote-card">${escapeHtml(q)}</div>`).join('')}
-      </div>
+      </div>`:''}
     </div>
   `;
+
+  // If no static bio, fetch from OL
+  if(!bio&&olAuthorKey){
+    fetch(`https://openlibrary.org/authors/${olAuthorKey}.json`)
+      .then(r=>r.json())
+      .then(d=>{
+        const olBio=typeof d.bio==='string'?d.bio:(d.bio?.value||'');
+        const slot=document.getElementById('ol-bio-slot');
+        if(slot&&olBio)slot.textContent=olBio.substring(0,600)+(olBio.length>600?'…':'');
+        else if(slot)slot.textContent='';
+        // Also update birth date if available
+        if(d.birth_date){
+          const metaEl=cont.querySelector('.author-page-meta');
+          if(metaEl&&!metaEl.textContent)metaEl.textContent=d.birth_date;
+        }
+      }).catch(()=>{
+        const slot=document.getElementById('ol-bio-slot');
+        if(slot)slot.textContent='';
+      });
+  }
 }
 
 
