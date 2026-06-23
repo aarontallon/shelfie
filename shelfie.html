@@ -376,16 +376,35 @@ a{color:inherit}
 .feed-card-streak{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,#FFF7ED,white);border-color:#FED7AA}
 .streak-icon{width:40px;height:40px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 
+/* ── FLAME ANIMATIONS ── */
+@keyframes flicker{
+  0%,100%{transform:scaleY(1) scaleX(1) rotate(-1deg);opacity:1}
+  20%{transform:scaleY(1.06) scaleX(0.97) rotate(1deg);opacity:.95}
+  40%{transform:scaleY(.97) scaleX(1.03) rotate(-2deg);opacity:1}
+  60%{transform:scaleY(1.04) scaleX(0.98) rotate(1.5deg);opacity:.97}
+  80%{transform:scaleY(.98) scaleX(1.02) rotate(-1deg);opacity:1}
+}
+@keyframes glowPulse{
+  0%,100%{box-shadow:0 4px 14px rgba(217,119,6,0.35),0 0 0 0 rgba(217,119,6,0)}
+  50%{box-shadow:0 6px 22px rgba(217,119,6,0.55),0 0 0 8px rgba(217,119,6,0.08)}
+}
+@keyframes flameBtnPulse{
+  0%,100%{box-shadow:0 4px 16px rgba(232,93,74,0.4)}
+  50%{box-shadow:0 6px 28px rgba(232,93,74,0.7),0 0 0 6px rgba(232,93,74,0.1)}
+}
 /* dashboard streak card */
-.streak-dash-card{background:linear-gradient(120deg,#FFF7ED,white);border:1px solid #FED7AA;border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.streak-icon-big{width:54px;height:54px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 4px 14px rgba(217,119,6,0.3)}
+.streak-dash-card{background:linear-gradient(120deg,#FFF7ED,white);border:1px solid #FED7AA;border-radius:14px;padding:18px 22px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.streak-icon-big{width:54px;height:54px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;animation:glowPulse 2.4s ease-in-out infinite}
+.streak-icon-big i{display:inline-block;animation:flicker 1.8s ease-in-out infinite}
 .streak-dash-info{flex:1;min-width:140px}
 .streak-dash-num{font-family:'Playfair Display',serif;font-size:26px;color:var(--ink);line-height:1}
 .streak-dash-lbl{font-size:12px;color:var(--ink3);margin-top:3px}
 .streak-dash-best{font-size:11px;color:var(--ink3);margin-top:2px}
-.streak-mark-btn{flex-shrink:0}
-.streak-mark-btn.done{background:var(--green);cursor:default}
+.streak-mark-btn{flex-shrink:0;animation:flameBtnPulse 2s ease-in-out infinite}
+.streak-mark-btn.done{background:var(--green);cursor:default;animation:none;box-shadow:none}
 .streak-mark-btn.done:hover{background:var(--green)}
+.streak-mark-btn i{display:inline-block;animation:flicker 1.6s ease-in-out infinite}
+.streak-mark-btn.done i{animation:none}
 .streak-week-dots{display:flex;gap:5px;margin-top:8px}
 .streak-week-dot{width:9px;height:9px;border-radius:50%;background:#F0EFED}
 .streak-week-dot.on{background:var(--amber)}
@@ -595,6 +614,11 @@ a{color:inherit}
 .ps-streak-flame{font-size:22px;line-height:1}
 .ps-streak .ps-n{color:var(--amber)}
 .ps-streak .ps-l{color:rgba(217,119,6,0.6)}
+/* profile streak badge — top-right, big */
+.profile-streak-badge{position:absolute;top:24px;right:28px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(217,119,6,0.12);border:1.5px solid rgba(217,119,6,0.35);border-radius:18px;padding:14px 18px}
+.profile-streak-badge-flame{font-size:36px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 4px 10px rgba(217,119,6,0.7))}
+.profile-streak-badge-num{font-family:'Playfair Display',serif;font-size:30px;color:var(--amber);line-height:1;font-weight:700}
+.profile-streak-badge-lbl{font-size:10px;color:rgba(217,119,6,0.6);letter-spacing:.04em;white-space:nowrap}
 /* profile reading-now banner */
 .profile-reading-now{background:linear-gradient(120deg,#F5F3EF,white);border:1px solid #E8E4DC;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:center}
 .profile-reading-now-spine{width:42px;height:64px;border-radius:4px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding:4px;overflow:hidden;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
@@ -1901,6 +1925,12 @@ a{color:inherit}
     <button class="btn btn-white" onclick="openProfileEdit()"><i class="ti ti-edit"></i> Editar perfil</button>
   </div>
   <div class="profile-hero">
+    <!-- Streak badge top-right -->
+    <div class="profile-streak-badge" id="profile-streak-badge">
+      <span class="profile-streak-badge-flame">🔥</span>
+      <div class="profile-streak-badge-num" id="profile-streak-n">0</div>
+      <div class="profile-streak-badge-lbl">días racha</div>
+    </div>
     <div class="profile-hero-top">
       <div class="profile-av-wrap">
         <div class="profile-av" id="p-av">AA</div>
@@ -1917,8 +1947,6 @@ a{color:inherit}
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
       <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[5])"><div class="ps-n" id="ps-amigos">0</div><div class="ps-l">Amigos</div></div>
-      <div class="ps-sep"></div>
-      <div class="ps ps-streak"><div class="ps-streak-flame">🔥</div><div><div class="ps-n" id="profile-streak-n">0</div><div class="ps-l">días racha</div></div></div>
     </div>
   </div>
 
@@ -5050,11 +5078,13 @@ function renderProfile(){
   document.getElementById('p-visibility-badge').textContent=PROFILE.public?'🌍 Público':'🔒 Solo amigos';
   updateProfileStats();
 
-  // racha de lectura + avatar ring
+  // racha de lectura + avatar ring + badge
   const streak=calculateCurrentStreak();
   document.getElementById('profile-streak-n').textContent=streak;
   const avEl=document.getElementById('p-av');
   if(streak>0)avEl.classList.add('has-streak'); else avEl.classList.remove('has-streak');
+  const badge=document.getElementById('profile-streak-badge');
+  if(badge){badge.style.opacity=streak>0?'1':'0.35';}
 
   // genre tags in hero (top genres from read books)
   const genreTagsEl=document.getElementById('p-genre-tags');
