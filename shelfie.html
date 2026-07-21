@@ -1020,6 +1020,7 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
 <div class="auth-screen on" id="auth-login">
+  <button onclick="devQuickEnter()" title="Acceso rápido de prueba" style="position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.7);font-size:11px;font-family:'Inter',sans-serif;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:0.3px;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">⚡ Dev</button>
   <div class="auth-box" id="login-box">
     <div class="auth-logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
@@ -2917,6 +2918,11 @@ function getAuthorData(authorName){
 // ═══════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════
+function devQuickEnter(){
+  PROFILE={name:'Aaron Tallón',username:'aarontallon',bio:'Dev mode 🛠️',city:'Barcelona',photo:null,email:'test@dev.local',public:true};
+  enterApp(false);
+}
+
 function showAuth(which){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('auth-'+which).classList.add('on');
