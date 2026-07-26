@@ -86,6 +86,16 @@ create table if not exists public.friendships (
   primary key (user_id, friend_id)
 );
 
+-- ── Notificaciones (p.ej. "X te ha empezado a seguir") ──
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,   -- quién la recibe
+  actor_id uuid references public.profiles(id) on delete cascade not null,  -- quién la genera
+  type text not null default 'follow',
+  read boolean default false,
+  created_at timestamptz default now()
+);
+
 -- ════ RLS (Row Level Security) ════
 alter table public.profiles enable row level security;
 alter table public.user_books enable row level security;
@@ -93,6 +103,7 @@ alter table public.posts enable row level security;
 alter table public.comments enable row level security;
 alter table public.likes enable row level security;
 alter table public.friendships enable row level security;
+alter table public.notifications enable row level security;
 
 -- Profiles
 create policy "profiles_select" on public.profiles for select using (true);
@@ -125,6 +136,16 @@ create policy "likes_delete" on public.likes for delete using (auth.uid() = user
 create policy "friendships_select" on public.friendships for select using (auth.uid() = user_id or auth.uid() = friend_id);
 create policy "friendships_insert" on public.friendships for insert with check (auth.uid() = user_id);
 create policy "friendships_delete" on public.friendships for delete using (auth.uid() = user_id or auth.uid() = friend_id);
+
+-- Notifications
+create policy "notifications_select" on public.notifications for select using (auth.uid() = user_id);
+create policy "notifications_insert" on public.notifications for insert with check (auth.uid() = actor_id);
+create policy "notifications_update" on public.notifications for update using (auth.uid() = user_id);
+create policy "notifications_delete" on public.notifications for delete using (auth.uid() = user_id);
+
+-- Habilita Realtime en notifications para que la campanita se actualice al instante.
+-- Si ya la tienes activada (o esto falla porque ya es miembro de la publicación), ignora el error.
+alter publication supabase_realtime add table public.notifications;
 
 -- ════ Trigger: crear perfil automáticamente al registrarse ════
 create or replace function public.handle_new_user()

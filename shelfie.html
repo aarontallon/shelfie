@@ -65,6 +65,11 @@ a{color:inherit}
 .nb.on{color:white;background:rgba(61,107,82,0.15);border-left-color:var(--red)}
 .nb i{font-size:16px;flex-shrink:0}
 .nb-badge{margin-left:auto;background:var(--red);color:white;font-size:10px;font-weight:600;border-radius:10px;padding:1px 7px}
+/* Visually matches .nb but is intentionally NOT a .nb — lots of code indexes querySelectorAll('.nb')
+   by position to re-highlight the right sidebar item, and this button isn't a "go to page" link. */
+.sb-notif-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 18px;font-size:13px;color:rgba(255,255,255,0.55);background:none;border:none;cursor:pointer;text-align:left;border-left:2px solid transparent;font-family:'Inter',sans-serif;transition:all 0.12s;white-space:nowrap}
+.sb-notif-btn:hover{color:white;background:rgba(255,255,255,0.05)}
+.sb-notif-btn i{font-size:16px;flex-shrink:0}
 .sb-user{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;cursor:pointer}
 .sb-user:hover{background:rgba(255,255,255,0.04)}
 .sb-logout{padding:10px 18px;border-top:1px solid rgba(255,255,255,0.07)}
@@ -1296,6 +1301,26 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: SEGUIDORES ══════════════════════ -->
+<div class="overlay" id="modal-followers" style="display:none" onclick="if(event.target===this)closeModal('modal-followers')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-followers')"><i class="ti ti-x"></i></button>
+  <h2>Seguidores</h2>
+  <p class="sub">Lectores que te siguen</p>
+  <div id="followers-list"></div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: NOTIFICACIONES ══════════════════════ -->
+<div class="overlay" id="modal-notifications" style="display:none" onclick="if(event.target===this)closeModal('modal-notifications')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-notifications')"><i class="ti ti-x"></i></button>
+  <h2>Notificaciones</h2>
+  <p class="sub">Quién ha interactuado contigo</p>
+  <div id="notifications-list"></div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: MARCAR LIBRO COMO LEÍDO (con estrellas) ══════════════════════ -->
 <div class="overlay" id="modal-finish-book" style="display:none" onclick="if(event.target===this)closeModal('modal-finish-book')">
 <div class="modal">
@@ -1353,6 +1378,7 @@ a{color:inherit}
   </div>
   <div class="sb-section">
     <div class="sb-lbl">Social</div>
+    <button class="sb-notif-btn" onclick="openNotifications()"><i class="ti ti-bell"></i> Notificaciones <span class="nb-badge" id="notif-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed <span class="nb-badge" id="feed-badge">3</span></button>
     <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos <span class="nb-badge" id="friends-badge">2</span></button>
     <button class="nb" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> Clubs</button>
@@ -2205,7 +2231,8 @@ a{color:inherit}
     <div class="profile-stats">
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
-      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[5])"><div class="ps-n" id="ps-amigos">0</div><div class="ps-l">Amigos</div></div>
+      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[4])"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
+      <div class="ps" onclick="openFollowersModal()"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
   </div>
 
@@ -2486,12 +2513,67 @@ async function loadSupaFriends(){
   FRIENDS=(profs||[]).map(p=>cacheUser(p));
 }
 
+// ── Load followers from DB (friendships → profiles, reversed) ──
+async function loadSupaFollowers(){
+  const{data:rels,error:relErr}=await supa.from('friendships').select('user_id').eq('friend_id',SUPA_USER.id);
+  if(relErr)throw relErr;
+  const ids=(rels||[]).map(r=>r.user_id);
+  if(!ids.length){FOLLOWERS=[];return;}
+  const{data:profs,error:profErr}=await supa.from('profiles').select('id,name,username,photo,bio').in('id',ids);
+  if(profErr)throw profErr;
+  FOLLOWERS=(profs||[]).map(p=>cacheUser(p));
+}
+
+// ── Load notifications from DB, with actor profiles resolved ──
+async function loadSupaNotifications(){
+  const{data:rows,error}=await supa.from('notifications').select('*').eq('user_id',SUPA_USER.id).order('created_at',{ascending:false}).limit(30);
+  if(error)throw error;
+  const actorIds=[...new Set((rows||[]).map(r=>r.actor_id))];
+  let actorsById={};
+  if(actorIds.length){
+    const{data:profs}=await supa.from('profiles').select('id,name,username,photo,bio').in('id',actorIds);
+    (profs||[]).forEach(p=>{actorsById[p.id]=cacheUser(p);});
+  }
+  NOTIFICATIONS=(rows||[]).map(r=>({...r,actor:actorsById[r.actor_id]||{name:'Un lector',username:'',initials:'??',bg:'#EEE',tc:'#555'}}));
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+}
+
+// ── Realtime: get a toast + live badge the instant someone follows you ──
+function subscribeToNotifications(){
+  if(!SUPA_USER)return;
+  supa.channel('notif-'+SUPA_USER.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`user_id=eq.${SUPA_USER.id}`},payload=>{
+      handleIncomingNotification(payload.new);
+    })
+    .subscribe();
+}
+
+async function handleIncomingNotification(row){
+  let actor=null;
+  try{
+    const{data}=await supa.from('profiles').select('id,name,username,photo,bio').eq('id',row.actor_id).single();
+    if(data)actor=cacheUser(data);
+  }catch(e){console.error('resolving notification actor failed:',e);}
+  if(!actor)actor={name:'Un lector',username:'',initials:'??',bg:'#EEE',tc:'#555'};
+  NOTIFICATIONS.unshift({...row,actor});
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+  if(row.type==='follow'){
+    if(!FOLLOWERS.find(f=>f.username===actor.username))FOLLOWERS.unshift(actor);
+    updateProfileStats();
+    toast(`🔔 ${actor.name} ha empezado a seguirte`);
+  }
+  if(document.getElementById('modal-notifications').style.display==='flex')renderNotifications();
+}
+
 // ── Internal: enter app after auth ──
 async function _supaEnterApp(){
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
+  try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
+  try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
+  try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
 }
 
@@ -2503,6 +2585,8 @@ let DEMO_SEEDED=false;
 let DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
 let RETOS=[];
 let FRIENDS=[];
+let FOLLOWERS=[];
+let NOTIFICATIONS=[];
 
 const COMMUNITY_RETOS=[
   {
@@ -5681,6 +5765,9 @@ async function addFriend(username,btn){
       toast('❌ No se pudo seguir a este usuario. Comprueba tu conexión e inténtalo de nuevo.');
       return;
     }
+    // Best-effort: let the followed user know. Doesn't block the follow if it fails.
+    supa.from('notifications').insert({user_id:r.id,actor_id:SUPA_USER.id,type:'follow'})
+      .then(({error})=>{if(error)console.error('notify follow failed:',error);});
   }
   FRIENDS.push({...r});
   if(btn){btn.textContent='Siguiendo ✓';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
@@ -6476,7 +6563,63 @@ function saveNewThread(){
 function updateProfileStats(){
   document.getElementById('ps-leidos').textContent=DB.leidos.length;
   document.getElementById('ps-leyendo').textContent=DB.leyendo.length;
-  document.getElementById('ps-amigos').textContent=FRIENDS.length;
+  document.getElementById('ps-siguiendo').textContent=FRIENDS.length;
+  document.getElementById('ps-seguidores').textContent=FOLLOWERS.length;
+}
+
+// ═══════════════════════════════════════════════
+// FOLLOWERS
+// ═══════════════════════════════════════════════
+function openFollowersModal(){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  renderFollowersList();
+  openModal('modal-followers');
+}
+
+function renderFollowersList(){
+  const el=document.getElementById('followers-list');
+  if(!FOLLOWERS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>Aún no tienes seguidores.</p></div>';return;}
+  el.innerHTML=FOLLOWERS.map(u=>{
+    const isFriend=!!FRIENDS.find(f=>f.username===u.username);
+    return `<div class="friend-card"><div class="f-av" style="background:${u.bg};color:${u.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${u.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div><button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════
+function setNotifBadge(n){
+  const badge=document.getElementById('notif-badge');
+  if(!badge)return;
+  badge.style.display=n>0?'inline-block':'none';
+  badge.textContent=n>9?'9+':String(n);
+}
+
+async function openNotifications(){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  renderNotifications();
+  openModal('modal-notifications');
+  const unread=NOTIFICATIONS.filter(n=>!n.read);
+  if(!unread.length)return;
+  NOTIFICATIONS.forEach(n=>n.read=true);
+  setNotifBadge(0);
+  if(SUPA_USER){
+    try{await supa.from('notifications').update({read:true}).in('id',unread.map(n=>n.id));}
+    catch(e){console.error('marking notifications as read failed:',e);}
+  }
+}
+
+function renderNotifications(){
+  const el=document.getElementById('notifications-list');
+  if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
+  el.innerHTML=NOTIFICATIONS.map(n=>{
+    const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
+    const msg=n.type==='follow'?'empezó a seguirte':'interactuó contigo';
+    const followBtn=n.type==='follow'?`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`:'';
+    return `<div class="friend-card"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div>${followBtn}</div>`;
+  }).join('');
 }
 
 function renderProfile(){
@@ -7381,7 +7524,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-followers','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
   if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
 });
 
