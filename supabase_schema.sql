@@ -132,8 +132,8 @@ create policy "likes_select" on public.likes for select using (true);
 create policy "likes_insert" on public.likes for insert with check (auth.uid() = user_id);
 create policy "likes_delete" on public.likes for delete using (auth.uid() = user_id);
 
--- Friendships
-create policy "friendships_select" on public.friendships for select using (auth.uid() = user_id or auth.uid() = friend_id);
+-- Friendships (public read: follower/following counts are shown on public profiles, like Instagram)
+create policy "friendships_select" on public.friendships for select using (true);
 create policy "friendships_insert" on public.friendships for insert with check (auth.uid() = user_id);
 create policy "friendships_delete" on public.friendships for delete using (auth.uid() = user_id or auth.uid() = friend_id);
 
@@ -172,3 +172,36 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: fotos de perfil reales + ver perfiles de otros usuarios
+-- Si ya habías ejecutado el schema anterior, solo hace falta correr esto.
+-- Es seguro volver a ejecutarlo (usa "if exists" / "on conflict").
+-- ════════════════════════════════════════════════
+
+-- Antes solo podías leer tus propias filas de "friendships". Para poder mostrar
+-- cuánta gente sigue/es seguida por OTRO usuario en su perfil público (estilo
+-- Instagram), esto tiene que ser de lectura pública — igual que ya lo son los
+-- libros y las publicaciones de cualquier usuario.
+drop policy if exists "friendships_select" on public.friendships;
+create policy "friendships_select" on public.friendships for select using (true);
+
+-- Bucket público para fotos de perfil. Antes se guardaban como base64 directamente
+-- en la columna `photo`, lo que fallaba en silencio con fotos de tamaño normal
+-- (superan el límite de payload de la API). Ahora se sube el archivo real aquí y
+-- solo se guarda su URL pública en `profiles.photo`.
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+drop policy if exists "avatar_public_read" on storage.objects;
+create policy "avatar_public_read" on storage.objects for select using (bucket_id = 'avatars');
+
+drop policy if exists "avatar_owner_write" on storage.objects;
+create policy "avatar_owner_write" on storage.objects for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "avatar_owner_update" on storage.objects;
+create policy "avatar_owner_update" on storage.objects for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+drop policy if exists "avatar_owner_delete" on storage.objects;
+create policy "avatar_owner_delete" on storage.objects for delete using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);

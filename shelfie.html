@@ -1301,16 +1301,6 @@ a{color:inherit}
 </div>
 </div>
 
-<!-- ══════════════════════ MODAL: SEGUIDORES ══════════════════════ -->
-<div class="overlay" id="modal-followers" style="display:none" onclick="if(event.target===this)closeModal('modal-followers')">
-<div class="modal">
-  <button class="modal-close" onclick="closeModal('modal-followers')"><i class="ti ti-x"></i></button>
-  <h2>Seguidores</h2>
-  <p class="sub">Lectores que te siguen</p>
-  <div id="followers-list"></div>
-</div>
-</div>
-
 <!-- ══════════════════════ MODAL: NOTIFICACIONES ══════════════════════ -->
 <div class="overlay" id="modal-notifications" style="display:none" onclick="if(event.target===this)closeModal('modal-notifications')">
 <div class="modal">
@@ -1917,9 +1907,18 @@ a{color:inherit}
   </div>
   <div class="g2">
     <div class="card">
-      <div class="card-head"><div class="card-title">Siguiendo</div></div>
-      <div id="friends-list"></div>
-      <div id="friends-empty" class="empty" style="padding:24px"><i class="ti ti-users"></i><p>Aún no sigues a nadie</p></div>
+      <div style="display:flex;gap:8px;border-bottom:2px solid var(--border);margin-bottom:14px">
+        <button class="retos-tab on" data-tab="siguiendo" onclick="setFriendsTab(this,'siguiendo')">Siguiendo <span id="friends-tab-count">0</span></button>
+        <button class="retos-tab" data-tab="seguidores" onclick="setFriendsTab(this,'seguidores')">Seguidores <span id="followers-tab-count">0</span></button>
+      </div>
+      <div id="friends-tab-siguiendo">
+        <div id="friends-list"></div>
+        <div id="friends-empty" class="empty" style="padding:24px"><i class="ti ti-users"></i><p>Aún no sigues a nadie</p></div>
+      </div>
+      <div id="friends-tab-seguidores" style="display:none">
+        <div id="followers-list-page"></div>
+        <div id="followers-empty-page" class="empty" style="padding:24px;display:none"><i class="ti ti-users"></i><p>Aún no tienes seguidores</p></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-head"><div class="card-title">Lectores sugeridos</div></div>
@@ -2232,7 +2231,7 @@ a{color:inherit}
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
       <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[4])"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
-      <div class="ps" onclick="openFollowersModal()"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
+      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[4]);setFriendsTab(document.querySelector('#p-friends [data-tab=seguidores]'),'seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
   </div>
 
@@ -2295,6 +2294,12 @@ a{color:inherit}
 <div id="p-author-page" class="page">
   <button class="btn btn-white" style="margin-bottom:16px" onclick="goBackFromAuthorPage()"><i class="ti ti-arrow-left"></i> Volver</button>
   <div id="author-page-content"></div>
+</div>
+
+<!-- ── PERFIL DE OTRO USUARIO ── -->
+<div id="p-user-profile" class="page">
+  <button class="btn btn-white" style="margin-bottom:16px" onclick="goBackFromUserProfile()"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div id="user-profile-content"></div>
 </div>
 
 </div><!-- /main -->
@@ -2492,7 +2497,7 @@ async function toggleSupaLike(postId,liked){
 // ── Save profile to DB ──
 async function saveSupaProfile(){
   if(!SUPA_USER)return;
-  await supa.from('profiles').update({
+  const{error}=await supa.from('profiles').update({
     name:PROFILE.name,
     username:PROFILE.username,
     bio:PROFILE.bio,
@@ -2500,6 +2505,7 @@ async function saveSupaProfile(){
     photo:PROFILE.photo,
     public:PROFILE.public,
   }).eq('id',SUPA_USER.id);
+  if(error){console.error('saveSupaProfile failed:',error);toast('❌ No se pudieron guardar los cambios del perfil.');}
 }
 
 // ── Load friends from DB (friendships → profiles) ──
@@ -3436,6 +3442,11 @@ function go(id,btn,extraId){
     renderClubDetail(extraId);
     return;
   }
+  if(id==='userprofile'){
+    document.getElementById('p-user-profile').classList.add('on');
+    renderUserProfilePage(extraId);
+    return;
+  }
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,reviews:renderReviews,
@@ -3451,6 +3462,71 @@ function goBackFromBookPage(){
 
 function goBackFromAuthorPage(){
   go('shelf',document.querySelectorAll('.nb')[1]);
+}
+
+function goBackFromUserProfile(){
+  go('friends',document.querySelectorAll('.nb')[4]);
+}
+
+// ═══════════════════════════════════════════════
+// OTHER USERS' PROFILES (public, read-only view)
+// ═══════════════════════════════════════════════
+async function renderUserProfilePage(username){
+  const cont=document.getElementById('user-profile-content');
+  if(!username){cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>Perfil no encontrado.</p></div>';return;}
+  if(username===PROFILE.username){go('profile',null);return;}
+  cont.innerHTML='<div class="s-loading" style="padding:60px 0"><i class="ti ti-loader-2 spin"></i> Cargando perfil...</div>';
+
+  if(!SUPA_USER){
+    // Demo mode: no real backend to query, fall back to whatever we already know locally.
+    const cached=_userCache[username];
+    if(!cached){cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil sin conexión.</p></div>';return;}
+    renderUserProfileView({name:cached.name,username:cached.username,bio:cached.stat||'',city:'',photo:null},{leidos:0,leyendo:0},0,0,cached);
+    return;
+  }
+
+  try{
+    const{data:profile,error}=await supa.from('profiles').select('*').eq('username',username).single();
+    if(error||!profile)throw error||new Error('profile not found');
+    const cached=cacheUser(profile);
+    const[booksRes,followingRes,followersRes]=await Promise.all([
+      supa.from('user_books').select('status').eq('user_id',profile.id),
+      supa.from('friendships').select('friend_id',{count:'exact',head:true}).eq('user_id',profile.id),
+      supa.from('friendships').select('user_id',{count:'exact',head:true}).eq('friend_id',profile.id),
+    ]);
+    const books=booksRes.data||[];
+    const counts={leidos:books.filter(b=>b.status==='leidos').length,leyendo:books.filter(b=>b.status==='leyendo').length};
+    renderUserProfileView(profile,counts,followingRes.count||0,followersRes.count||0,cached);
+  }catch(e){
+    console.error('renderUserProfilePage failed:',e);
+    cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil. Comprueba tu conexión.</p></div>';
+  }
+}
+
+function renderUserProfileView(profile,counts,following,followers,cached){
+  const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
+  const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
+  const avatarStyle=profile.photo?`background-image:url(${profile.photo});background-size:cover;background-position:center`:`background:${cached.bg||'var(--ink)'}`;
+  document.getElementById('user-profile-content').innerHTML=`
+    <div class="profile-hero">
+      <div class="profile-hero-top">
+        <div class="profile-av-wrap"><div class="profile-av" style="${avatarStyle};color:${cached.tc||'#fff'}">${profile.photo?'':escapeHtml(cached.initials||'??')}</div></div>
+        <div class="profile-hero-info">
+          <div class="profile-name">${escapeHtml(profile.name||profile.username)}</div>
+          <div class="profile-handle">@${escapeHtml(profile.username)}${followsMe?'<span class="profile-visibility-badge">Te sigue</span>':''}</div>
+          ${profile.bio?`<div class="profile-bio-text">${escapeHtml(profile.bio)}</div>`:''}
+          ${profile.city?`<div class="profile-city-row"><i class="ti ti-map-pin" style="font-size:12px;vertical-align:-1px"></i> ${escapeHtml(profile.city)}</div>`:''}
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="ps"><div class="ps-n">${counts.leidos}</div><div class="ps-l">Leídos</div></div>
+        <div class="ps"><div class="ps-n">${counts.leyendo}</div><div class="ps-l">Leyendo</div></div>
+        <div class="ps"><div class="ps-n">${following}</div><div class="ps-l">Siguiendo</div></div>
+        <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
+      </div>
+    </div>
+    <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin-top:16px" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+  `;
 }
 
 function renderFeedPage(){
@@ -3957,18 +4033,48 @@ function handleDrop(e){e.preventDefault();const file=e.dataTransfer.files[0];if(
 // ═══════════════════════════════════════════════
 function handleProfilePhoto(input){
   const file=input.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{PROFILE._pendingPhoto=e.target.result;const av=document.getElementById('prof-av-preview');av.style.backgroundImage=`url(${e.target.result})`;av.style.background='none';av.textContent='';};
-  r.readAsDataURL(file);
+  PROFILE._pendingPhotoFile=file;
+  const av=document.getElementById('prof-av-preview');
+  av.style.backgroundImage=`url(${URL.createObjectURL(file)})`;av.style.background='none';av.textContent='';
 }
-function saveProfile(){
+
+// Uploads to Supabase Storage instead of stuffing a base64 blob into the `photo`
+// text column — real phone photos are several MB, which silently failed against
+// the API's payload limit (saveSupaProfile's update() error was never even checked).
+async function uploadProfilePhoto(file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  const path=`${SUPA_USER.id}/avatar_${Date.now()}.${ext}`;
+  const{error}=await supa.storage.from('avatars').upload(path,file,{upsert:true,cacheControl:'3600'});
+  if(error)throw error;
+  const{data}=supa.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function saveProfile(){
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
   PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
   PROFILE.city=document.getElementById('prof-city').value.trim();
   PROFILE.public=document.getElementById('prof-public').value==='1';
-  if(PROFILE._pendingPhoto){PROFILE.photo=PROFILE._pendingPhoto;delete PROFILE._pendingPhoto;}
-  saveSupaProfile();
+  const saveBtn=document.querySelector('#modal-profile-edit .btn-red');
+  if(PROFILE._pendingPhotoFile){
+    const file=PROFILE._pendingPhotoFile;
+    delete PROFILE._pendingPhotoFile;
+    if(SUPA_USER){
+      if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Subiendo foto...';}
+      try{
+        PROFILE.photo=await uploadProfilePhoto(file);
+      }catch(e){
+        console.error('avatar upload failed:',e);
+        toast('❌ No se pudo subir la foto de perfil. Se guardó el resto de cambios.');
+      }
+      if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="ti ti-check"></i> Guardar perfil';}
+    }else{
+      // Demo mode, nothing to upload to — keep the local preview as a data URL.
+      PROFILE.photo=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
+    }
+  }
+  await saveSupaProfile();
   closeModal('modal-profile-edit');
   renderProfile();updateHome();
   toast('✓ Perfil actualizado');
@@ -5711,22 +5817,55 @@ function onAssignRetoBookSearch(q){
 // ═══════════════════════════════════════════════
 // FRIENDS
 // ═══════════════════════════════════════════════
+// Shared row for any "avatar + name + @username" list (followers, following, search,
+// suggestions, notifications). The avatar/name area opens that user's public profile;
+// the action button (follow/unfollow/etc.) is a separate sibling so it doesn't fight
+// the row's click handler.
+function friendRowHtml(u,buttonHtml,size){
+  size=size||36;
+  const nameSize=size>=40?14:13;
+  return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${u.username}')"><div class="f-av" style="background:${u.bg};color:${u.tc};width:${size}px;height:${size}px;border-radius:50%;font-size:${size>=40?13:12}px;font-weight:600;flex-shrink:0">${u.initials}</div><div style="flex:1;min-width:0"><div style="font-size:${nameSize}px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div></div>${buttonHtml||''}</div>`;
+}
+
 function renderFriends(){
   const list=document.getElementById('friends-list');
   const empty=document.getElementById('friends-empty');
-  document.getElementById('friends-count-sub').textContent=`${FRIENDS.length} amigo${FRIENDS.length!==1?'s':''}`;
+  document.getElementById('friends-count-sub').textContent=`${FRIENDS.length} siguiendo · ${FOLLOWERS.length} seguidores`;
+  document.getElementById('friends-tab-count').textContent=FRIENDS.length;
+  document.getElementById('followers-tab-count').textContent=FOLLOWERS.length;
   if(!FRIENDS.length){list.innerHTML='';empty.style.display='block';}
   else{
     empty.style.display='none';
-    list.innerHTML=FRIENDS.map(f=>`<div class="friend-card"><div class="f-av" style="background:${f.bg};color:${f.tc};width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:600;flex-shrink:0">${f.initials}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--ink3)">@${escapeHtml(f.username)}${f.stat?' · '+escapeHtml(f.stat):''}</div></div><button class="btn btn-sm btn-danger" onclick="removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button></div>`).join('');
+    list.innerHTML=FRIENDS.map(f=>friendRowHtml(f,`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button>`,40)).join('');
   }
+  renderFollowersTab();
   if(SUPA_USER)loadSuggestedReaders(); else renderLocalSuggestions();
   updateProfileStats();
 }
 
+function renderFollowersTab(){
+  const list=document.getElementById('followers-list-page');
+  const empty=document.getElementById('followers-empty-page');
+  if(!list)return;
+  if(!FOLLOWERS.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=FOLLOWERS.map(u=>{
+    const isFriend=!!FRIENDS.find(f=>f.username===u.username);
+    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+    return friendRowHtml(u,btn,40);
+  }).join('');
+}
+
+function setFriendsTab(btn,tab){
+  document.querySelectorAll('#p-friends .retos-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('friends-tab-siguiendo').style.display=tab==='siguiendo'?'block':'none';
+  document.getElementById('friends-tab-seguidores').style.display=tab==='seguidores'?'block':'none';
+}
+
 function suggestionRowHtml(u){
   const r=_userCache[u.username]||cacheUser(u);
-  return `<div class="friend-card"><div class="f-av" style="background:${r.bg};color:${r.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3)">${escapeHtml(r.stat||('@'+r.username))}</div></div><button class="btn btn-sm btn-red" onclick="addFriend('${r.username}',this)">Seguir</button></div>`;
+  return friendRowHtml(r,`<button class="btn btn-sm btn-red" onclick="event.stopPropagation();addFriend('${r.username}',this)">Seguir</button>`,36);
 }
 
 function renderLocalSuggestions(){
@@ -5798,7 +5937,8 @@ function renderFriendResults(list){
   res.innerHTML=list.map(u=>{
     const r=_userCache[u.username]||cacheUser(u);
     const isFriend=!!FRIENDS.find(f=>f.username===r.username);
-    return `<div class="friend-card"><div style="width:36px;height:36px;border-radius:50%;background:${r.bg};color:${r.tc};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(r.username)}</div></div><button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${r.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir'}</button></div>`;
+    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${r.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir'}</button>`;
+    return friendRowHtml(r,btn,36);
   }).join('');
 }
 
@@ -6570,22 +6710,6 @@ function updateProfileStats(){
 // ═══════════════════════════════════════════════
 // FOLLOWERS
 // ═══════════════════════════════════════════════
-function openFollowersModal(){
-  document.querySelector('.sidebar')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
-  renderFollowersList();
-  openModal('modal-followers');
-}
-
-function renderFollowersList(){
-  const el=document.getElementById('followers-list');
-  if(!FOLLOWERS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>Aún no tienes seguidores.</p></div>';return;}
-  el.innerHTML=FOLLOWERS.map(u=>{
-    const isFriend=!!FRIENDS.find(f=>f.username===u.username);
-    return `<div class="friend-card"><div class="f-av" style="background:${u.bg};color:${u.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${u.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div><button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button></div>`;
-  }).join('');
-}
-
 // ═══════════════════════════════════════════════
 // NOTIFICATIONS
 // ═══════════════════════════════════════════════
@@ -6617,8 +6741,8 @@ function renderNotifications(){
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
     const msg=n.type==='follow'?'empezó a seguirte':'interactuó contigo';
-    const followBtn=n.type==='follow'?`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`:'';
-    return `<div class="friend-card"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div>${followBtn}</div>`;
+    const followBtn=n.type==='follow'?`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`:'';
+    return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${n.actor.username}')"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1;min-width:0"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div></div>${followBtn}</div>`;
   }).join('');
 }
 
@@ -7524,7 +7648,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-followers','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
   if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
 });
 
