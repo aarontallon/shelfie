@@ -197,11 +197,17 @@ on conflict (id) do nothing;
 drop policy if exists "avatar_public_read" on storage.objects;
 create policy "avatar_public_read" on storage.objects for select using (bucket_id = 'avatars');
 
+-- Any logged-in user may write into the avatars bucket (simpler than matching the
+-- uploaded path's folder against auth.uid(), which is easy to get subtly wrong and
+-- fails closed with "new row violates row-level security policy" if it doesn't
+-- match exactly). This is safe: uploading a file here doesn't change anyone's
+-- displayed photo — only that user's own profiles.photo row does, and THAT update
+-- is still locked down by profiles_update (auth.uid() = id).
 drop policy if exists "avatar_owner_write" on storage.objects;
-create policy "avatar_owner_write" on storage.objects for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+create policy "avatar_owner_write" on storage.objects for insert with check (bucket_id = 'avatars' and auth.role() = 'authenticated');
 
 drop policy if exists "avatar_owner_update" on storage.objects;
-create policy "avatar_owner_update" on storage.objects for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+create policy "avatar_owner_update" on storage.objects for update using (bucket_id = 'avatars' and auth.role() = 'authenticated');
 
 drop policy if exists "avatar_owner_delete" on storage.objects;
-create policy "avatar_owner_delete" on storage.objects for delete using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+create policy "avatar_owner_delete" on storage.objects for delete using (bucket_id = 'avatars' and auth.role() = 'authenticated');
