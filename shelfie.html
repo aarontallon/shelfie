@@ -1311,6 +1311,15 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: SIGUIENDO / SEGUIDORES ══════════════════════ -->
+<div class="overlay" id="modal-people" style="display:none" onclick="if(event.target===this)closeModal('modal-people')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-people')"><i class="ti ti-x"></i></button>
+  <h2 id="people-modal-title">Siguiendo</h2>
+  <div id="people-modal-list"></div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: MARCAR LIBRO COMO LEÍDO (con estrellas) ══════════════════════ -->
 <div class="overlay" id="modal-finish-book" style="display:none" onclick="if(event.target===this)closeModal('modal-finish-book')">
 <div class="modal">
@@ -2230,8 +2239,8 @@ a{color:inherit}
     <div class="profile-stats">
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
       <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
-      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[4])"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
-      <div class="ps" onclick="go('friends',document.querySelectorAll('.nb')[4]);setFriendsTab(document.querySelector('#p-friends [data-tab=seguidores]'),'seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
+      <div class="ps" onclick="openPeopleModal('siguiendo')"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
+      <div class="ps" onclick="openPeopleModal('seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
   </div>
 
@@ -2880,6 +2889,21 @@ function avatarColorFor(str){
   for(let i=0;i<(str||'').length;i++)h=(h*31+str.charCodeAt(i))>>>0;
   return AVATAR_PALETTE[h%AVATAR_PALETTE.length];
 }
+
+// Sets an avatar element's photo, falling back to initials if the URL is missing OR
+// fails to actually load (broken link, deleted file, bucket not public yet) — a plain
+// CSS background-image just renders blank on a 404, which is indistinguishable from
+// "no photo set" and very confusing to debug.
+function setAvatarEl(el,photoUrl,initials,bg,tc){
+  if(!el)return;
+  el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';
+  if(tc)el.style.color=tc;
+  if(!photoUrl)return;
+  const img=new Image();
+  img.onload=()=>{el.style.backgroundImage=`url(${photoUrl})`;el.style.background='none';el.textContent='';};
+  img.onerror=()=>console.error('avatar image failed to load (broken URL or bucket not public):',photoUrl);
+  img.src=photoUrl;
+}
 const _userCache={};
 function cacheUser(u){
   const key=u.username||u.id;
@@ -3426,6 +3450,7 @@ function go(id,btn,extraId){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   document.querySelector('.sidebar')?.classList.remove('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  document.querySelectorAll('.overlay').forEach(o=>{o.style.display='none';});
   if(id==='bookdetail'){
     bookPageHistory.push({tab:currentTab});
     document.getElementById('p-book-detail').classList.add('on');
@@ -3481,7 +3506,7 @@ async function renderUserProfilePage(username){
     // Demo mode: no real backend to query, fall back to whatever we already know locally.
     const cached=_userCache[username];
     if(!cached){cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil sin conexión.</p></div>';return;}
-    renderUserProfileView({name:cached.name,username:cached.username,bio:cached.stat||'',city:'',photo:null},{leidos:0,leyendo:0},0,0,cached);
+    renderUserProfileView({name:cached.name,username:cached.username,bio:cached.stat||'',city:'',photo:null},[],[],0,0,cached);
     return;
   }
 
@@ -3489,28 +3514,44 @@ async function renderUserProfilePage(username){
     const{data:profile,error}=await supa.from('profiles').select('*').eq('username',username).single();
     if(error||!profile)throw error||new Error('profile not found');
     const cached=cacheUser(profile);
-    const[booksRes,followingRes,followersRes]=await Promise.all([
-      supa.from('user_books').select('status').eq('user_id',profile.id),
+    const[booksRes,postsRes,followingRes,followersRes]=await Promise.all([
+      supa.from('user_books').select('*').eq('user_id',profile.id),
+      supa.from('posts').select('*').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(6),
       supa.from('friendships').select('friend_id',{count:'exact',head:true}).eq('user_id',profile.id),
       supa.from('friendships').select('user_id',{count:'exact',head:true}).eq('friend_id',profile.id),
     ]);
-    const books=booksRes.data||[];
-    const counts={leidos:books.filter(b=>b.status==='leidos').length,leyendo:books.filter(b=>b.status==='leyendo').length};
-    renderUserProfileView(profile,counts,followingRes.count||0,followersRes.count||0,cached);
+    if(booksRes.error)throw booksRes.error;
+    renderUserProfileView(profile,booksRes.data||[],postsRes.data||[],followingRes.count||0,followersRes.count||0,cached);
   }catch(e){
     console.error('renderUserProfilePage failed:',e);
     cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil. Comprueba tu conexión.</p></div>';
   }
 }
 
-function renderUserProfileView(profile,counts,following,followers,cached){
+function renderUserProfileView(profile,books,posts,following,followers,cached){
   const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
-  const avatarStyle=profile.photo?`background-image:url(${profile.photo});background-size:cover;background-position:center`:`background:${cached.bg||'var(--ink)'}`;
+  const leidos=books.filter(b=>b.status==='leidos');
+  const leyendo=books.filter(b=>b.status==='leyendo');
+  const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
+
+  const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
+    :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
+
+  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
+    :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
+
+  const typeIcons={marginalia:'ti-notes',cita:'ti-quote',hilo:'ti-stack-2',tweet:'ti-message-2'};
+  const typeNames={marginalia:'una Marginalia',cita:'una Cita',hilo:'una Historia',tweet:'una Publicación'};
+  const activityHtml=posts.length?posts.map(p=>{
+    const bookRef=p.book_title?` sobre <strong>${escapeHtml(p.book_title)}</strong>`:'';
+    return `<div class="profile-activity-item"><div class="profile-activity-icon"><i class="ti ${typeIcons[p.type]||'ti-message-2'}"></i></div><div class="profile-activity-body"><div class="profile-activity-text">Publicó ${typeNames[p.type]||'un post'}${bookRef}</div><div class="profile-activity-meta">${timeAgo(new Date(p.created_at).getTime())}</div></div></div>`;
+  }).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no ha publicado nada</p></div>`;
+
   document.getElementById('user-profile-content').innerHTML=`
     <div class="profile-hero">
       <div class="profile-hero-top">
-        <div class="profile-av-wrap"><div class="profile-av" style="${avatarStyle};color:${cached.tc||'#fff'}">${profile.photo?'':escapeHtml(cached.initials||'??')}</div></div>
+        <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
         <div class="profile-hero-info">
           <div class="profile-name">${escapeHtml(profile.name||profile.username)}</div>
           <div class="profile-handle">@${escapeHtml(profile.username)}${followsMe?'<span class="profile-visibility-badge">Te sigue</span>':''}</div>
@@ -3519,14 +3560,30 @@ function renderUserProfileView(profile,counts,following,followers,cached){
         </div>
       </div>
       <div class="profile-stats">
-        <div class="ps"><div class="ps-n">${counts.leidos}</div><div class="ps-l">Leídos</div></div>
-        <div class="ps"><div class="ps-n">${counts.leyendo}</div><div class="ps-l">Leyendo</div></div>
+        <div class="ps"><div class="ps-n">${leidos.length}</div><div class="ps-l">Leídos</div></div>
+        <div class="ps"><div class="ps-n">${leyendo.length}</div><div class="ps-l">Leyendo</div></div>
         <div class="ps"><div class="ps-n">${following}</div><div class="ps-l">Siguiendo</div></div>
         <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
       </div>
     </div>
-    <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin-top:16px" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+    <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin:16px 0" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-head"><div class="card-title">🏆 Top favoritos</div></div>
+        ${favsHtml}
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Últimos libros leídos</div></div>
+        ${booksGridHtml}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Actividad reciente</div></div>
+      ${activityHtml}
+    </div>
   `;
+  setAvatarEl(document.getElementById('up-av'),profile.photo,cached.initials||'??',cached.bg,cached.tc);
 }
 
 function renderFeedPage(){
@@ -4057,6 +4114,7 @@ async function saveProfile(){
   PROFILE.city=document.getElementById('prof-city').value.trim();
   PROFILE.public=document.getElementById('prof-public').value==='1';
   const saveBtn=document.querySelector('#modal-profile-edit .btn-red');
+  let photoErrorMsg=null;
   if(PROFILE._pendingPhotoFile){
     const file=PROFILE._pendingPhotoFile;
     delete PROFILE._pendingPhotoFile;
@@ -4066,7 +4124,10 @@ async function saveProfile(){
         PROFILE.photo=await uploadProfilePhoto(file);
       }catch(e){
         console.error('avatar upload failed:',e);
-        toast('❌ No se pudo subir la foto de perfil. Se guardó el resto de cambios.');
+        const missingBucket=/bucket.*not.*found/i.test(e?.message||'');
+        photoErrorMsg=missingBucket
+          ?'❌ Falta crear el bucket "avatars" en Supabase (ver ACTUALIZACIÓN en supabase_schema.sql).'
+          :`❌ No se pudo subir la foto de perfil (${e?.message||'error desconocido'}).`;
       }
       if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="ti ti-check"></i> Guardar perfil';}
     }else{
@@ -4077,7 +4138,10 @@ async function saveProfile(){
   await saveSupaProfile();
   closeModal('modal-profile-edit');
   renderProfile();updateHome();
-  toast('✓ Perfil actualizado');
+  // Don't let a generic "saved" toast stomp the specific photo-upload error — show
+  // whichever one actually matters, never both (the single #toast element can only
+  // display one message at a time, and the later call always wins).
+  toast(photoErrorMsg||'✓ Perfil actualizado');
 }
 
 // ═══════════════════════════════════════════════
@@ -5863,6 +5927,31 @@ function setFriendsTab(btn,tab){
   document.getElementById('friends-tab-seguidores').style.display=tab==='seguidores'?'block':'none';
 }
 
+// Popup version of the Siguiendo/Seguidores lists, opened from your own profile stats.
+function openPeopleModal(kind){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  document.getElementById('people-modal-title').textContent=kind==='seguidores'?'Seguidores':'Siguiendo';
+  renderPeopleModalList(kind);
+  openModal('modal-people');
+}
+
+function renderPeopleModalList(kind){
+  const list=kind==='seguidores'?FOLLOWERS:FRIENDS;
+  const el=document.getElementById('people-modal-list');
+  if(!list.length){el.innerHTML=`<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>${kind==='seguidores'?'Aún no tienes seguidores.':'Aún no sigues a nadie.'}</p></div>`;return;}
+  el.innerHTML=list.map(u=>{
+    let btn;
+    if(kind==='siguiendo'){
+      btn=`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${u.username}').then(()=>renderPeopleModalList('siguiendo'))"><i class="ti ti-user-minus"></i></button>`;
+    }else{
+      const isFriend=!!FRIENDS.find(f=>f.username===u.username);
+      btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+    }
+    return friendRowHtml(u,btn,40);
+  }).join('');
+}
+
 function suggestionRowHtml(u){
   const r=_userCache[u.username]||cacheUser(u);
   return friendRowHtml(r,`<button class="btn btn-sm btn-red" onclick="event.stopPropagation();addFriend('${r.username}',this)">Seguir</button>`,36);
@@ -6748,8 +6837,7 @@ function renderNotifications(){
 
 function renderProfile(){
   const av=document.getElementById('p-av');
-  if(PROFILE.photo){av.style.backgroundImage=`url(${PROFILE.photo})`;av.style.background='none';av.textContent='';}
-  else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
+  setAvatarEl(av,PROFILE.photo,(PROFILE.name||'??').slice(0,2).toUpperCase(),'var(--red)','white');
   document.getElementById('p-name').textContent=PROFILE.name;
   document.getElementById('p-username').textContent=PROFILE.username;
   document.getElementById('p-bio').textContent=PROFILE.bio;
@@ -7648,7 +7736,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
   if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
 });
 
