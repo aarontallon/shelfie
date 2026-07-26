@@ -2896,12 +2896,12 @@ function avatarColorFor(str){
 // "no photo set" and very confusing to debug.
 function setAvatarEl(el,photoUrl,initials,bg,tc){
   if(!el)return;
-  el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';
-  if(tc)el.style.color=tc;
+  const showFallback=()=>{el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';if(tc)el.style.color=tc;};
+  showFallback();
   if(!photoUrl)return;
   const img=new Image();
   img.onload=()=>{el.style.backgroundImage=`url(${photoUrl})`;el.style.background='none';el.textContent='';};
-  img.onerror=()=>console.error('avatar image failed to load (broken URL or bucket not public):',photoUrl);
+  img.onerror=()=>{console.error('avatar image failed to load — check the Storage bucket is set to Public (broken URL otherwise):',photoUrl);showFallback();};
   img.src=photoUrl;
 }
 const _userCache={};
