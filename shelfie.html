@@ -1953,7 +1953,7 @@ a{color:inherit}
 <!-- ── CLUB DETAIL ── -->
 <div id="p-club-detail" class="page" style="padding:0">
   <div class="club-detail-header" id="club-detail-header" style="position:relative;margin:0">
-    <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="go('clubs',document.querySelectorAll('.nb')[6])"><i class="ti ti-arrow-left"></i> Clubs</button>
+    <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="goBack('clubs')"><i class="ti ti-arrow-left"></i> Volver</button>
     <div id="club-detail-hero"></div>
   </div>
   <div style="padding:0 28px 28px">
@@ -2896,12 +2896,12 @@ function avatarColorFor(str){
 // "no photo set" and very confusing to debug.
 function setAvatarEl(el,photoUrl,initials,bg,tc){
   if(!el)return;
-  el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';
-  if(tc)el.style.color=tc;
+  const showFallback=()=>{el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';if(tc)el.style.color=tc;};
+  showFallback();
   if(!photoUrl)return;
   const img=new Image();
   img.onload=()=>{el.style.backgroundImage=`url(${photoUrl})`;el.style.background='none';el.textContent='';};
-  img.onerror=()=>console.error('avatar image failed to load (broken URL or bucket not public):',photoUrl);
+  img.onerror=()=>{console.error('avatar image failed to load — check the Storage bucket is set to Public (broken URL otherwise):',photoUrl);showFallback();};
   img.src=photoUrl;
 }
 const _userCache={};
@@ -3438,36 +3438,53 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 // ═══════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════
-let bookPageHistory=[]; // tracks which page/tab to return to from goBackFromBookPage
+// Universal "volver" — every go() call remembers the page it left (and, for
+// detail pages, which entity was open) so any back button returns to wherever
+// the user actually came from, instead of a hardcoded destination per page type.
+let NAV_STACK=[];
+let CURRENT_ENTITY={}; // {bookdetail:id, authorpage:id, clubdetail:id, userprofile:username}
+const NB_INDEX={home:0,shelf:1,discover:2,feed:3,friends:4,clubs:5,reviews:6,retos:7,stats:8};
+function nbFor(id){const i=NB_INDEX[id];return i!=null?document.querySelectorAll('.nb')[i]:null;}
 
 function toggleMobileNav(){
   document.querySelector('.sidebar')?.classList.toggle('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.toggle('show');
 }
 
-function go(id,btn,extraId){
+function go(id,btn,extraId,_isBack){
+  if(!_isBack){
+    const fromPage=document.querySelector('.page.on');
+    if(fromPage){
+      const fromId=fromPage.id.replace(/^p-/,'');
+      NAV_STACK.push({id:fromId,extraId:CURRENT_ENTITY[fromId]});
+      if(NAV_STACK.length>50)NAV_STACK.shift();
+    }
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
   document.querySelector('.sidebar')?.classList.remove('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
   document.querySelectorAll('.overlay').forEach(o=>{o.style.display='none';});
   if(id==='bookdetail'){
-    bookPageHistory.push({tab:currentTab});
+    CURRENT_ENTITY.bookdetail=extraId;
     document.getElementById('p-book-detail').classList.add('on');
     renderBookPage(extraId);
     return;
   }
   if(id==='authorpage'){
+    CURRENT_ENTITY.authorpage=extraId;
     document.getElementById('p-author-page').classList.add('on');
     renderAuthorPage(extraId);
     return;
   }
   if(id==='clubdetail'){
+    CURRENT_ENTITY.clubdetail=extraId;
     document.getElementById('p-club-detail').classList.add('on');
     renderClubDetail(extraId);
     return;
   }
   if(id==='userprofile'){
+    CURRENT_ENTITY.userprofile=extraId;
     document.getElementById('p-user-profile').classList.add('on');
     renderUserProfilePage(extraId);
     return;
@@ -3480,18 +3497,18 @@ function go(id,btn,extraId){
   if(id==='friends')document.getElementById('friends-badge').style.display='none';
 }
 
-function goBackFromBookPage(){
-  bookPageHistory.pop();
-  go('shelf',document.querySelectorAll('.nb')[1]);
+// Pops the last page off the history stack and returns to it. Falls back to a
+// sensible default if the stack is empty (e.g. the detail page was opened
+// directly, with nothing behind it — a page reload, or a shared link).
+function goBack(fallbackId){
+  const prev=NAV_STACK.pop();
+  if(prev){go(prev.id,nbFor(prev.id),prev.extraId,true);return;}
+  go(fallbackId||'home',nbFor(fallbackId||'home'),null,true);
 }
 
-function goBackFromAuthorPage(){
-  go('shelf',document.querySelectorAll('.nb')[1]);
-}
-
-function goBackFromUserProfile(){
-  go('friends',document.querySelectorAll('.nb')[4]);
-}
+function goBackFromBookPage(){goBack('shelf');}
+function goBackFromAuthorPage(){goBack('shelf');}
+function goBackFromUserProfile(){goBack('friends');}
 
 // ═══════════════════════════════════════════════
 // OTHER USERS' PROFILES (public, read-only view)
