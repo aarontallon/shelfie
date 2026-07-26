@@ -2475,11 +2475,23 @@ async function saveSupaProfile(){
   }).eq('id',SUPA_USER.id);
 }
 
+// ── Load friends from DB (friendships → profiles) ──
+async function loadSupaFriends(){
+  const{data:rels,error:relErr}=await supa.from('friendships').select('friend_id').eq('user_id',SUPA_USER.id);
+  if(relErr)throw relErr;
+  const ids=(rels||[]).map(r=>r.friend_id);
+  if(!ids.length){FRIENDS=[];return;}
+  const{data:profs,error:profErr}=await supa.from('profiles').select('id,name,username,photo,bio').in('id',ids);
+  if(profErr)throw profErr;
+  FRIENDS=(profs||[]).map(p=>cacheUser(p));
+}
+
 // ── Internal: enter app after auth ──
 async function _supaEnterApp(){
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
+  try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
 }
 
@@ -2769,6 +2781,23 @@ const ALL_READERS=[
   {name:'Laila Benali',username:'laila_reads',initials:'LB',bg:'#F5F3FF',tc:'#5B21B6',stat:'156 libros · Árabe'},
   {name:'Kenji Mori',username:'kenjireads',initials:'KM',bg:'#FEF2F2',tc:'#991B1B',stat:'98 libros · Japonesa'},
 ];
+
+// ── Real users (from Supabase `profiles`) get a deterministic avatar color and are cached
+// by username so click handlers built from search/suggestion results can look them back up. ──
+const AVATAR_PALETTE=[{bg:'#EFF6FF',tc:'#1E3A8A'},{bg:'#ECFDF5',tc:'#065F46'},{bg:'#FFFBEB',tc:'#78350F'},{bg:'#F5F3FF',tc:'#5B21B6'},{bg:'#FEF2F2',tc:'#991B1B'},{bg:'#F0FDFA',tc:'#134E4A'},{bg:'#FDF4FF',tc:'#86198F'},{bg:'#FFF7ED',tc:'#9A3412'}];
+function avatarColorFor(str){
+  let h=0;
+  for(let i=0;i<(str||'').length;i++)h=(h*31+str.charCodeAt(i))>>>0;
+  return AVATAR_PALETTE[h%AVATAR_PALETTE.length];
+}
+const _userCache={};
+function cacheUser(u){
+  const key=u.username||u.id;
+  const c=avatarColorFor(key||'');
+  const entry={id:u.id||null,name:u.name||u.username||'Lector',username:u.username||'',initials:(u.name||u.username||'??').slice(0,2).toUpperCase(),bg:u.bg||c.bg,tc:u.tc||c.tc,stat:u.stat!==undefined?u.stat:(u.bio||'')};
+  _userCache[key]=entry;
+  return entry;
+}
 
 // Simulated per-friend shelfie data: which books they have, in which status, and which reto (if any).
 // Keyed by lowercased book title so it matches regardless of edition/source.
@@ -5605,27 +5634,117 @@ function renderFriends(){
   if(!FRIENDS.length){list.innerHTML='';empty.style.display='block';}
   else{
     empty.style.display='none';
-    list.innerHTML=FRIENDS.map(f=>`<div class="friend-card"><div class="f-av" style="background:${f.bg};color:${f.tc};width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:600;flex-shrink:0">${f.initials}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${f.name}</div><div style="font-size:12px;color:var(--ink3)">@${f.username} · ${f.stat}</div></div><button class="btn btn-sm btn-danger" onclick="removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button></div>`).join('');
+    list.innerHTML=FRIENDS.map(f=>`<div class="friend-card"><div class="f-av" style="background:${f.bg};color:${f.tc};width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:600;flex-shrink:0">${f.initials}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${escapeHtml(f.name)}</div><div style="font-size:12px;color:var(--ink3)">@${escapeHtml(f.username)}${f.stat?' · '+escapeHtml(f.stat):''}</div></div><button class="btn btn-sm btn-danger" onclick="removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button></div>`).join('');
   }
-  const sugg=ALL_READERS.filter(r=>!FRIENDS.find(f=>f.username===r.username));
-  document.getElementById('suggested-readers').innerHTML=sugg.slice(0,5).map(r=>`<div class="friend-card"><div class="f-av" style="background:${r.bg};color:${r.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:11px;color:var(--ink3)">${r.stat}</div></div><button class="btn btn-sm btn-red" onclick="addFriend('${r.username}',this)">Seguir</button></div>`).join('');
+  if(SUPA_USER)loadSuggestedReaders(); else renderLocalSuggestions();
   updateProfileStats();
 }
 
-function addFriend(username,btn){
-  const r=ALL_READERS.find(r=>r.username===username);
-  if(!r||FRIENDS.find(f=>f.username===username))return;
+function suggestionRowHtml(u){
+  const r=_userCache[u.username]||cacheUser(u);
+  return `<div class="friend-card"><div class="f-av" style="background:${r.bg};color:${r.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3)">${escapeHtml(r.stat||('@'+r.username))}</div></div><button class="btn btn-sm btn-red" onclick="addFriend('${r.username}',this)">Seguir</button></div>`;
+}
+
+function renderLocalSuggestions(){
+  const sugg=ALL_READERS.filter(r=>!FRIENDS.find(f=>f.username===r.username));
+  document.getElementById('suggested-readers').innerHTML=sugg.slice(0,5).map(r=>suggestionRowHtml(r)).join('');
+}
+
+let _suggToken=0;
+async function loadSuggestedReaders(){
+  const token=++_suggToken;
+  const el=document.getElementById('suggested-readers');
+  try{
+    const{data,error}=await supa.from('profiles').select('id,name,username,photo,bio').neq('id',SUPA_USER.id).order('created_at',{ascending:false}).limit(30);
+    if(error)throw error;
+    if(token!==_suggToken)return;
+    const sugg=(data||[]).filter(r=>r.username&&!FRIENDS.find(f=>f.username===r.username)).slice(0,5);
+    el.innerHTML=sugg.length?sugg.map(r=>suggestionRowHtml(r)).join(''):'<p style="font-size:12px;color:var(--ink3)">Aún no hay más lectores para sugerir.</p>';
+  }catch(e){
+    console.error('loadSuggestedReaders failed:',e);
+    if(token===_suggToken)el.innerHTML='<p style="font-size:12px;color:var(--ink3)">No se pudieron cargar sugerencias.</p>';
+  }
+}
+
+async function addFriend(username,btn){
+  if(FRIENDS.find(f=>f.username===username))return;
+  const r=_userCache[username]||ALL_READERS.find(r=>r.username===username);
+  if(!r)return;
+  if(btn){btn.disabled=true;btn.textContent='...';}
+  if(SUPA_USER&&r.id){
+    try{
+      const{error}=await supa.from('friendships').insert({user_id:SUPA_USER.id,friend_id:r.id});
+      if(error)throw error;
+    }catch(e){
+      console.error('addFriend failed:',e);
+      if(btn){btn.disabled=false;btn.textContent='Seguir';}
+      toast('❌ No se pudo seguir a este usuario. Comprueba tu conexión e inténtalo de nuevo.');
+      return;
+    }
+  }
   FRIENDS.push({...r});
   if(btn){btn.textContent='Siguiendo ✓';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
   updateProfileStats();renderFriends();
   toast(`✓ Ahora sigues a ${r.name}`);
 }
-function removeFriend(username){if(!confirm('¿Dejar de seguir?'))return;FRIENDS=FRIENDS.filter(f=>f.username!==username);updateProfileStats();renderFriends();toast('Dejaste de seguir');}
-function searchFriends(q){
+
+async function removeFriend(username){
+  if(!confirm('¿Dejar de seguir?'))return;
+  const f=FRIENDS.find(f=>f.username===username);
+  if(SUPA_USER&&f&&f.id){
+    try{
+      const{error}=await supa.from('friendships').delete().eq('user_id',SUPA_USER.id).eq('friend_id',f.id);
+      if(error)throw error;
+    }catch(e){
+      console.error('removeFriend failed:',e);
+      toast('❌ No se pudo dejar de seguir. Inténtalo de nuevo.');
+      return;
+    }
+  }
+  FRIENDS=FRIENDS.filter(f=>f.username!==username);
+  updateProfileStats();renderFriends();toast('Dejaste de seguir');
+}
+
+function renderFriendResults(list){
   const res=document.getElementById('friend-results');
-  if(!q||q.length<2){res.innerHTML='';return;}
-  const found=ALL_READERS.filter(r=>r.name.toLowerCase().includes(q.toLowerCase())||r.username.toLowerCase().includes(q.toLowerCase()));
-  res.innerHTML=found.map(r=>`<div class="friend-card"><div style="width:36px;height:36px;border-radius:50%;background:${r.bg};color:${r.tc};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${r.name}</div><div style="font-size:11px;color:var(--ink3)">@${r.username}</div></div><button class="btn btn-sm ${FRIENDS.find(f=>f.username===r.username)?'btn-ghost':'btn-red'}" onclick="addFriend('${r.username}',this)" ${FRIENDS.find(f=>f.username===r.username)?'disabled':''}>${FRIENDS.find(f=>f.username===r.username)?'Siguiendo':'Seguir'}</button></div>`).join('');
+  if(!list.length){res.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-user-search"></i><p>No se encontró ningún lector con ese nombre o usuario.</p></div>';return;}
+  res.innerHTML=list.map(u=>{
+    const r=_userCache[u.username]||cacheUser(u);
+    const isFriend=!!FRIENDS.find(f=>f.username===r.username);
+    return `<div class="friend-card"><div style="width:36px;height:36px;border-radius:50%;background:${r.bg};color:${r.tc};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${r.initials}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${escapeHtml(r.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(r.username)}</div></div><button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="addFriend('${r.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir'}</button></div>`;
+  }).join('');
+}
+
+let _friendSearchToken=0;
+async function searchFriends(q){
+  const res=document.getElementById('friend-results');
+  const term=(q||'').trim();
+  if(term.length<2){res.innerHTML='';return;}
+  const token=++_friendSearchToken;
+
+  if(!SUPA_USER){
+    // Demo/offline mode (no real session yet) — search the local seeded roster.
+    const found=ALL_READERS.filter(r=>r.name.toLowerCase().includes(term.toLowerCase())||r.username.toLowerCase().includes(term.toLowerCase()));
+    renderFriendResults(found);
+    return;
+  }
+
+  res.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando...</div>';
+  const safe=term.replace(/[%,()]/g,'');
+  try{
+    const{data,error}=await supa.from('profiles')
+      .select('id,name,username,photo,bio')
+      .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
+      .neq('id',SUPA_USER.id)
+      .not('username','is',null)
+      .limit(15);
+    if(error)throw error;
+    if(token!==_friendSearchToken)return; // a newer search superseded this response
+    renderFriendResults(data||[]);
+  }catch(e){
+    console.error('searchFriends failed:',e);
+    if(token===_friendSearchToken)res.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-wifi-off"></i><p>No se pudo buscar. Comprueba tu conexión e inténtalo de nuevo.</p></div>';
+  }
 }
 
 // ═══════════════════════════════════════════════
