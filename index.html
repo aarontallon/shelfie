@@ -3531,6 +3531,8 @@ async function renderUserProfilePage(username){
 function renderUserProfileView(profile,books,posts,following,followers,cached){
   const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
+  const theirReadingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
+  const streak=calculateCurrentStreak(theirReadingDays);
   const leidos=books.filter(b=>b.status==='leidos');
   const leyendo=books.filter(b=>b.status==='leyendo');
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
@@ -3550,6 +3552,11 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
 
   document.getElementById('user-profile-content').innerHTML=`
     <div class="profile-hero">
+      <div class="profile-streak-badge" style="opacity:${streak>0?1:0.35}">
+        <span class="profile-streak-badge-flame">🔥</span>
+        <div class="profile-streak-badge-num">${streak}</div>
+        <div class="profile-streak-badge-lbl">días racha</div>
+      </div>
       <div class="profile-hero-top">
         <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
         <div class="profile-hero-info">
@@ -4284,14 +4291,15 @@ async function markTodayAsRead(){
   }
 }
 
-function calculateCurrentStreak(){
+function calculateCurrentStreak(days){
+  days=days||READING_DAYS;
   let streak=0;
   let d=new Date();
   // if today isn't marked yet, start counting from yesterday (today still "counts" once marked)
-  if(!READING_DAYS.has(todayKey(d))){
+  if(!days.has(todayKey(d))){
     d.setDate(d.getDate()-1);
   }
-  while(READING_DAYS.has(todayKey(d))){
+  while(days.has(todayKey(d))){
     streak++;
     d.setDate(d.getDate()-1);
   }
