@@ -7157,6 +7157,7 @@ function setShelfiePostViewMode(btn){
   document.querySelectorAll('#shelfiepost-view-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   composerShelfiePostViewMode=btn.dataset.shelfview;
+  renderShelfiePostStack();
 }
 
 // "Compartir" button in Mi shelfie: shows a preview modal before jumping to Feed composer
@@ -7195,8 +7196,9 @@ function renderSharePreview(){
             const w=Math.max(14,Math.min(46,Math.round(10+pages/20)));
             const h=Math.max(110,Math.min(175,110+Math.round(pages/12)));
             const fs=b.title.length>30?6:b.title.length>18?7:8;
-            return `<div style="width:${w}px;height:${h}px;background:${b.color};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
-              <div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>
+            const bg=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;background-color:${b.color}`:`background:${b.color}`;
+            return `<div style="width:${w}px;height:${h}px;${bg};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
+              ${b.cover?'':`<div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>`}
             </div>`;
           }).join('')}
         </div>
@@ -7204,9 +7206,9 @@ function renderSharePreview(){
       </div>`).join('');
     html=`<div style="background:#f0e8d8;border-radius:10px;padding:12px;overflow:hidden">${rowsHtml}</div>`;
   } else if(_sharePreviewViewMode==='grid'){
-    html=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));max-height:280px;overflow-y:auto">${books.map(b=>`<div class="grid-item"><div class="grid-cover" style="background:${b.color}"><div class="gc-txt">${escapeHtml(b.title)}</div></div><div class="grid-t" style="font-size:10px">${escapeHtml(b.title)}</div></div>`).join('')}</div>`;
+    html=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));max-height:280px;overflow-y:auto">${books.map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:10px">${escapeHtml(b.title)}</div></div>`).join('')}</div>`;
   } else {
-    html=`<div style="max-height:300px;overflow-y:auto">${books.map(b=>`<div class="book-list-row"><div class="spine" style="background:${b.color};width:30px;height:44px"></div><div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`).join('')}</div>`;
+    html=`<div style="max-height:300px;overflow-y:auto">${books.map(b=>`<div class="book-list-row">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`).join('')}</div>`;
   }
   el.innerHTML=html;
 }
@@ -7257,13 +7259,31 @@ function onShelfiePostSearch(q){
   });
 }
 
+// Mirrors the vm branches in renderOnePost()'s shelfiepost render, so what you see
+// while composing matches what actually gets posted, with a remove (×) button added.
 function renderShelfiePostStack(){
-  document.getElementById('composer-shelfiepost-stack').innerHTML=composerShelfiePostBooks.map((b,i)=>{
-    return `<div class="shelfiepost-edit-spine" style="background:${b.color}">
-      <button class="shelfiepost-edit-spine-remove" onclick="removeShelfiePostBook(${i})">×</button>
-      <span class="shelfiepost-edit-spine-txt">${escapeHtml(b.title)}</span>
-    </div>`;
-  }).join('');
+  const cont=document.getElementById('composer-shelfiepost-stack');
+  const books=composerShelfiePostBooks;
+  const vm=composerShelfiePostViewMode;
+  if(vm==='grid'){
+    cont.className='books-grid';
+    cont.style.gridTemplateColumns='repeat(auto-fill,minmax(85px,1fr))';
+    cont.innerHTML=books.map((b,i)=>`<div class="grid-item" style="position:relative">${cvr(b,'grid')}<button class="shelfiepost-edit-spine-remove" onclick="removeShelfiePostBook(${i})">×</button><div class="grid-t" style="font-size:10.5px">${escapeHtml(b.title)}</div></div>`).join('');
+  } else if(vm==='list'){
+    cont.className='shelf-list-scroll';
+    cont.style.gridTemplateColumns='';
+    cont.innerHTML=books.map((b,i)=>`<div class="book-list-row">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="removeShelfiePostBook(${i})"><i class="ti ti-trash" style="font-size:12px"></i></button></div>`).join('');
+  } else {
+    cont.className='shelfiepost-edit-stack';
+    cont.style.gridTemplateColumns='';
+    cont.innerHTML=books.map((b,i)=>{
+      const bg=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;background-color:${b.color}`:`background:${b.color}`;
+      return `<div class="shelfiepost-edit-spine" style="${bg}">
+        <button class="shelfiepost-edit-spine-remove" onclick="removeShelfiePostBook(${i})">×</button>
+        <span class="shelfiepost-edit-spine-txt">${b.cover?'':escapeHtml(b.title)}</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 function removeShelfiePostBook(i){
@@ -7292,11 +7312,11 @@ function setComposerMode(btn){
     threadParts=[];
     document.getElementById('composer-thread-parts').innerHTML='';
   }
-  // The subject card (book picker) applies to Apunte/Historia. The "¿De qué trata...?" QUESTION
-  // (Libro vs Personaje toggle) only applies to Apunte — Historia always shows the simple book picker.
-  // Cita/Marginalia/Shelfie post manage their own book context, so the card is hidden for those.
+  // The subject card (book picker) applies to Apunte/Historia/Cita/Marginalia. The "¿De qué trata...?"
+  // QUESTION (Libro vs Personaje toggle) only applies to Apunte — the rest always show the simple book
+  // picker. Shelfie post manages its own (multi-book) picker, so the card stays hidden for that one.
   const subjectCard=document.getElementById('composer-subject-card');
-  if(subjectCard)subjectCard.style.display=(composerMode==='tweet'||composerMode==='hilo')?'block':'none';
+  if(subjectCard)subjectCard.style.display=(composerMode==='shelfiepost')?'none':'block';
   const subjectQuestionLbl=document.getElementById('composer-subject-question-lbl');
   const subjectToggleRow=document.getElementById('composer-subject-toggle-row');
   const showSubjectQuestion=composerMode==='tweet';
@@ -7715,11 +7735,11 @@ function renderOnePost(p){
     const vm=p.shelfViewMode||'shelf';
     if(vm==='grid'){
       stackHtml=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${shelfBooks.map(b=>{
-        return `<div class="grid-item" onclick="onShelfiePostSpineClick('${b.id}')"><div class="grid-cover" style="background:${b.color}"><div class="gc-txt">${escapeHtml(b.title)}</div></div><div class="grid-t" style="font-size:10.5px">${escapeHtml(b.title)}</div></div>`;
+        return `<div class="grid-item" onclick="onShelfiePostSpineClick('${b.id}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:10.5px">${escapeHtml(b.title)}</div></div>`;
       }).join('')}</div>`;
     } else if(vm==='list'){
       stackHtml=`<div class="shelf-list-scroll">${shelfBooks.map(b=>{
-        return `<div class="book-list-row" onclick="onShelfiePostSpineClick('${b.id}')" style="cursor:pointer"><div class="spine" style="background:${b.color};width:34px;height:50px"></div><div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`;
+        return `<div class="book-list-row" onclick="onShelfiePostSpineClick('${b.id}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`;
       }).join('')}</div>`;
     } else {
       stackHtml=`<div class="real-shelf" style="min-height:160px">${shelfBooks.map((b,i)=>{
@@ -7727,7 +7747,8 @@ function renderOnePost(p){
         const widthPx=Math.max(20,Math.min(40,Math.round(pages/14)));
         const heightPx=Math.max(110,Math.min(150,110+Math.round(pages/10)));
         const fontSize=b.title.length>26?7:b.title.length>16?8:9;
-        return `<div class="real-shelf-spine" style="width:${widthPx}px;height:${heightPx}px;background:${b.color};cursor:pointer" onclick="onShelfiePostSpineClick('${b.id}')" title="${escapeHtml(b.title)}"><div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div></div>`;
+        const bg=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;background-color:${b.color}`:`background:${b.color}`;
+        return `<div class="real-shelf-spine" style="width:${widthPx}px;height:${heightPx}px;${bg};cursor:pointer" onclick="onShelfiePostSpineClick('${b.id}')" title="${escapeHtml(b.title)}"><div class="real-shelf-spine-title" style="font-size:${fontSize}px">${b.cover?'':escapeHtml(b.title)}</div></div>`;
       }).join('')}</div>`;
     }
     narrativeContent=`
