@@ -28,6 +28,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import readline from 'node:readline/promises';
+import { randomUUID } from 'node:crypto';
 
 const SUPA_URL = 'https://zkoarvxhjunwmyiaynyc.supabase.co';
 const SUPA_KEY = 'sb_publishable_EkLevW97vxNd1UTKf3SLcw_FyT0S-iU';
@@ -127,6 +128,7 @@ async function main() {
     // Publicación (tweet) -- reseña completa
     const b1 = pick(0);
     rows.push({
+      id: randomUUID(),
       user_id: userId,
       type: 'tweet',
       text: `Acabo de terminar «${b1.title}» y todavía estoy procesándolo. La construcción de personajes es de lo mejor que he leído este año, y el ritmo narrativo te atrapa desde el primer capítulo. Totalmente recomendado si te gusta la narrativa con capas.`,
@@ -139,6 +141,7 @@ async function main() {
     // Historia (hilo) -- con personaje y varias partes
     const b2 = pick(1);
     rows.push({
+      id: randomUUID(),
       user_id: userId,
       type: 'hilo',
       text: 'Un hilo sobre el arco del protagonista y por qué su evolución me parece tan lograda (sin destripar el final).',
@@ -160,6 +163,7 @@ async function main() {
     // Cita -- marcada como spoiler
     const b3 = pick(2);
     rows.push({
+      id: randomUUID(),
       user_id: userId,
       type: 'cita',
       text: '',
@@ -175,6 +179,7 @@ async function main() {
     // Marginalia -- cita + anotaciones propias
     const b4 = pick(3);
     rows.push({
+      id: randomUUID(),
       user_id: userId,
       type: 'marginalia',
       text: '',
@@ -194,6 +199,7 @@ async function main() {
       id: b.id, title: b.title, author: b.author, cover: b.cover, color: b.color,
     }));
     rows.push({
+      id: randomUUID(),
       user_id: userId,
       type: 'shelfiepost',
       text: 'Así va mi shelfie este mes -- mezcla de relecturas y descubrimientos nuevos.',
