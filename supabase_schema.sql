@@ -58,7 +58,8 @@ create table if not exists public.posts (
   rating int,
   spoiler boolean default false,
   edited_at timestamptz,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  extra jsonb default '{}'::jsonb  -- title/isReview/retoName/shelfBooks/quote/note/page/chapter/thread/character/subject
 );
 
 -- ── Comentarios ──
@@ -211,3 +212,14 @@ create policy "avatar_owner_update" on storage.objects for update using (bucket_
 
 drop policy if exists "avatar_owner_delete" on storage.objects;
 create policy "avatar_owner_delete" on storage.objects for delete using (bucket_id = 'avatars' and auth.role() = 'authenticated');
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: publicaciones completas de amigos en el feed
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Antes solo se guardaban text/book/rating/spoiler de cada publicación —
+-- citas, marginalia, historias con personajes, shelfie-posts con varios
+-- libros, etc. perdían esos datos al recargar la página. Este campo guarda
+-- el resto de la publicación tal cual, sin necesitar una columna por campo.
+alter table public.posts add column if not exists extra jsonb default '{}'::jsonb;

@@ -1,0 +1,20 @@
+node_modules/
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/captures/
+android/local.properties
+android/.idea/
+android/*.iml
+
+# iOS
+ios/App/build/
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/.build/
+ios/DerivedData/
+*.xcuserstate
