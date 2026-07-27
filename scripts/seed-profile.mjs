@@ -20,7 +20,10 @@
 //   SHELFIE_EMAIL="tu@email.com" SHELFIE_PASSWORD="tu-contraseña" node scripts/seed-profile.mjs
 //
 // (If you don't want the password in your shell history, just run the
-// script without the env vars — it will ask for them interactively.)
+// script without the env vars — it will ask for them interactively. It will
+// be visible as you type it, since there's no reliable cross-platform way to
+// mask it here without extra dependencies — that's fine for a local script
+// you run yourself.)
 // ════════════════════════════════════════════════════════════════════════
 
 import { createClient } from '@supabase/supabase-js';
@@ -29,44 +32,11 @@ import readline from 'node:readline/promises';
 const SUPA_URL = 'https://zkoarvxhjunwmyiaynyc.supabase.co';
 const SUPA_KEY = 'sb_publishable_EkLevW97vxNd1UTKf3SLcw_FyT0S-iU';
 
-const ENTER_CODES = [13, 10];
-const CTRL_C_CODE = 3;
-const BACKSPACE_CODES = [127, 8];
-
 async function ask(prompt) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const answer = await rl.question(prompt);
   rl.close();
   return answer.trim();
-}
-
-// Minimal masked input for the password prompt, using byte codes rather than
-// literal control characters in source (which don't always survive intact).
-async function askHidden(prompt) {
-  return new Promise((resolve) => {
-    process.stdout.write(prompt);
-    const stdin = process.stdin;
-    stdin.resume();
-    stdin.setRawMode?.(true);
-    let value = '';
-    const onData = (buf) => {
-      const code = buf[0];
-      if (ENTER_CODES.includes(code)) {
-        stdin.setRawMode?.(false);
-        stdin.pause();
-        stdin.removeListener('data', onData);
-        process.stdout.write('\n');
-        resolve(value.trim());
-      } else if (code === CTRL_C_CODE) {
-        process.exit(1);
-      } else if (BACKSPACE_CODES.includes(code)) {
-        value = value.slice(0, -1);
-      } else {
-        value += buf.toString('utf8');
-      }
-    };
-    stdin.on('data', onData);
-  });
 }
 
 async function findCover(title, author) {
@@ -89,7 +59,7 @@ async function findCover(title, author) {
 
 async function main() {
   const email = process.env.SHELFIE_EMAIL || (await ask('Email de tu cuenta Shelfie: '));
-  const password = process.env.SHELFIE_PASSWORD || (await askHidden('Contraseña: '));
+  const password = process.env.SHELFIE_PASSWORD || (await ask('Contraseña (se mostrará en pantalla, es normal): '));
 
   const supa = createClient(SUPA_URL, SUPA_KEY);
   console.log('Iniciando sesión...');
