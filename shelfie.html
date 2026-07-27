@@ -1058,8 +1058,13 @@ a{color:inherit}
 <body>
 <div id="toast"></div>
 
+<!-- ══════════════════════ AUTH: CHECKING SESSION ══════════════════════ -->
+<div class="auth-screen on" id="auth-loading">
+  <i class="ti ti-loader-2 spin" style="font-size:32px;color:rgba(255,255,255,0.6)"></i>
+</div>
+
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
-<div class="auth-screen on" id="auth-login">
+<div class="auth-screen" id="auth-login">
   <button onclick="devQuickEnter()" title="Acceso rápido de prueba" style="position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.7);font-size:11px;font-family:'Inter',sans-serif;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:0.3px;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">⚡ Dev</button>
   <div class="auth-box" id="login-box">
     <div class="auth-logo">
@@ -2323,6 +2328,14 @@ const SUPA_KEY='sb_publishable_EkLevW97vxNd1UTKf3SLcw_FyT0S-iU';
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storage:window.localStorage,persistSession:true,autoRefreshToken:true}});
 let SUPA_USER=null; // auth.User object when logged in
 
+// ── Shows the actual login form instead of the boot spinner, once we know
+// for sure there's no session to restore (avoids ever flashing the login
+// screen at logged-in users while Supabase is still checking). ──
+function showLoginScreen(){
+  document.getElementById('auth-loading')?.classList.remove('on');
+  if(!isLoggedIn)document.getElementById('auth-login')?.classList.add('on');
+}
+
 // ── Auth state listener (handles refresh / tab reopen) ──
 let _appEntering=false;
 supa.auth.onAuthStateChange(async(event,session)=>{
@@ -2330,9 +2343,12 @@ supa.auth.onAuthStateChange(async(event,session)=>{
     _appEntering=true;
     SUPA_USER=session.user;
     try{await _supaEnterApp();}finally{_appEntering=false;}
+  } else if(event==='INITIAL_SESSION'&&!session&&!isLoggedIn){
+    showLoginScreen();
   } else if(event==='SIGNED_OUT'){
     SUPA_USER=null;
     isLoggedIn=false;
+    showLoginScreen();
   }
 });
 
@@ -2345,6 +2361,8 @@ supa.auth.onAuthStateChange(async(event,session)=>{
       _appEntering=true;
       SUPA_USER=session.user;
       try{await _supaEnterApp();}finally{_appEntering=false;}
+    } else if(!session&&!isLoggedIn){
+      showLoginScreen();
     }
   }
 })();
@@ -2440,15 +2458,18 @@ async function deleteSupaBook(id){
 }
 
 // ── Load posts from DB ──
-async function loadSupaPosts(){
-  const{data,error}=await supa.from('posts')
-    .select('*, comments(*), likes(*)')
-    .eq('user_id',SUPA_USER.id)
-    .order('created_at',{ascending:false})
-    .limit(50);
-  if(error||!data)return;
-  USER_POSTS=data.map(row=>({
+// Turns one `posts` row (+ its joined comments/likes) into the shape renderOnePost
+// expects, resolving the post's and each comment's author via authorFromId — the
+// caller must have already awaited ensureAuthorsLoaded() for every user_id involved.
+// `extra` carries the fields the `posts` table doesn't have their own column for
+// (title, isReview, retoName, shelfBooks, quote, note, page, chapter, thread,
+// character, subject) so richer post types survive a reload intact.
+function postRowToObject(row){
+  const author=authorFromId(row.user_id)||{id:row.user_id,name:'Un lector',username:'',photo:null,bg:'#EEE',tc:'#555',initials:'??'};
+  return {
     id:row.id,
+    authorId:row.user_id,
+    author,
     type:row.type,
     text:row.text||'',
     book:row.book_title?{title:row.book_title,author:row.book_author,cover:row.book_cover,color:row.book_color,stars:row.rating||0}:null,
@@ -2457,9 +2478,31 @@ async function loadSupaPosts(){
     createdAt:new Date(row.created_at).getTime(),
     editedAt:row.edited_at?new Date(row.edited_at).getTime():null,
     likes:(row.likes||[]).length,
-    likedByMe:(row.likes||[]).some(l=>l.user_id===SUPA_USER.id),
-    comments:(row.comments||[]).map(c=>({id:c.id,name:c.user_id===SUPA_USER.id?(PROFILE.name||'Tú'):'Usuario',text:c.text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'})),
-  }));
+    likedByMe:SUPA_USER?(row.likes||[]).some(l=>l.user_id===SUPA_USER.id):false,
+    comments:(row.comments||[]).map(c=>{
+      const ca=authorFromId(c.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
+      return{id:c.id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg};
+    }),
+    ...(row.extra||{}),
+  };
+}
+
+// Feed = your posts + the posts of everyone you follow, newest first.
+async function loadSupaPosts(){
+  const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
+  const{data,error}=await supa.from('posts')
+    .select('*, comments(*), likes(*)')
+    .in('user_id',authorIds)
+    .order('created_at',{ascending:false})
+    .limit(100);
+  if(error||!data)return;
+  const commenterIds=data.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
+  await ensureAuthorsLoaded([...data.map(r=>r.user_id),...commenterIds]);
+  USER_POSTS=data.map(row=>{
+    const post=postRowToObject(row);
+    POSTS_BY_ID[post.id]=post;
+    return post;
+  });
 }
 
 // ── Save post to DB ──
@@ -2476,8 +2519,18 @@ async function saveSupaPost(post){
     book_color:post.book?.color||null,
     rating:post.book?.stars||post.rating||null,
     spoiler:post.spoiler||false,
+    edited_at:post.editedAt?new Date(post.editedAt).toISOString():null,
+    // Fields the table has no dedicated column for — round-tripped as-is via
+    // postRowToObject() so cita/marginalia/hilo/shelfiepost posts survive a reload.
+    extra:{
+      title:post.title||null,isReview:post.isReview||false,retoName:post.retoName||null,
+      shelfBooks:post.shelfBooks||null,shelfViewMode:post.shelfViewMode||null,
+      quote:post.quote||null,note:post.note||null,page:post.page||null,chapter:post.chapter||null,
+      thread:post.thread||null,character:post.character||null,subject:post.subject||null,
+    },
   };
-  await supa.from('posts').upsert(row,{onConflict:'id'});
+  const{error}=await supa.from('posts').upsert(row,{onConflict:'id'});
+  if(error){console.error('saveSupaPost failed:',error);toast('❌ No se pudo guardar la publicación.');}
 }
 
 // ── Delete post from DB ──
@@ -2584,9 +2637,11 @@ async function handleIncomingNotification(row){
 async function _supaEnterApp(){
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
-  try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
+  // Friends must be loaded before posts — the feed query needs FRIENDS to know
+  // whose posts (besides your own) belong in it.
   try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
   try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
+  try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
@@ -2905,12 +2960,29 @@ function setAvatarEl(el,photoUrl,initials,bg,tc){
   img.src=photoUrl;
 }
 const _userCache={};
+const _userCacheById={};
 function cacheUser(u){
   const key=u.username||u.id;
   const c=avatarColorFor(key||'');
-  const entry={id:u.id||null,name:u.name||u.username||'Lector',username:u.username||'',initials:(u.name||u.username||'??').slice(0,2).toUpperCase(),bg:u.bg||c.bg,tc:u.tc||c.tc,stat:u.stat!==undefined?u.stat:(u.bio||'')};
+  const entry={id:u.id||null,name:u.name||u.username||'Lector',username:u.username||'',initials:(u.name||u.username||'??').slice(0,2).toUpperCase(),bg:u.bg||c.bg,tc:u.tc||c.tc,stat:u.stat!==undefined?u.stat:(u.bio||''),photo:u.photo||null};
   _userCache[key]=entry;
+  if(entry.id)_userCacheById[entry.id]=entry;
   return entry;
+}
+
+// Resolves who authored a post/comment — you, or a cached user by id — falling
+// back to null when we haven't loaded that profile yet (see ensureAuthorsLoaded).
+function authorFromId(id){
+  if(!SUPA_USER||id===SUPA_USER.id){
+    return {id:SUPA_USER?SUPA_USER.id:'local',name:PROFILE.name||'Tú',username:PROFILE.username||'',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white',initials:(PROFILE.name||'??').slice(0,2).toUpperCase()};
+  }
+  return _userCacheById[id]||null;
+}
+async function ensureAuthorsLoaded(ids){
+  const need=[...new Set(ids)].filter(id=>id&&(!SUPA_USER||id!==SUPA_USER.id)&&!_userCacheById[id]);
+  if(!need.length)return;
+  const{data}=await supa.from('profiles').select('id,name,username,photo,bio').in('id',need);
+  (data||[]).forEach(p=>cacheUser(p));
 }
 
 // Simulated per-friend shelfie data: which books they have, in which status, and which reto (if any).
@@ -3393,6 +3465,7 @@ function enterApp(skipDemo){
   updateAll();updateCounts();renderFriends();
   const h=new Date().getHours();
   document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name||'lector'} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
+  restoreLastPage();
 }
 
 function checkYearRollover(){
@@ -3451,6 +3524,19 @@ function toggleMobileNav(){
   document.querySelector('.mobile-nav-backdrop')?.classList.toggle('show');
 }
 
+// Remembers the current page (+ open entity, for detail pages) across reloads,
+// so coming back to the app lands you where you actually were instead of Inicio.
+function persistCurrentPage(id,extraId){
+  try{localStorage.setItem('shelfie_last_page',JSON.stringify({id,extraId:extraId||null}));}catch(e){}
+}
+function restoreLastPage(){
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem('shelfie_last_page')||'null');}catch(e){}
+  if(!saved||!saved.id||saved.id==='home')return;
+  try{go(saved.id,nbFor(saved.id),saved.extraId,true);}
+  catch(e){console.error('restoreLastPage failed, staying on Inicio:',e);}
+}
+
 function go(id,btn,extraId,_isBack){
   if(!_isBack){
     const fromPage=document.querySelector('.page.on');
@@ -3465,6 +3551,7 @@ function go(id,btn,extraId,_isBack){
   document.querySelector('.sidebar')?.classList.remove('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
   document.querySelectorAll('.overlay').forEach(o=>{o.style.display='none';});
+  persistCurrentPage(id,extraId);
   if(id==='bookdetail'){
     CURRENT_ENTITY.bookdetail=extraId;
     document.getElementById('p-book-detail').classList.add('on');
@@ -3533,12 +3620,20 @@ async function renderUserProfilePage(username){
     const cached=cacheUser(profile);
     const[booksRes,postsRes,followingRes,followersRes]=await Promise.all([
       supa.from('user_books').select('*').eq('user_id',profile.id),
-      supa.from('posts').select('*').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(6),
+      supa.from('posts').select('*, comments(*), likes(*)').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(100),
       supa.from('friendships').select('friend_id',{count:'exact',head:true}).eq('user_id',profile.id),
       supa.from('friendships').select('user_id',{count:'exact',head:true}).eq('friend_id',profile.id),
     ]);
     if(booksRes.error)throw booksRes.error;
-    renderUserProfileView(profile,booksRes.data||[],postsRes.data||[],followingRes.count||0,followersRes.count||0,cached);
+    const rows=postsRes.data||[];
+    const commenterIds=rows.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
+    await ensureAuthorsLoaded([profile.id,...commenterIds]);
+    const posts=rows.map(row=>{
+      const post=postRowToObject(row);
+      POSTS_BY_ID[post.id]=post;
+      return post;
+    });
+    renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached);
   }catch(e){
     console.error('renderUserProfilePage failed:',e);
     cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil. Comprueba tu conexión.</p></div>';
@@ -3552,20 +3647,57 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const streak=calculateCurrentStreak(theirReadingDays);
   const leidos=books.filter(b=>b.status==='leidos');
   const leyendo=books.filter(b=>b.status==='leyendo');
+  const quiero=books.filter(b=>b.status==='quiero');
+  const dnf=books.filter(b=>b.status==='dnf');
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
 
   const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
 
-  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
+  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
 
-  const typeIcons={marginalia:'ti-notes',cita:'ti-quote',hilo:'ti-stack-2',tweet:'ti-message-2'};
-  const typeNames={marginalia:'una Marginalia',cita:'una Cita',hilo:'una Historia',tweet:'una Publicación'};
-  const activityHtml=posts.length?posts.map(p=>{
-    const bookRef=p.book_title?` sobre <strong>${escapeHtml(p.book_title)}</strong>`:'';
-    return `<div class="profile-activity-item"><div class="profile-activity-icon"><i class="ti ${typeIcons[p.type]||'ti-message-2'}"></i></div><div class="profile-activity-body"><div class="profile-activity-text">Publicó ${typeNames[p.type]||'un post'}${bookRef}</div><div class="profile-activity-meta">${timeAgo(new Date(p.created_at).getTime())}</div></div></div>`;
-  }).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no ha publicado nada</p></div>`;
+  // "Leyendo ahora" — same banner as your own profile shows to others
+  const readingNowHtml=leyendo.length?(()=>{
+    const b=leyendo[0];
+    const pct=b.pages?Math.round((b.cur_page||0)/b.pages*100):0;
+    const coverStyle=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;`:`background:${b.color||'#8B2635'};`;
+    return `<div class="profile-reading-now">
+      <div class="profile-reading-now-spine" style="${coverStyle}"></div>
+      <div class="profile-reading-now-info">
+        <div class="profile-reading-now-tag">📖 Leyendo ahora</div>
+        <div class="profile-reading-now-title">${escapeHtml(b.title)}</div>
+        <div class="profile-reading-now-author">${escapeHtml(b.author)}</div>
+        ${b.pages?`<div class="profile-reading-now-prog"><div class="profile-reading-now-bar" style="width:${pct}%"></div></div><div class="profile-reading-now-pct">Pág. ${b.cur_page||0} de ${b.pages} · ${pct}%</div>`:''}
+      </div>
+      ${leyendo.length>1?`<div style="font-size:12px;color:var(--ink3);flex-shrink:0">+${leyendo.length-1} más</div>`:''}
+    </div>`;
+  })():'';
+
+  // Shelfie breakdown — real counts across all four statuses
+  const totalBooks=books.length;
+  const breakdownStates=[
+    {lbl:'Leídos',icon:'ti-check',color:'var(--green)',n:leidos.length},
+    {lbl:'Leyendo',icon:'ti-book-2',color:'var(--blue)',n:leyendo.length},
+    {lbl:'Quiero leer',icon:'ti-bookmark',color:'var(--amber)',n:quiero.length},
+    {lbl:'Abandonados',icon:'ti-x',color:'var(--ink3)',n:dnf.length},
+  ];
+  const breakdownHtml=totalBooks?breakdownStates.map(s=>{
+    const pct=totalBooks?Math.round(s.n/totalBooks*100):0;
+    return `<div class="shelfie-breakdown-row"><div class="shelfie-breakdown-icon" style="background:${s.color}"><i class="ti ${s.icon}"></i></div><div class="shelfie-breakdown-info"><div class="shelfie-breakdown-lbl">${s.lbl}</div><div class="shelfie-breakdown-track"><div class="shelfie-breakdown-fill" style="width:${pct}%;background:${s.color}"></div></div></div><div class="shelfie-breakdown-n">${s.n}</div></div>`;
+  }).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-books" style="font-size:24px"></i><p style="font-size:13px">Su shelfie está vacío</p></div>`;
+
+  // Géneros — distribución real a partir de los libros leídos (no aproximada)
+  const genreCounts={};
+  leidos.forEach(b=>{(b.genres||[]).forEach(g=>{genreCounts[g]=(genreCounts[g]||0)+1;});});
+  const genreEntries=Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const genresHtml=genreEntries.length?genreEntries.map(([g,n])=>{
+    const pct=leidos.length?Math.round(n/leidos.length*100):0;
+    return `<div class="bar-row"><div class="bar-lbl">${escapeHtml(g)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`;
+  }).join(''):`<div style="font-size:13px;color:var(--ink3)">Sin géneros registrados.</div>`;
+
+  // Actividad reciente: TODAS sus publicaciones completas, más nuevas primero (rollo Twitter)
+  const activityHtml=posts.length?posts.map(p=>renderOnePost(p)).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no ha publicado nada</p></div>`;
 
   document.getElementById('user-profile-content').innerHTML=`
     <div class="profile-hero">
@@ -3592,18 +3724,32 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     </div>
     <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin:16px 0" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
 
+    ${readingNowHtml}
+
     <div class="g2">
       <div class="card">
         <div class="card-head"><div class="card-title">🏆 Top favoritos</div></div>
         ${favsHtml}
       </div>
       <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Su shelfie</div></div>
+        ${breakdownHtml}
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
         <div class="card-head"><div class="card-title">Últimos libros leídos</div></div>
         ${booksGridHtml}
       </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Géneros</div></div>
+        ${genresHtml}
+      </div>
     </div>
+
     <div class="card">
-      <div class="card-head"><div class="card-title">Actividad reciente</div></div>
+      <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Actividad reciente</div></div>
       ${activityHtml}
     </div>
   `;
@@ -6960,24 +7106,13 @@ function renderProfile(){
   document.getElementById('profile-retos-created').innerHTML=created.length?created.map(retoRowHtml).join(''):'<div class="text-sm text-muted">Aún no has creado ningún reto.</div>';
   document.getElementById('profile-retos-joined').innerHTML=joined.length?joined.map(retoRowHtml).join(''):'<div class="text-sm text-muted">No te has unido a retos de otros.</div>';
 
-  // actividad reciente: tus posts publicados, con likes/comentarios
+  // actividad reciente: TODAS tus publicaciones completas, más nuevas primero (como un perfil de Twitter)
   const actCont=document.getElementById('profile-activity');
-  if(!USER_POSTS.length){
+  const myPosts=USER_POSTS.filter(p=>(p.author?p.author.id:(SUPA_USER?SUPA_USER.id:'local'))===(SUPA_USER?SUPA_USER.id:'local'));
+  if(!myPosts.length){
     actCont.innerHTML='<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no has publicado nada</p></div>';
   } else {
-    const typeIcons={marginalia:'ti-notes',cita:'ti-quote',hilo:'ti-stack-2',tweet:'ti-message-2'};
-    const typeNames={marginalia:'una Marginalia',cita:'una Cita',hilo:'una Historia',tweet:'una Publicación'};
-    actCont.innerHTML=USER_POSTS.slice(0,6).map(p=>{
-      const bookRef=p.book?` sobre <strong>${escapeHtml(p.book.title)}</strong>`:'';
-      const titleRef=p.title?` — "${escapeHtml(p.title)}"`:'';
-      return `<div class="profile-activity-item">
-        <div class="profile-activity-icon"><i class="ti ${typeIcons[p.type]||'ti-message-2'}"></i></div>
-        <div class="profile-activity-body">
-          <div class="profile-activity-text">Publicaste ${typeNames[p.type]||'un post'}${bookRef}${titleRef}</div>
-          <div class="profile-activity-meta"><span><i class="ti ti-heart"></i> ${p.likes||0}</span><span><i class="ti ti-message-circle"></i> ${(p.comments||[]).length}</span><span>${timeAgo(p.createdAt)}</span></div>
-        </div>
-      </div>`;
-    }).join('');
+    actCont.innerHTML=myPosts.map(p=>renderOnePost(p)).join('');
   }
 }
 
@@ -7008,6 +7143,7 @@ let composerMode='tweet';
 let composerBook=null;
 let threadParts=[]; // extra parts beyond the first, for 'hilo' mode
 let USER_POSTS=[];
+let POSTS_BY_ID={}; // id -> post object, shared lookup for like/comment/edit/delete regardless of where the card is shown
 let editingPostId=null;
 let loadingEdit=false;
 let composerSubject='libro'; // 'libro' | 'personaje' — what this Apunte is primarily about
@@ -7345,8 +7481,9 @@ function resetComposer(){
 }
 
 function openEditPost(id){
-  const post=USER_POSTS.find(p=>p.id===id);
+  const post=POSTS_BY_ID[id]||USER_POSTS.find(p=>p.id===id);
   if(!post)return;
+  if(post.author&&post.author.id!==(SUPA_USER?SUPA_USER.id:'local'))return; // can't edit someone else's post
   editingPostId=id;
   loadingEdit=true;
   document.getElementById('composer-title').value=post.title||'';
@@ -7493,10 +7630,11 @@ function publishPost(){
     return;
   }
 
-  const post={id:'p'+Date.now(),type:composerMode,book:composerMode==='tweet'?null:composerBook,spoiler:isSpoiler,createdAt:Date.now(),likes:0,likedByMe:false,comments:[]};
+  const post={id:'p'+Date.now(),author:authorFromId(SUPA_USER?SUPA_USER.id:null),type:composerMode,book:composerMode==='tweet'?null:composerBook,spoiler:isSpoiler,createdAt:Date.now(),likes:0,likedByMe:false,comments:[]};
   if(!buildPostFieldsFromComposer(post))return;
 
   USER_POSTS.unshift(post);
+  POSTS_BY_ID[post.id]=post;
   saveSupaPost(post);
   renderUserPosts();
   resetComposer();
@@ -7524,8 +7662,10 @@ function onShelfiePostSpineClick(bookId){
 }
 
 function renderOnePost(p){
-  const av=PROFILE.photo?`background-image:url(${PROFILE.photo});background-size:cover`:`background:var(--red)`;
-  const initials=(PROFILE.name||'??').slice(0,2).toUpperCase();
+  const author=p.author||{id:SUPA_USER?SUPA_USER.id:'local',name:PROFILE.name||'Tú',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white'};
+  const av=author.photo?`background-image:url(${author.photo});background-size:cover`:`background:${author.bg||'var(--red)'}`;
+  const initials=(author.name||'??').slice(0,2).toUpperCase();
+  const isOwnPost=author.id===(SUPA_USER?SUPA_USER.id:'local');
 
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
@@ -7677,16 +7817,16 @@ function renderOnePost(p){
   return `
     <div class="${cardClass}" data-group="${dataGroup}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
       <div class="upost-head" style="${needsOwnPadding?'padding:16px 18px 0':''}">
-        <div class="u-av" style="${av};width:36px;height:36px">${PROFILE.photo?'':initials}</div>
-        <div class="upost-who"><strong>${PROFILE.name||'Tú'}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
+        <div class="u-av" style="${av};width:36px;height:36px;cursor:${author.username?'pointer':'default'}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${author.photo?'':initials}</div>
+        <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
         <div class="upost-time">${timeAgo(p.createdAt)}</div>
       </div>
       <div style="${needsOwnPadding?'margin-top:12px':''}">${bodyBlock}</div>
       <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''}">
         <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><i class="ti ti-heart"></i> <span>${likeCount}</span></button>
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
-        <button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
-        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>
+        ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
+        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:''}
       </div>
       <div style="${needsOwnPadding?'padding:0 18px 16px':''}">
         ${commentsHtml}
@@ -7705,8 +7845,17 @@ function revealSpoiler(btn){
   wrap.querySelector('.spoiler-overlay').remove();
 }
 
+// Re-renders exactly the one card that changed, wherever it happens to be showing
+// (feed, your profile's activity, someone else's) — a full renderUserPosts() only
+// ever touches the feed's #user-posts container, which doesn't exist on other pages.
+function refreshPostCard(id){
+  const post=POSTS_BY_ID[id];
+  if(!post)return;
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>{el.outerHTML=renderOnePost(post);});
+}
+
 function togglePostLike(id,btn){
-  const post=USER_POSTS.find(p=>p.id===id);
+  const post=POSTS_BY_ID[id];
   if(!post)return;
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
@@ -7723,25 +7872,29 @@ function toggleCommentBox(id){
   if(!showing)setTimeout(()=>document.getElementById('comment-input-'+id)?.focus(),50);
 }
 
-function sendComment(id){
+async function sendComment(id){
   const input=document.getElementById('comment-input-'+id);
   const text=input.value.trim();
   if(!text)return;
-  const post=USER_POSTS.find(p=>p.id===id);
+  const post=POSTS_BY_ID[id];
   if(!post)return;
   if(!post.comments)post.comments=[];
   post.comments.push({name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'});
-  saveSupaComment(id,text);
+  await saveSupaComment(id,text);
   input.value='';
-  renderUserPosts();
+  refreshPostCard(id);
+  toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
 }
 
 function deleteUserPost(id){
+  const post=POSTS_BY_ID[id]||USER_POSTS.find(p=>p.id===id);
+  if(post&&post.author&&post.author.id!==(SUPA_USER?SUPA_USER.id:'local'))return; // never your call to make on someone else's post
   if(!confirm('¿Eliminar esta publicación?'))return;
   USER_POSTS=USER_POSTS.filter(p=>p.id!==id);
+  delete POSTS_BY_ID[id];
   deleteSupaPost(id);
-  renderUserPosts();
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>el.remove());
   toast('Publicación eliminada');
 }
 
