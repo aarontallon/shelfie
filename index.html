@@ -3819,13 +3819,13 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const dnf=books.filter(b=>b.status==='dnf');
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
 
-  const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
+  const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
 
   // Capped at 8, same as your own profile's "Últimos libros leídos" — previously showed
   // every single book this user had ever read, unbounded, which both contradicted the
   // "latest" framing of the heading and could render hundreds of grid cells for prolific readers.
-  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
+  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
 
   // "Leyendo ahora" — same banner as your own profile shows to others
@@ -3833,7 +3833,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     const b=leyendo[0];
     const pct=b.pages?Math.round((b.cur_page||0)/b.pages*100):0;
     const coverStyle=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;`:`background:${b.color||'#8B2635'};`;
-    return `<div class="profile-reading-now">
+    return `<div class="profile-reading-now" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">
       <div class="profile-reading-now-spine" style="${coverStyle}"></div>
       <div class="profile-reading-now-info">
         <div class="profile-reading-now-tag">📖 Leyendo ahora</div>
@@ -4056,7 +4056,7 @@ async function fetchOLWorkDetails(bookData){
     const d=await res.json();
     const desc=typeof d.description==='string'?d.description:(d.description?.value||'');
     if(desc&&pendingBook&&pendingBook.title===bookData.title){
-      pendingBook.synopsis=desc.substring(0,1200);
+      pendingBook.synopsis=cleanSynopsis(desc);
     }
   }catch(_){}
 }
@@ -4107,7 +4107,7 @@ async function fetchFromGoogleBooks(isbn){
       isbn,
       publisher:info.publisher||null,
       editionYear:info.publishedDate||null,
-      synopsis:info.description?info.description.substring(0,1200):null,
+      synopsis:cleanSynopsis(info.description),
     };
   }catch(e){console.error('fetchFromGoogleBooks failed:',e);return null;}
 }
@@ -4158,7 +4158,7 @@ function onISBNSearch(val){
             const wr=await fetch(`https://openlibrary.org${worksKey}.json`);
             const wd=await wr.json();
             const desc=typeof wd.description==='string'?wd.description:(wd.description?.value||'');
-            if(desc)bookData.synopsis=desc.substring(0,1200);
+            if(desc)bookData.synopsis=cleanSynopsis(desc);
             const ak=wd.authors?.[0]?.author?.key;
             if(ak){
               bookData.authorOlKey=ak.replace('/authors/','');
@@ -4337,6 +4337,18 @@ function onModalSearch(q){
   }),450);
 }
 
+// Opens the normal "add book" search modal pre-filled with a query, so the
+// user lands on real search results (and the edition picker) instead of
+// silently getting whatever generic placeholder a ficha page was showing.
+function openSearchModal(query){
+  openModal('modal-add');
+  setSearchMode('title');
+  const inp=document.getElementById('modal-srch-inp');
+  if(!inp)return;
+  inp.value=query||'';
+  if(query)onModalSearch(query);
+}
+
 function onRetoSearch(q){
   const drop=document.getElementById('reto-srch-drop');
   const already=new Set(retoAssigned.map(b=>b.id));
@@ -4489,13 +4501,21 @@ function saveManual(){
   toast(`✅ «${title}» añadido a tu shelfie`);
 }
 
-function quickAddDirect(title,author,status){
+function quickAddDirect(title,author,status,olKey){
   if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===title.toLowerCase())){toast(`«${title}» ya está en tu shelfie`);return;}
-  const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null};
+  // Carry the Open Library work key through when the caller already knows it (a
+  // generic ficha, an author's work list) so the new local copy keeps the exact
+  // same canonical identity as the page you quick-added it from, instead of
+  // silently forking into a separate title-keyed "ficha" for the same work.
+  const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null,olKey:olKey||null};
   DB[status].unshift(book);
   saveSupaBook(book);
   updateAll();
   toast(`✅ «${title}» añadido a ${status==='quiero'?'Quiero leer':'tu shelfie'}`);
+  // If you just added the very book whose (previously "not owned") ficha you're
+  // looking at, flip it over to the owned view immediately instead of leaving
+  // the stale generic version up until you navigate away and back.
+  if(document.getElementById('p-book-detail')?.classList.contains('on')&&CURRENT_ENTITY.bookdetail===bookWorkKey(book))renderBookPage(CURRENT_ENTITY.bookdetail);
 }
 
 function clearQadd(){pendingBook=null;document.getElementById('qadd-panel').style.display='none';}
@@ -4698,6 +4718,34 @@ async function saveProfile(){
 // ═══════════════════════════════════════════════
 function updateAll(){updateHome();updateCounts();updateProfileStats();}
 function allBooks(){return Object.values(DB).flat();}
+
+// ── Canonical work identity — shared by everyone regardless of edition ──
+// Different users (or the same user with a re-added edition) can have separate
+// user_books rows with different covers/publishers for the same underlying work.
+// The Open Library work key is the stable, cross-user identifier for "this is
+// the same book" — falls back to a normalized title+author pair for manually
+// added books that never got one.
+function bookWorkKey(b){
+  const ol=b.olKey||b.ol_key||null;
+  if(ol)return ol;
+  return 't:'+(b.title||'')+'␟'+(b.author||'');
+}
+// Safe to drop straight into a single-quoted onclick="..." attribute.
+function bkKey(b){return bookWorkKey(b).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+// Open Library (and sometimes Google Books) descriptions are raw wiki/HTML text —
+// editorial notes, "(source: ...)" tags, "----------\nAlso contained in: [[...]]"
+// boilerplate, [[wiki links]], stray HTML tags. Strip that down to plain prose.
+function cleanSynopsis(raw){
+  if(!raw)return null;
+  let s=String(raw);
+  s=s.split(/-{3,}/)[0];
+  s=s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,p1,p2)=>p2||p1);
+  s=s.replace(/\(source:[^)]*\)/gi,'');
+  s=s.replace(/<[^>]+>/g,'');
+  s=s.replace(/\s+/g,' ').trim();
+  return s.substring(0,1200)||null;
+}
 function avgStars(){const rs=DB.leidos.filter(b=>b.stars>0).map(b=>b.stars);return rs.length?(rs.reduce((a,b)=>a+b,0)/rs.length).toFixed(1)+'★':'—';}
 
 function updateCounts(){
@@ -4757,7 +4805,7 @@ function updateHome(){
         <div class="home-hero-actions">
           ${b.pages?`<button class="btn btn-white btn-sm" onclick="addPages('${b.id}')"><i class="ti ti-plus"></i> Páginas</button>`:''}
           <button class="btn btn-red btn-sm" onclick="markFinishedFrom('${b.id}','leyendo')"><i class="ti ti-check"></i> Terminado</button>
-          <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15)" onclick="go('bookdetail',null,'${b.id}')"><i class="ti ti-notes"></i> Detalles</button>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15)" onclick="go('bookdetail',null,'${bkKey(b)}')"><i class="ti ti-notes"></i> Detalles</button>
         </div>
       </div>
       ${books.length>1?`<div class="home-hero-books-more">+${books.length-1} más<br>leyendo</div>`:''}`;
@@ -4961,7 +5009,8 @@ async function confirmAddPages(){
   }
   updateAll();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
-  if(document.getElementById('p-book-detail').classList.contains('on')&&CURRENT_ENTITY.bookdetail===id)renderBookPage(id);
+  const wkey=bookWorkKey(book);
+  if(document.getElementById('p-book-detail').classList.contains('on')&&CURRENT_ENTITY.bookdetail===wkey)renderBookPage(wkey);
   if(pct>=100)setTimeout(()=>markFinishedFrom(id,'leyendo'),400);
 }
 
@@ -5121,7 +5170,7 @@ function renderShelf(){
       } else {
         actions=`<button class="btn btn-sm btn-red" style="font-size:10px;padding:3px 8px" onclick="markFinishedFrom('${b.id}','${b.status}')" title="Marcar como leído"><i class="ti ti-check" style="font-size:11px"></i></button>${yearBtn}${moveBtn}<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" onclick="removeBook('${b.id}','${b.status}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`;
       }
-      return `<div class="grid-item" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${b.id}')">${rereadBadge}${cvr(b,'grid')}<div class="grid-t">${yearStar?yearStar+' ':''}${b.title}</div><div class="grid-a">${b.author}</div><div class="grid-s">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div><div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${actions}</div></div>`;
+      return `<div class="grid-item" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')">${rereadBadge}${cvr(b,'grid')}<div class="grid-t">${yearStar?yearStar+' ':''}${b.title}</div><div class="grid-a">${b.author}</div><div class="grid-s">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div><div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${actions}</div></div>`;
     }).join('')}</div>`;
   } else if(isLeidosLike){
     cont.innerHTML=`<div class="shelf-list-scroll">${books.map((b,i)=>{
@@ -5129,13 +5178,13 @@ function renderShelf(){
       let actions=currentTab==='leidos'
         ?`<button class="btn btn-sm btn-white" onclick="openRereadModal('${b.id}')" title="Volver a leer"><i class="ti ti-refresh" style="font-size:11px"></i></button><button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')" title="Añadir/quitar de tu Shelfie ${CURRENT_SHELFIE_YEAR}"><i class="ti ti-calendar-event" style="font-size:11px;${YEAR_GOAL_IDS.has(b.id)?'color:var(--purple)':''}"></i></button>${bookActionsMenuHtml(b)}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','leidos')"><i class="ti ti-trash" style="font-size:11px"></i></button>`
         :`<button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')"><i class="ti ti-x" style="font-size:11px"></i></button>`;
-      return `<div class="book-list-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${b.id}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${b.title}${rereadTag}</div><div class="book-list-author">${b.author}</div><div class="book-list-stars">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div></div><div class="book-list-actions" onclick="event.stopPropagation()">${actions}</div></div>`;
+      return `<div class="book-list-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${b.title}${rereadTag}</div><div class="book-list-author">${b.author}</div><div class="book-list-stars">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div></div><div class="book-list-actions" onclick="event.stopPropagation()">${actions}</div></div>`;
     }).join('')}</div>`;
   } else {
     cont.innerHTML=`<div class="shelf-list-scroll">${books.map((b,i)=>{
       const pct=b.pages?Math.round(b.curPage/b.pages*100):0;
       const yearBtn=`<button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')" title="Añadir/quitar de tu Shelfie ${CURRENT_SHELFIE_YEAR}"><i class="ti ti-calendar-event" style="font-size:11px;${YEAR_GOAL_IDS.has(b.id)?'color:var(--purple)':''}"></i></button>`;
-      return `<div class="book-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${b.id}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-info"><div class="bk-title">${b.title}</div><div class="bk-author">${b.author}${b.year?' · '+b.year:''}</div>${currentTab==='leyendo'?`<div class="prog-track"><div class="prog-bar" id="sp-${b.id}" style="width:${pct}%"></div></div><div class="prog-txt" id="spt-${b.id}">${b.pages?`Pág. ${b.curPage}/${b.pages} · ${pct}%`:'Sin páginas · <button style="color:var(--red);background:none;border:none;cursor:pointer;font-size:11px" onclick="event.stopPropagation();addPages(\''+b.id+'\')">Añadir total</button>'}</div>`:''}<div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${currentTab==='leyendo'?`<button class="btn btn-sm btn-white" onclick="addPages('${b.id}')">+ Páginas</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','leyendo')">✓ Terminado</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='quiero'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','quiero','leyendo')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','quiero')">✓ Ya lo leí</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='dnf'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','dnf','quiero')">Reintentar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','dnf')">✓ Ya lo terminé</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','${currentTab}')"><i class="ti ti-trash"></i></button></div></div></div>`;
+      return `<div class="book-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-info"><div class="bk-title">${b.title}</div><div class="bk-author">${b.author}${b.year?' · '+b.year:''}</div>${currentTab==='leyendo'?`<div class="prog-track"><div class="prog-bar" id="sp-${b.id}" style="width:${pct}%"></div></div><div class="prog-txt" id="spt-${b.id}">${b.pages?`Pág. ${b.curPage}/${b.pages} · ${pct}%`:'Sin páginas · <button style="color:var(--red);background:none;border:none;cursor:pointer;font-size:11px" onclick="event.stopPropagation();addPages(\''+b.id+'\')">Añadir total</button>'}</div>`:''}<div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${currentTab==='leyendo'?`<button class="btn btn-sm btn-white" onclick="addPages('${b.id}')">+ Páginas</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','leyendo')">✓ Terminado</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='quiero'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','quiero','leyendo')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','quiero')">✓ Ya lo leí</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='dnf'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','dnf','quiero')">Reintentar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','dnf')">✓ Ya lo terminé</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','${currentTab}')"><i class="ti ti-trash"></i></button></div></div></div>`;
     }).join('')}</div>`;
   }
 }
@@ -5165,7 +5214,7 @@ function spineRealHtml(b,idx){
   const fontSize=titleLen>40?9:titleLen>28?10:titleLen>18?12:titleLen>12?13:15;
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
     style="flex:1 0 ${widthPx}px;max-width:${widthPx*2}px;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
-    onclick="go('bookdetail',null,'${b.id}')"
+    onclick="go('bookdetail',null,'${bkKey(b)}')"
     ondragstart="shelfDragStart(event,${idx})" ondragover="shelfDragOver(event,${idx})" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
     title="${escapeHtml(b.title)} · ${pages} pp">
     <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
@@ -5342,9 +5391,10 @@ function toggleYearAddMenu(){
   document.getElementById('year-add-dropdown')?.classList.toggle('show');
 }
 
-function renderBookPage(id){
-  const book=allBooks().find(b=>b.id===id);
-  if(!book){document.getElementById('book-page-content').innerHTML='<div class="empty"><i class="ti ti-mood-sad"></i><p>Libro no encontrado</p></div>';return;}
+function renderBookPage(key){
+  const book=allBooks().find(b=>bookWorkKey(b)===key);
+  if(!book){renderBookPageGeneric(key);return;}
+  const selfKey=bkKey(book);
 
   const friendsWith=getFriendsWithBook(book.title);
   const statusLabels={leidos:'Lo tiene leído',leyendo:'Lo está leyendo',quiero:'Quiere leerlo',dnf:'Lo abandonó'};
@@ -5370,16 +5420,16 @@ function renderBookPage(id){
   } else if(book.status==='leyendo'){
     statusActionsHtml=`<button class="btn btn-white" onclick="addPages('${book.id}')"><i class="ti ti-plus"></i> Páginas</button><button class="btn btn-red" onclick="markFinishedFrom('${book.id}','leyendo')">✓ Terminado</button>`;
   } else if(book.status==='quiero'){
-    statusActionsHtml=`<button class="btn btn-white" onclick="moveBook('${book.id}','quiero','leyendo');renderBookPage('${book.id}')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-red" onclick="markFinishedFrom('${book.id}','quiero')">✓ Ya lo leí</button>`;
+    statusActionsHtml=`<button class="btn btn-white" onclick="moveBook('${book.id}','quiero','leyendo');renderBookPage('${selfKey}')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-red" onclick="markFinishedFrom('${book.id}','quiero')">✓ Ya lo leí</button>`;
   } else if(book.status==='dnf'){
-    statusActionsHtml=`<button class="btn btn-white" onclick="moveBook('${book.id}','dnf','quiero');renderBookPage('${book.id}')">Reintentar</button><button class="btn btn-red" onclick="markFinishedFrom('${book.id}','dnf')">✓ Ya lo terminé</button>`;
+    statusActionsHtml=`<button class="btn btn-white" onclick="moveBook('${book.id}','dnf','quiero');renderBookPage('${selfKey}')">Reintentar</button><button class="btn btn-red" onclick="markFinishedFrom('${book.id}','dnf')">✓ Ya lo terminé</button>`;
   }
 
   const yearAddMenuHtml=`
     <div class="year-add-menu">
       <button class="btn btn-white" onclick="toggleYearAddMenu()"><i class="ti ti-calendar-event" style="${inYearGoal?'color:var(--purple)':''}"></i> ${inYearGoal?`En Shelfie ${CURRENT_SHELFIE_YEAR}`:`Añadir a Shelfie ${CURRENT_SHELFIE_YEAR}`}</button>
       <div class="year-add-dropdown" id="year-add-dropdown">
-        <button onclick="toggleYearGoal('${book.id}');renderBookPage('${book.id}');toggleYearAddMenu()"><i class="ti ${inYearGoal?'ti-x':'ti-plus'}"></i> ${inYearGoal?`Quitar de Shelfie ${CURRENT_SHELFIE_YEAR}`:`Añadir a Shelfie ${CURRENT_SHELFIE_YEAR}`}</button>
+        <button onclick="toggleYearGoal('${book.id}');renderBookPage('${selfKey}');toggleYearAddMenu()"><i class="ti ${inYearGoal?'ti-x':'ti-plus'}"></i> ${inYearGoal?`Quitar de Shelfie ${CURRENT_SHELFIE_YEAR}`:`Añadir a Shelfie ${CURRENT_SHELFIE_YEAR}`}</button>
       </div>
     </div>`;
 
@@ -5396,7 +5446,7 @@ function renderBookPage(id){
 
   // Global community data (synopsis, who-has-it counts, rating breakdown, third-party reviews)
   const gData=getBookGlobalData(book.title);
-  const synopsisText=book.synopsis||(gData?.synopsis)||null;
+  const synopsisText=cleanSynopsis(book.synopsis)||(gData?.synopsis)||null;
   const synopsisHtml=synopsisText?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
@@ -5433,23 +5483,23 @@ function renderBookPage(id){
 
   const authorKey=(book.author||'').toLowerCase().trim();
   const authorData=AUTHORS_DATA[authorKey]||null;
-  const authorLinkHtml=authorData
-    ?`<div class="book-page-author-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">${escapeHtml(book.author)} <i class="ti ti-arrow-right" style="font-size:13px"></i></div>`
-    :`<div class="book-page-author">${escapeHtml(book.author)}</div>`;
+  // Every ficha links to the author's page regardless of whether we have curated
+  // bio data for them — renderAuthorPage resolves any author live via Open Library.
+  const authorLinkHtml=book.author?`<div class="book-page-author-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">${escapeHtml(book.author)} <i class="ti ti-arrow-right" style="font-size:13px"></i></div>`:'';
 
   const genreTagsHtml=gData&&gData.genres&&gData.genres.length
     ?`<div class="book-genre-tags">${gData.genres.map(g=>`<span class="book-genre-tag">${escapeHtml(g)}</span>`).join('')}</div>`:'';
 
-  const authorSnippetHtml=authorData?`
+  const authorSnippetHtml=book.author?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-user"></i> Sobre el autor</div>
       <div class="book-author-snippet">
-        <div class="book-author-snippet-avatar">${escapeHtml(authorData.name).charAt(0)}</div>
+        <div class="book-author-snippet-avatar">${escapeHtml(book.author).charAt(0)}</div>
         <div style="flex:1;min-width:0">
-          <div class="book-author-snippet-name">${escapeHtml(authorData.name)}</div>
-          <div class="book-author-snippet-meta">${escapeHtml(authorData.nationality)} · ${escapeHtml(authorData.years)}</div>
-          <div class="book-author-snippet-bio">${escapeHtml(authorData.bio.substring(0,200))}…</div>
-          <span class="book-author-snippet-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">Ver página del autor <i class="ti ti-arrow-right" style="font-size:11px"></i></span>
+          <div class="book-author-snippet-name">${escapeHtml(authorData?.name||book.author)}</div>
+          ${authorData?.nationality||authorData?.years?`<div class="book-author-snippet-meta">${escapeHtml([authorData?.nationality,authorData?.years].filter(Boolean).join(' · '))}</div>`:''}
+          ${authorData?.bio?`<div class="book-author-snippet-bio">${escapeHtml(authorData.bio.substring(0,200))}…</div>`:''}
+          <span class="book-author-snippet-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">Ver todas sus obras <i class="ti ti-arrow-right" style="font-size:11px"></i></span>
         </div>
       </div>
     </div>`:'';
@@ -5461,7 +5511,7 @@ function renderBookPage(id){
         ${gData.similarBooks.map(t=>{
           const sb=allBooks().find(b=>b.title===t);
           const coverStyle=sb&&sb.cover?`background-image:url(${sb.cover});background-size:cover;background-position:center`:(sb?`background:${sb.color}`:'background:#E8E8E8');
-          return `<div class="similar-book-card" onclick="${sb?`go('bookdetail',null,'${sb.id}')`:`openSearchModal('${escapeHtml(t).replace(/'/g,"\\'")}')`}">
+          return `<div class="similar-book-card" onclick="${sb?`go('bookdetail',null,'${bkKey(sb)}')`:`openSearchModal('${escapeHtml(t).replace(/'/g,"\\'")}')`}">
             <div class="similar-book-cover" style="${coverStyle}">${(sb&&sb.cover)?'':escapeHtml(t.substring(0,30))}</div>
             <div class="similar-book-title">${escapeHtml(t)}</div>
           </div>`;
@@ -5512,6 +5562,103 @@ function renderBookPage(id){
   `;
 }
 
+// Ficha for a work you don't own a copy of yet — reached by clicking a friend's
+// book, a Discover card, or an edition of a book you already have under a
+// different row. Shows a generic cover (no forced edition choice) with a quick
+// "Quiero leer" add plus an explicit "elegir edición" escape hatch, live Open
+// Library data when the key is a work key, and the same "amigos con este libro"
+// + author sections as an owned book's ficha.
+async function renderBookPageGeneric(key){
+  const cont=document.getElementById('book-page-content');
+  cont.innerHTML='<div class="s-loading" style="padding:60px 0"><i class="ti ti-loader-2 spin"></i> Cargando ficha del libro...</div>';
+
+  let title='',author='',synopsis=null,cover=null;
+  const isOL=key.startsWith('/works/');
+
+  if(isOL){
+    try{
+      const res=await fetch(`https://openlibrary.org${key}.json`);
+      if(res.ok){
+        const d=await res.json();
+        title=d.title||'';
+        const rawDesc=typeof d.description==='string'?d.description:(d.description?.value||'');
+        synopsis=cleanSynopsis(rawDesc);
+        if(d.covers&&d.covers[0]>0)cover=`https://covers.openlibrary.org/b/id/${d.covers[0]}-L.jpg`;
+        const authKey=d.authors?.[0]?.author?.key||null;
+        if(authKey){
+          try{const ar=await fetch(`https://openlibrary.org${authKey}.json`);if(ar.ok){const ad=await ar.json();author=ad.name||'';}}catch(_){}
+        }
+      }
+    }catch(e){console.error('renderBookPageGeneric: OL fetch failed:',e);}
+  }
+  if(!title){
+    const parts=key.replace(/^t:/,'').split('␟');
+    title=parts[0]||'Libro';
+    author=author||parts[1]||'';
+  }
+
+  // The user may have navigated to a different book (or away) while this was in flight.
+  if(!document.getElementById('p-book-detail').classList.contains('on')||CURRENT_ENTITY.bookdetail!==key)return;
+
+  const color=COLORS[(title.charCodeAt(0)||0)%COLORS.length];
+  const gData=getBookGlobalData(title);
+  if(!synopsis)synopsis=gData?.synopsis||null;
+  const synopsisHtml=synopsis?`
+    <div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
+      <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(synopsis)}</p>
+    </div>`:'';
+
+  const friendsWith=getFriendsWithBook(title);
+  const statusLabels={leidos:'Lo tiene leído',leyendo:'Lo está leyendo',quiero:'Quiere leerlo',dnf:'Lo abandonó'};
+  const statusColorsMap={leidos:['#ECFDF5','#065F46'],leyendo:['#EFF6FF','#1E3A8A'],quiero:['#FFFBEB','#78350F'],dnf:['#EBEBEB','#555']};
+  const friendsHtml=friendsWith.length?friendsWith.map(e=>{
+    let tag='';
+    if(e.reto)tag=`<span class="friends-book-tag" style="background:var(--red-light);color:var(--red-dark)">🎯 ${escapeHtml(e.reto)}</span>`;
+    else if(e.status){const[bg,fg]=statusColorsMap[e.status];tag=`<span class="friends-book-tag" style="background:${bg};color:${fg}">${statusLabels[e.status]}${e.stars?' · '+e.stars+'★':''}</span>`;}
+    return `<div class="friends-book-item"><div class="f-av" style="background:${e.reader.bg};color:${e.reader.tc}">${e.reader.initials}</div><b>${e.reader.name}</b>${tag}</div>`;
+  }).join(''):'<div class="text-sm text-muted">Ninguno de tus amigos tiene este libro en su shelfie todavía.</div>';
+
+  const authorLinkHtml=author?`<div class="book-page-author-link" onclick="go('authorpage',null,'${escapeHtml(author).replace(/'/g,"\\'")}')">${escapeHtml(author)} <i class="ti ti-arrow-right" style="font-size:13px"></i></div>`:'';
+  const authorSnippetHtml=author?`
+    <div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-user"></i> Sobre el autor</div>
+      <div class="book-author-snippet">
+        <div class="book-author-snippet-avatar">${escapeHtml(author).charAt(0)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="book-author-snippet-name">${escapeHtml(author)}</div>
+          <span class="book-author-snippet-link" onclick="go('authorpage',null,'${escapeHtml(author).replace(/'/g,"\\'")}')">Ver todas sus obras <i class="ti ti-arrow-right" style="font-size:11px"></i></span>
+        </div>
+      </div>
+    </div>`:'';
+
+  const titleEsc=escapeHtml(title).replace(/'/g,"\\'");
+  const authorEsc=escapeHtml(author).replace(/'/g,"\\'");
+
+  cont.innerHTML=`
+    <div class="book-page-hero">
+      <div class="book-page-cover" style="${cover?`background-image:url(${cover})`:`background:${color}`}"><div class="book-page-cover-txt">${cover?'':escapeHtml(title)}</div></div>
+      <div class="book-page-info">
+        <div class="book-page-title">${escapeHtml(title)}</div>
+        ${authorLinkHtml}
+        <div class="text-sm text-muted" style="margin:8px 0 14px">Aún no tienes este libro en tu shelfie.</div>
+        <div class="book-page-actions">
+          <button class="btn btn-red" onclick="quickAddDirect('${titleEsc}','${authorEsc}','quiero'${isOL?`,'${key.replace(/'/g,"\\'")}'`:''})"><i class="ti ti-bookmark"></i> Quiero leer</button>
+          <button class="btn btn-white" onclick="openSearchModal('${titleEsc}')"><i class="ti ti-edit"></i> Elegir edición y añadir</button>
+        </div>
+      </div>
+    </div>
+
+    ${synopsisHtml}
+    ${authorSnippetHtml}
+
+    <div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-users"></i> Amigos con este libro</div>
+      <div class="friends-book-block" style="margin-top:0">${friendsHtml}</div>
+    </div>
+  `;
+}
+
 function setBookActivityTab(btn,tab){
   document.querySelectorAll('.book-activity-tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
@@ -5519,12 +5666,30 @@ function setBookActivityTab(btn,tab){
   document.getElementById('book-activity-'+tab).classList.add('on');
 }
 
-function renderAuthorPage(authorName){
+async function renderAuthorPage(authorName){
   const data=getAuthorData(authorName);
   const cont=document.getElementById('author-page-content');
 
   const authorBooks=allBooks().filter(b=>b.author&&b.author.toLowerCase()===authorName.toLowerCase());
-  const olAuthorKey=authorBooks.find(b=>b.authorOlKey)?.authorOlKey||null;
+  let olAuthorKey=authorBooks.find(b=>b.authorOlKey)?.authorOlKey||null;
+
+  // No curated bio and no author key from anything already in your own shelf —
+  // that used to be a dead end ("sin información") even when the author is real
+  // and well documented, just because you don't happen to own one of their books
+  // with an authorOlKey saved. Look them up live so every author's ficha works,
+  // not only the ones you've already added a book by.
+  if(!data&&!olAuthorKey){
+    cont.innerHTML=`<div class="s-loading" style="padding:60px 0"><i class="ti ti-loader-2 spin"></i> Buscando información del autor...</div>`;
+    try{
+      const r=await fetch(`https://openlibrary.org/search/authors.json?q=${encodeURIComponent(authorName)}`);
+      if(r.ok){
+        const d=await r.json();
+        const match=(d.docs||[]).find(a=>(a.name||'').toLowerCase()===authorName.toLowerCase())||(d.docs||[])[0];
+        if(match)olAuthorKey=match.key;
+      }
+    }catch(e){console.error('renderAuthorPage: author search failed:',e);}
+    if(CURRENT_ENTITY.authorpage!==authorName)return; // navigated away while searching
+  }
 
   if(!data&&!olAuthorKey){
     cont.innerHTML=`<div class="empty"><i class="ti ti-user-question"></i><p>Sin información de este autor todavía</p></div>`;
@@ -5622,10 +5787,10 @@ function renderAuthorPage(authorName){
         const labels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
         actionHtml=`<span class="author-work-badge">${labels[userBook.status]||''}</span>`;
       } else {
-        actionHtml=`<button class="btn btn-sm btn-white author-work-want" onclick="event.stopPropagation();quickAddDirect('${escapeHtml(w.title).replace(/'/g,"\\'")}','${escapeHtml(name).replace(/'/g,"\\'")}','quiero');this.textContent='🔖 Añadido';this.disabled=true">🔖 Quiero leer</button>`;
+        actionHtml=`<button class="btn btn-sm btn-white author-work-want" onclick="event.stopPropagation();quickAddDirect('${escapeHtml(w.title).replace(/'/g,"\\'")}','${escapeHtml(name).replace(/'/g,"\\'")}','quiero'${w.olKey?`,'${w.olKey.replace(/'/g,"\\'")}'`:''});this.textContent='🔖 Añadido';this.disabled=true">🔖 Quiero leer</button>`;
       }
 
-      const clickAttr=userBook?`onclick="go('bookdetail',null,'${userBook.id}')" style="cursor:pointer"`:'';
+      const clickAttr=userBook?`onclick="go('bookdetail',null,'${bkKey(userBook)}')" style="cursor:pointer"`:'';
       return `<div class="author-work-row-full" ${clickAttr}>
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
           ${coverHtml}
@@ -5788,7 +5953,7 @@ function renderProfileFavSection(){
     if(!favs.length){
       container.innerHTML=`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Aún no tienes favoritos</p><button class="btn btn-red btn-sm" style="margin-top:10px" onclick="toggleProfileFavEdit()">Elegir favoritos</button></div>`;
     } else {
-      container.innerHTML=`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${b.id}')"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`;
+      container.innerHTML=`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${bkKey(b)}')"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`;
     }
     return;
   }
@@ -5950,15 +6115,13 @@ function discoverBookCard(b){
   </div>`;
 }
 
-// Clicking a Discover card called an undefined openBookPage() and silently did
-// nothing. renderBookPage() only knows about books already in your own shelf (it
-// looks them up by id in allBooks()), and a Discover catalog book isn't one until
-// you add it — so: if you've already added it, go to its real book page; otherwise
-// this does what the card's own "+ Quiero leer" button does.
+// Clicking a Discover card now always opens a real ficha — your own copy's if
+// you already added it, otherwise the generic not-yet-owned ficha (which offers
+// its own "Quiero leer" / "Elegir edición" actions instead of silently guessing).
 function openDiscoverBookCard(title,author){
   const existing=allBooks().find(b=>b.title.toLowerCase()===title.toLowerCase());
-  if(existing){go('bookdetail',null,existing.id);return;}
-  quickAddDirect(title,author,'quiero');
+  const key=existing?bookWorkKey(existing):bookWorkKey({title,author});
+  go('bookdetail',null,key);
 }
 
 function renderDiscover(){
@@ -7524,7 +7687,7 @@ function renderProfile(){
     const bg=b.color||'#8B2635';
     const coverStyle=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;`:`background:${bg};`;
     rnWrap.style.display='block';
-    rnWrap.innerHTML=`<div class="profile-reading-now">
+    rnWrap.innerHTML=`<div class="profile-reading-now" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">
       <div class="profile-reading-now-spine" style="${coverStyle}"></div>
       <div class="profile-reading-now-info">
         <div class="profile-reading-now-tag">📖 Leyendo ahora</div>
@@ -7540,7 +7703,7 @@ function renderProfile(){
   // recent books
   const rb=document.getElementById('p-recent-books');
   if(!DB.leidos.length){rb.innerHTML='<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>';}
-  else{rb.innerHTML=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${DB.leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${b.id}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${b.title}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`;}
+  else{rb.innerHTML=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${DB.leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${b.title}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`;}
 
   // genres — real distribution from read books (was a hardcoded genre-name list with a
   // made-up decay formula, unrelated to the user's actual books; other users' profiles
@@ -8164,10 +8327,13 @@ function renderUserPosts(){
   cont.innerHTML=USER_POSTS.map(p=>renderOnePost(p)).join('');
 }
 
-function onShelfiePostSpineClick(bookId){
-  const book=allBooks().find(b=>b.id===bookId);
-  if(book)go('bookdetail',null,bookId);
-  else toast('Este libro ya no está en el shelfie');
+function onShelfiePostSpineClick(title,author){
+  // The id stored on a shelfie-post snapshot is whoever posted it's own row id at
+  // the time — meaningless to look up in the viewer's shelf. Title+author (or the
+  // viewer's own copy, if they have one under the same work) resolves correctly
+  // for anyone who opens the post, not just its author.
+  const existing=allBooks().find(b=>b.title.toLowerCase()===(title||'').toLowerCase());
+  go('bookdetail',null,existing?bookWorkKey(existing):bookWorkKey({title,author}));
 }
 
 function renderOnePost(p){
@@ -8232,11 +8398,11 @@ function renderOnePost(p){
     const vm=p.shelfViewMode||'shelf';
     if(vm==='grid'){
       stackHtml=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${shelfBooks.map(b=>{
-        return `<div class="grid-item" onclick="onShelfiePostSpineClick('${b.id}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:10.5px">${escapeHtml(b.title)}</div></div>`;
+        return `<div class="grid-item" onclick="onShelfiePostSpineClick('${escapeHtml(b.title).replace(/'/g,"\\'")}','${escapeHtml(b.author||'').replace(/'/g,"\\'")}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:10.5px">${escapeHtml(b.title)}</div></div>`;
       }).join('')}</div>`;
     } else if(vm==='list'){
       stackHtml=`<div class="shelf-list-scroll">${shelfBooks.map(b=>{
-        return `<div class="book-list-row" onclick="onShelfiePostSpineClick('${b.id}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`;
+        return `<div class="book-list-row" onclick="onShelfiePostSpineClick('${escapeHtml(b.title).replace(/'/g,"\\'")}','${escapeHtml(b.author||'').replace(/'/g,"\\'")}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`;
       }).join('')}</div>`;
     } else {
       stackHtml=`<div class="real-shelf" style="min-height:160px">${shelfBooks.map((b,i)=>{
@@ -8245,7 +8411,7 @@ function renderOnePost(p){
         const heightPx=Math.max(110,Math.min(150,110+Math.round(pages/10)));
         const fontSize=b.title.length>26?7:b.title.length>16?8:9;
         const bg=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;background-color:${b.color}`:`background:${b.color}`;
-        return `<div class="real-shelf-spine" style="width:${widthPx}px;height:${heightPx}px;${bg};cursor:pointer" onclick="onShelfiePostSpineClick('${b.id}')" title="${escapeHtml(b.title)}"><div class="real-shelf-spine-title" style="font-size:${fontSize}px">${b.cover?'':escapeHtml(b.title)}</div></div>`;
+        return `<div class="real-shelf-spine" style="width:${widthPx}px;height:${heightPx}px;${bg};cursor:pointer" onclick="onShelfiePostSpineClick('${escapeHtml(b.title).replace(/'/g,"\\'")}','${escapeHtml(b.author||'').replace(/'/g,"\\'")}')" title="${escapeHtml(b.title)}"><div class="real-shelf-spine-title" style="font-size:${fontSize}px">${b.cover?'':escapeHtml(b.title)}</div></div>`;
       }).join('')}</div>`;
     }
     narrativeContent=`
