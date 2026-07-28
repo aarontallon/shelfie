@@ -361,12 +361,20 @@ a{color:inherit}
 .like-btn:hover,.like-btn.on{color:var(--red);background:var(--red-light)}
 .comment-like-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;margin-top:3px;font-family:'Inter',sans-serif}
 .comment-like-btn:hover,.comment-like-btn.on{color:var(--red)}
-.post-reactions-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
-.post-reaction-chip{background:var(--paper);border:1px solid var(--border);border-radius:14px;cursor:pointer;font-size:12px;padding:2px 9px;font-family:'Inter',sans-serif}
-.post-reaction-chip.on{background:var(--red-light);border-color:var(--red);color:var(--red-dark)}
+.post-reactions-summary{display:inline-flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer;padding:3px 8px 3px 4px;border-radius:14px;background:var(--paper);width:fit-content}
+.post-reactions-summary:hover{background:#EFEFEF}
+.post-reactions-cluster{display:inline-flex}
+.post-reactions-cluster-emoji{font-size:14px;margin-left:-4px;background:white;border-radius:50%;box-shadow:0 0 0 1.5px white}
+.post-reactions-cluster-emoji:first-child{margin-left:0}
+.post-reactions-total{font-size:12px;color:var(--ink3)}
 .reaction-picker{position:absolute;bottom:100%;left:0;margin-bottom:6px;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.14);padding:6px 8px;display:flex;gap:4px;z-index:20}
 .reaction-picker-emoji{cursor:pointer;font-size:18px;padding:3px 5px;border-radius:8px;transition:background 0.1s}
 .reaction-picker-emoji:hover,.reaction-picker-emoji.on{background:var(--paper)}
+.reactions-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px;overflow-x:auto}
+.reactions-tab{background:none;border:none;cursor:pointer;font-size:13px;color:var(--ink3);padding:8px 10px;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;white-space:nowrap}
+.reactions-tab.on{color:var(--ink);border-bottom-color:var(--red);font-weight:600}
+.reactions-modal-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F0F0}
+.reactions-modal-row:last-child{border-bottom:none}
 
 /* ═══ NEW FEED: jerarquía, agrupación, logros ═══ */
 .feed-filters{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
@@ -1338,6 +1346,16 @@ a{color:inherit}
   <h2>Notificaciones</h2>
   <p class="sub">Quién ha interactuado contigo</p>
   <div id="notifications-list"></div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: QUIÉN HA REACCIONADO ══════════════════════ -->
+<div class="overlay" id="modal-reactions" style="display:none" onclick="if(event.target===this)closeModal('modal-reactions')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-reactions')"><i class="ti ti-x"></i></button>
+  <h2>Reacciones</h2>
+  <div id="reactions-modal-tabs" class="reactions-tabs"></div>
+  <div id="reactions-modal-body"></div>
 </div>
 </div>
 
@@ -2577,10 +2595,6 @@ async function deleteSupaClub(id){
 // character, subject) so richer post types survive a reload intact.
 function postRowToObject(row){
   const author=authorFromId(row.user_id)||{id:row.user_id,name:'Un lector',username:'',photo:null,bg:'#EEE',tc:'#555',initials:'??'};
-  const reactionRows=row.post_reactions||[];
-  const reactions={};
-  reactionRows.forEach(r=>{reactions[r.emoji]=(reactions[r.emoji]||0)+1;});
-  const myReactions=SUPA_USER?reactionRows.filter(r=>r.user_id===SUPA_USER.id).map(r=>r.emoji):[];
   return {
     id:row.id,
     authorId:row.user_id,
@@ -2596,12 +2610,13 @@ function postRowToObject(row){
     likedByMe:SUPA_USER?(row.likes||[]).some(l=>l.user_id===SUPA_USER.id):false,
     comments:(row.comments||[]).map(c=>{
       const ca=authorFromId(c.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
-      const cLikes=c.comment_likes||[];
-      return{id:c.id,userId:c.user_id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg,
-        likes:cLikes.length,likedByMe:SUPA_USER?cLikes.some(l=>l.user_id===SUPA_USER.id):false};
+      return{id:c.id,userId:c.user_id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg,likes:0,likedByMe:false};
     }),
-    reactions,
-    myReactions,
+    // Filled in afterward by loadPostReactionsInto() — one reaction per person
+    // (LinkedIn-style), not the Slack-style "several emoji at once" this
+    // started as.
+    reactions:{},
+    myReaction:null,
     ...(row.extra||{}),
   };
 }
@@ -2609,26 +2624,11 @@ function postRowToObject(row){
 // Feed = your posts + the posts of everyone you follow, newest first.
 async function loadSupaPosts(){
   const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
-  let{data,error}=await supa.from('posts')
-    .select('*, comments(*, comment_likes(*)), likes(*), post_reactions(*)')
+  const{data,error}=await supa.from('posts')
+    .select('*, comments(*), likes(*)')
     .in('user_id',authorIds)
     .order('created_at',{ascending:false})
     .limit(100);
-  if(error){
-    // comment_likes/post_reactions are new tables — until the matching SQL
-    // migration has actually been run against this Supabase project, asking for
-    // them makes the WHOLE query invalid, and PostgREST returns an error for the
-    // entire request rather than just those columns. That used to silently wipe
-    // the whole feed (real posts included) instead of just missing two features.
-    // Fall back to the base query so real posts/comments/likes still load.
-    console.error('loadSupaPosts: extended select failed (migration not run yet?), falling back:',error);
-    const fallback=await supa.from('posts')
-      .select('*, comments(*), likes(*)')
-      .in('user_id',authorIds)
-      .order('created_at',{ascending:false})
-      .limit(100);
-    data=fallback.data;error=fallback.error;
-  }
   if(error||!data)return;
   const commenterIds=data.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
   await ensureAuthorsLoaded([...data.map(r=>r.user_id),...commenterIds]);
@@ -2637,6 +2637,52 @@ async function loadSupaPosts(){
     POSTS_BY_ID[post.id]=post;
     return post;
   });
+  // Reactions and comment-likes are loaded as SEPARATE queries on purpose —
+  // this used to be one big nested select requiring BOTH comment_likes AND
+  // post_reactions to exist; if either table was missing (e.g. only one half
+  // of a migration had been run), PostgREST rejected the WHOLE query and the
+  // fallback dropped both features at once. Splitting them means a problem
+  // with one never takes down the other, or the feed itself.
+  await loadPostReactionsInto(data.map(r=>r.id));
+  await loadCommentLikesInto(data.flatMap(r=>(r.comments||[]).map(c=>c.id)));
+}
+
+// Populates .reactions ({emoji:count}) and .myReaction (single emoji or null)
+// on every already-loaded post in POSTS_BY_ID.
+async function loadPostReactionsInto(postIds){
+  if(!postIds.length)return;
+  try{
+    const{data,error}=await supa.from('post_reactions').select('post_id,user_id,emoji').in('post_id',postIds);
+    if(error)throw error;
+    const byPost={};
+    (data||[]).forEach(r=>{(byPost[r.post_id]=byPost[r.post_id]||[]).push(r);});
+    Object.entries(byPost).forEach(([postId,rows])=>{
+      const post=POSTS_BY_ID[postId];
+      if(!post)return;
+      const counts={};
+      rows.forEach(r=>{counts[r.emoji]=(counts[r.emoji]||0)+1;});
+      post.reactions=counts;
+      post.myReaction=(SUPA_USER&&rows.find(r=>r.user_id===SUPA_USER.id)?.emoji)||null;
+    });
+  }catch(e){console.error('loadPostReactionsInto failed (post_reactions migration not run yet?):',e);}
+}
+
+// Populates .likes/.likedByMe on every comment of every already-loaded post.
+async function loadCommentLikesInto(commentIds){
+  if(!commentIds.length)return;
+  try{
+    const{data,error}=await supa.from('comment_likes').select('comment_id,user_id').in('comment_id',commentIds);
+    if(error)throw error;
+    const byComment={};
+    (data||[]).forEach(r=>{(byComment[r.comment_id]=byComment[r.comment_id]||[]).push(r);});
+    Object.values(POSTS_BY_ID).forEach(post=>{
+      (post.comments||[]).forEach(c=>{
+        const rows=byComment[c.id]||[];
+        c.likes=rows.length;
+        c.likedByMe=SUPA_USER?rows.some(r=>r.user_id===SUPA_USER.id):false;
+      });
+    });
+  }catch(e){console.error('loadCommentLikesInto failed (comment_likes migration not run yet?):',e);}
 }
 
 // ── Save post to DB ──
@@ -2718,15 +2764,19 @@ async function toggleSupaCommentLike(commentId,liked){
 // ── Toggle an emoji reaction on a post — a user can have several different
 // emoji active on the same post at once (Slack-style), each one independently
 // togglable. ──
-async function toggleSupaReaction(postId,emoji,active){
+// One reaction per person per post (LinkedIn-style) — setSupaReaction upserts
+// on (post_id,user_id), so picking a different emoji REPLACES your previous
+// one instead of adding a second row.
+async function setSupaReaction(postId,emoji){
   if(!SUPA_USER)return true;
-  if(active){
-    const{error}=await supa.from('post_reactions').upsert({post_id:postId,user_id:SUPA_USER.id,emoji},{onConflict:'post_id,user_id,emoji'});
-    if(error){console.error('toggleSupaReaction (add) failed:',error);return false;}
-  } else {
-    const{error}=await supa.from('post_reactions').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id).eq('emoji',emoji);
-    if(error){console.error('toggleSupaReaction (remove) failed:',error);return false;}
-  }
+  const{error}=await supa.from('post_reactions').upsert({post_id:postId,user_id:SUPA_USER.id,emoji},{onConflict:'post_id,user_id'});
+  if(error){console.error('setSupaReaction failed:',error);return false;}
+  return true;
+}
+async function clearSupaReaction(postId){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('post_reactions').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+  if(error){console.error('clearSupaReaction failed:',error);return false;}
   return true;
 }
 
@@ -2829,8 +2879,9 @@ function subscribeToFeedRealtime(){
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'likes'},payload=>handleLikeRealtime(payload.old,false))
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'comment_likes'},payload=>handleCommentLikeRealtime(payload.new,true))
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'comment_likes'},payload=>handleCommentLikeRealtime(payload.old,false))
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime(payload.new,true))
-    .on('postgres_changes',{event:'DELETE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime(payload.old,false))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('INSERT',payload))
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('UPDATE',payload))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('DELETE',payload))
     .subscribe();
 }
 
@@ -2842,7 +2893,7 @@ async function handleIncomingPost(row){
   const feedIds=new Set([SUPA_USER.id,...FRIENDS.map(f=>f.id)]);
   if(!feedIds.has(row.user_id))return;
   await ensureAuthorsLoaded([row.user_id]);
-  const post=postRowToObject({...row,comments:[],likes:[],post_reactions:[]});
+  const post=postRowToObject({...row,comments:[],likes:[]});
   POSTS_BY_ID[post.id]=post;
   USER_POSTS.unshift(post);
   if(document.getElementById('p-feed')?.classList.contains('on'))renderUserPosts();
@@ -2890,13 +2941,25 @@ function handleCommentLikeRealtime(row,added){
   }
 }
 
-function handleReactionRealtime(row,added){
+// One reaction per person means switching emoji is an UPDATE on the same
+// (post_id,user_id) row, not a delete+insert — handled explicitly here so the
+// old emoji's count goes down and the new one's goes up in the same event.
+function handleReactionRealtime(type,payload){
+  const row=type==='DELETE'?payload.old:payload.new;
   if(row.user_id===SUPA_USER.id)return;
   const post=POSTS_BY_ID[row.post_id];
   if(!post)return;
   if(!post.reactions)post.reactions={};
-  post.reactions[row.emoji]=Math.max(0,(post.reactions[row.emoji]||0)+(added?1:-1));
-  if(post.reactions[row.emoji]<=0)delete post.reactions[row.emoji];
+  const bump=(emoji,delta)=>{
+    if(!emoji)return;
+    post.reactions[emoji]=Math.max(0,(post.reactions[emoji]||0)+delta);
+    if(post.reactions[emoji]<=0)delete post.reactions[emoji];
+  };
+  if(type==='INSERT')bump(row.emoji,1);
+  else if(type==='DELETE')bump(row.emoji,-1);
+  else if(type==='UPDATE'){
+    if(payload.old.emoji!==payload.new.emoji){bump(payload.old.emoji,-1);bump(payload.new.emoji,1);}
+  }
   refreshPostCard(post.id);
 }
 
@@ -3915,6 +3978,8 @@ async function renderUserProfilePage(username){
       POSTS_BY_ID[post.id]=post;
       return post;
     });
+    await loadPostReactionsInto(rows.map(r=>r.id));
+    await loadCommentLikesInto(rows.flatMap(r=>(r.comments||[]).map(c=>c.id)));
     renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached);
   }catch(e){
     console.error('renderUserProfilePage failed:',e);
@@ -8760,11 +8825,15 @@ function renderOnePost(p){
         </div>
       </div>`).join('')}</div>`:'';
 
-  const reactionEntries=Object.entries(p.reactions||{}).filter(([,n])=>n>0);
-  const myReactionsSet=new Set(p.myReactions||[]);
-  const reactionsHtml=reactionEntries.length?`<div class="post-reactions-row">${reactionEntries.map(([emoji,n])=>
-    `<button class="post-reaction-chip ${myReactionsSet.has(emoji)?'on':''}" onclick="toggleReaction('${p.id}','${emoji}')">${emoji} ${n}</button>`
-  ).join('')}</div>`:'';
+  // LinkedIn-style summary: a small cluster of the top distinct emoji used +
+  // the total count, clicking it opens the full reactor list (openReactionsModal)
+  // — not a row of separate per-emoji chips.
+  const reactionEntries=Object.entries(p.reactions||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+  const reactionTotal=reactionEntries.reduce((s,[,n])=>s+n,0);
+  const reactionsHtml=reactionEntries.length?`<div class="post-reactions-summary" onclick="openReactionsModal('${p.id}')">
+    <span class="post-reactions-cluster">${reactionEntries.slice(0,3).map(([e])=>`<span class="post-reactions-cluster-emoji">${e}</span>`).join('')}</span>
+    <span class="post-reactions-total">${reactionTotal}</span>
+  </div>`:'';
 
   // For cita/marginalia the body has its own padding/background, so it sits in a wrapper without extra card padding.
   // For tweet/hilo the body needs the standard horizontal padding since the card itself provides it.
@@ -8917,7 +8986,8 @@ async function toggleCommentLike(postId,commentId,btn){
   _commentLikeInFlight.delete(commentId);
 }
 
-// ── Emoji reactions on posts ──
+// ── Emoji reactions on posts — one per person (LinkedIn-style): picking a
+// different emoji replaces your previous reaction, it never stacks. ──
 const REACTION_EMOJIS=['👍','❤️','😂','😮','😢','🎉'];
 const _reactionInFlight=new Set();
 function toggleReactionPicker(id,btn){
@@ -8928,40 +8998,79 @@ function toggleReactionPicker(id,btn){
   picker.className='reaction-picker';
   picker.dataset.for=id;
   const post=POSTS_BY_ID[id];
-  const mine=new Set(post?.myReactions||[]);
-  picker.innerHTML=REACTION_EMOJIS.map(e=>`<span class="reaction-picker-emoji ${mine.has(e)?'on':''}" onclick="event.stopPropagation();toggleReaction('${id}','${e}');this.closest('.reaction-picker').remove()">${e}</span>`).join('');
+  const mine=post?.myReaction||null;
+  picker.innerHTML=REACTION_EMOJIS.map(e=>`<span class="reaction-picker-emoji ${mine===e?'on':''}" onclick="event.stopPropagation();toggleReaction('${id}','${e}');this.closest('.reaction-picker').remove()">${e}</span>`).join('');
   btn.parentElement.appendChild(picker);
   const closeOnOutside=ev=>{if(!picker.contains(ev.target)&&ev.target!==btn){picker.remove();document.removeEventListener('click',closeOnOutside);}};
   setTimeout(()=>document.addEventListener('click',closeOnOutside),0);
 }
 
+// Clicking the SAME emoji you already reacted with removes your reaction;
+// any other emoji replaces whatever you had before (or sets a first one).
 async function toggleReaction(id,emoji){
-  const flightKey=id+emoji;
-  if(_reactionInFlight.has(flightKey))return;
-  _reactionInFlight.add(flightKey);
+  if(_reactionInFlight.has(id))return;
+  _reactionInFlight.add(id);
   const post=POSTS_BY_ID[id];
-  if(!post){_reactionInFlight.delete(flightKey);return;}
+  if(!post){_reactionInFlight.delete(id);return;}
   if(!post.reactions)post.reactions={};
-  if(!post.myReactions)post.myReactions=[];
-  const hadIt=post.myReactions.includes(emoji);
-  if(hadIt){
-    post.myReactions=post.myReactions.filter(e=>e!==emoji);
-    post.reactions[emoji]=Math.max(0,(post.reactions[emoji]||1)-1);
-    if(post.reactions[emoji]<=0)delete post.reactions[emoji];
-  } else {
-    post.myReactions.push(emoji);
-    post.reactions[emoji]=(post.reactions[emoji]||0)+1;
-  }
+  const prev=post.myReaction||null;
+  const removing=prev===emoji;
+  const applyOptimistic=(prevEmoji,nextEmoji)=>{
+    if(prevEmoji){post.reactions[prevEmoji]=Math.max(0,(post.reactions[prevEmoji]||1)-1);if(post.reactions[prevEmoji]<=0)delete post.reactions[prevEmoji];}
+    if(nextEmoji)post.reactions[nextEmoji]=(post.reactions[nextEmoji]||0)+1;
+    post.myReaction=nextEmoji;
+  };
+  applyOptimistic(prev,removing?null:emoji);
   refreshPostCard(id);
-  const ok=await toggleSupaReaction(id,emoji,!hadIt);
+  const ok=removing?await clearSupaReaction(id):await setSupaReaction(id,emoji);
   if(!ok){
-    // revert
-    if(hadIt){post.myReactions.push(emoji);post.reactions[emoji]=(post.reactions[emoji]||0)+1;}
-    else{post.myReactions=post.myReactions.filter(e=>e!==emoji);post.reactions[emoji]=Math.max(0,(post.reactions[emoji]||1)-1);if(post.reactions[emoji]<=0)delete post.reactions[emoji];}
+    applyOptimistic(removing?null:emoji,prev); // revert
     refreshPostCard(id);
     toast('❌ No se pudo guardar la reacción. Inténtalo de nuevo.');
   }
-  _reactionInFlight.delete(flightKey);
+  _reactionInFlight.delete(id);
+}
+
+// LinkedIn-style "who reacted" modal — real reactor list, grouped by emoji.
+async function openReactionsModal(postId){
+  const post=POSTS_BY_ID[postId];
+  if(!post)return;
+  const modal=document.getElementById('modal-reactions');
+  const body=document.getElementById('reactions-modal-body');
+  openModal('modal-reactions');
+  body.innerHTML='<div class="s-loading" style="padding:24px 0"><i class="ti ti-loader-2 spin"></i> Cargando...</div>';
+  try{
+    const{data,error}=await supa.from('post_reactions').select('user_id,emoji').eq('post_id',postId);
+    if(error)throw error;
+    const rows=data||[];
+    await ensureAuthorsLoaded(rows.map(r=>r.user_id));
+    _reactionsModalData={rows};
+    renderReactionsModalTab('all');
+  }catch(e){
+    console.error('openReactionsModal failed:',e);
+    body.innerHTML='<div class="text-sm text-muted" style="padding:16px 0">No se pudieron cargar las reacciones.</div>';
+  }
+}
+let _reactionsModalData={rows:[]};
+function renderReactionsModalTab(filterEmoji){
+  const rows=_reactionsModalData.rows;
+  const counts={};
+  rows.forEach(r=>{counts[r.emoji]=(counts[r.emoji]||0)+1;});
+  const tabsEl=document.getElementById('reactions-modal-tabs');
+  const emojiList=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([e])=>e);
+  tabsEl.innerHTML=`<button class="reactions-tab ${filterEmoji==='all'?'on':''}" onclick="renderReactionsModalTab('all')">Todas (${rows.length})</button>`+
+    emojiList.map(e=>`<button class="reactions-tab ${filterEmoji===e?'on':''}" onclick="renderReactionsModalTab('${e}')">${e} ${counts[e]}</button>`).join('');
+  const shown=filterEmoji==='all'?rows:rows.filter(r=>r.emoji===filterEmoji);
+  const body=document.getElementById('reactions-modal-body');
+  body.innerHTML=shown.length?shown.map(r=>{
+    const a=authorFromId(r.user_id)||{name:'Un lector',initials:'??',bg:'#EEE',tc:'#555',username:null};
+    const av=a.photo?`background-image:url(${a.photo});background-size:cover`:`background:${a.bg||'var(--red)'}`;
+    return `<div class="reactions-modal-row" ${a.username?`onclick="closeModal('modal-reactions');go('userprofile',null,'${a.username}')" style="cursor:pointer"`:''}>
+      <div class="u-av" style="${av};width:36px;height:36px;flex-shrink:0">${a.photo?'':a.initials}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${escapeHtml(a.name)}</div></div>
+      <div style="font-size:18px">${r.emoji}</div>
+    </div>`;
+  }).join(''):'<div class="text-sm text-muted" style="padding:16px 0">Sin reacciones.</div>';
 }
 
 async function deleteUserPost(id){
@@ -8995,7 +9104,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-reactions','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
 });
 
 // enter key on auth forms
