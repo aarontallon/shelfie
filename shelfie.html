@@ -971,6 +971,12 @@ a{color:inherit}
 .s-title{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-author{font-size:11px;color:var(--ink3)}
 .s-loading{padding:14px;text-align:center;font-size:13px;color:var(--ink3);display:flex;align-items:center;justify-content:center;gap:8px}
+.global-search-modal{width:520px;max-width:92vw}
+.global-search-results{margin-top:12px;max-height:min(60vh,420px);overflow-y:auto;border-radius:12px}
+.global-search-results:not(:empty){border:1px solid var(--border)}
+.sb-search-btn{display:flex;align-items:center;gap:10px;width:calc(100% - 36px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.55);font-size:13px;font-family:'Inter',sans-serif;padding:9px 12px;border-radius:8px;cursor:pointer;margin:0 18px 14px;transition:background 0.15s}
+.sb-search-btn:hover{background:rgba(255,255,255,0.1);color:white}
+.sb-search-btn kbd{margin-left:auto;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:2px 5px;font-family:inherit}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .spin{animation:spin 0.8s linear infinite;display:inline-block}
 .qadd-panel{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border)}
@@ -998,11 +1004,6 @@ a{color:inherit}
 .cover-drop{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all 0.12s}
 .cover-drop:hover{border-color:var(--red);background:var(--red-light)}
 .cover-drop input{display:none}
-.global-srch{position:relative}
-.global-srch input{padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:white;color:var(--ink);width:220px;outline:none}
-.global-srch input:focus{border-color:var(--red)}
-.global-srch .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--ink3);pointer-events:none}
-.global-srch .drop{position:absolute;top:calc(100% + 4px);left:0;width:340px;background:white;border:1px solid var(--border);border-radius:12px;z-index:400;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.1);display:none;max-height:320px;overflow-y:auto}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:2px}
@@ -1065,7 +1066,6 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
 <div class="auth-screen" id="auth-login">
-  <button onclick="devQuickEnter()" title="Acceso rápido de prueba" style="position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.7);font-size:11px;font-family:'Inter',sans-serif;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:0.3px;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">⚡ Dev</button>
   <div class="auth-box" id="login-box">
     <div class="auth-logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
@@ -1365,6 +1365,20 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: BÚSQUEDA GLOBAL (Ctrl/Cmd+K) ══════════════════════ -->
+<div class="overlay" id="modal-global-search" style="display:none;align-items:flex-start" onclick="if(event.target===this)closeGlobalSearch()">
+<div class="modal global-search-modal">
+  <button class="modal-close" onclick="closeGlobalSearch()"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-search" style="font-size:20px;color:var(--red)"></i> Buscar</h2>
+  <p class="sub">Busca cualquier libro y añádelo directamente a tu shelfie</p>
+  <div class="srch-wrap" style="width:100%">
+    <i class="ti ti-search srch-ico"></i>
+    <input class="srch-inp" id="g-inp" style="width:100%" placeholder="Título o autor..." oninput="onGlobalSearch(this.value)" autocomplete="off">
+  </div>
+  <div id="g-drop" class="global-search-results"></div>
+</div>
+</div>
+
 <!-- ══════════════════════ APP SHELL ══════════════════════ -->
 <div class="app" id="app-shell">
 <nav class="sidebar">
@@ -1374,6 +1388,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
   </div>
+  <button class="sb-search-btn" onclick="openGlobalSearch()"><i class="ti ti-search"></i> Buscar <kbd>Ctrl K</kbd></button>
   <div class="sb-section">
     <div class="sb-lbl">Principal</div>
     <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
@@ -3209,11 +3224,6 @@ function getAuthorData(authorName){
 // ═══════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════
-function devQuickEnter(){
-  PROFILE={name:'Aaron Tallón',username:'aarontallon',bio:'Dev mode 🛠️',city:'Barcelona',photo:null,email:'test@dev.local',public:true};
-  enterApp(false);
-}
-
 function showAuth(which){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('auth-'+which).classList.add('on');
@@ -4192,13 +4202,28 @@ function onModalSearch(q){
   }),450);
 }
 
+// Ctrl/Cmd+K command-palette-style search: works the same on desktop and mobile
+// without needing to carve out header space anywhere, and reuses the existing
+// Open Library search + add-book flow once a result is picked.
+function openGlobalSearch(){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  openModal('modal-global-search');
+  document.getElementById('g-drop').innerHTML='';
+  setTimeout(()=>document.getElementById('g-inp').focus(),50);
+}
+function closeGlobalSearch(){
+  closeModal('modal-global-search');
+  document.getElementById('g-inp').value='';
+  document.getElementById('g-drop').innerHTML='';
+}
+
 function onGlobalSearch(q){
   clearTimeout(searchTimers.global);
   const drop=document.getElementById('g-drop');
-  if(!q||q.length<2){drop.style.display='none';return;}
+  if(!q||q.length<2){drop.innerHTML='';return;}
   searchTimers.global=setTimeout(()=>searchOL(q,'g-drop', book=>{
-    document.getElementById('g-inp').value='';
-    drop.style.display='none';
+    closeGlobalSearch();
     openModal('modal-add');
     fetchOLWorkDetails(book);
     setTimeout(()=>{
@@ -4247,9 +4272,11 @@ function renderRetoAssigned(){
 }
 
 document.addEventListener('click',e=>{
-  ['modal-srch-drop','g-drop','reto-srch-drop'].forEach(id=>{
+  // g-drop lives inside modal-global-search now (not a floating header dropdown), and
+  // that modal already closes on its own backdrop click — no outside-click handling needed for it.
+  ['modal-srch-drop','reto-srch-drop'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&!e.target.closest('.srch-wrap')&&!e.target.closest('.global-srch'))el.style.display='none';
+    if(el&&!e.target.closest('.srch-wrap'))el.style.display='none';
   });
 });
 
@@ -8120,8 +8147,8 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-global-search'].forEach(id=>document.getElementById(id).style.display='none');
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();openGlobalSearch();}
 });
 
 // enter key on auth forms
