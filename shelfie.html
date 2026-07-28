@@ -43,7 +43,7 @@ a{color:inherit}
 /* ═══════ GENERAL ═══════ */
 .app{display:none;grid-template-columns:230px 1fr;min-height:100vh}
 .app.on{display:grid}
-.sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
 .main{overflow-x:hidden;position:relative}
 .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;position:fixed;top:0;left:0;right:0;height:56px;background:var(--paper);border-bottom:1px solid var(--border);z-index:200}
 .mobile-menu-btn{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:8px}
@@ -971,12 +971,6 @@ a{color:inherit}
 .s-title{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-author{font-size:11px;color:var(--ink3)}
 .s-loading{padding:14px;text-align:center;font-size:13px;color:var(--ink3);display:flex;align-items:center;justify-content:center;gap:8px}
-.global-search-modal{width:520px;max-width:92vw}
-.global-search-results{margin-top:12px;max-height:min(60vh,420px);overflow-y:auto;border-radius:12px}
-.global-search-results:not(:empty){border:1px solid var(--border)}
-.sb-search-btn{display:flex;align-items:center;gap:10px;width:calc(100% - 36px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.55);font-size:13px;font-family:'Inter',sans-serif;padding:9px 12px;border-radius:8px;cursor:pointer;margin:0 18px 14px;transition:background 0.15s}
-.sb-search-btn:hover{background:rgba(255,255,255,0.1);color:white}
-.sb-search-btn kbd{margin-left:auto;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:2px 5px;font-family:inherit}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .spin{animation:spin 0.8s linear infinite;display:inline-block}
 .qadd-panel{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border)}
@@ -1383,20 +1377,6 @@ a{color:inherit}
 </div>
 </div>
 
-<!-- ══════════════════════ MODAL: BÚSQUEDA GLOBAL (Ctrl/Cmd+K) ══════════════════════ -->
-<div class="overlay" id="modal-global-search" style="display:none;align-items:flex-start" onclick="if(event.target===this)closeGlobalSearch()">
-<div class="modal global-search-modal">
-  <button class="modal-close" onclick="closeGlobalSearch()"><i class="ti ti-x"></i></button>
-  <h2><i class="ti ti-search" style="font-size:20px;color:var(--red)"></i> Buscar</h2>
-  <p class="sub">Busca cualquier libro y añádelo directamente a tu shelfie</p>
-  <div class="srch-wrap" style="width:100%">
-    <i class="ti ti-search srch-ico"></i>
-    <input class="srch-inp" id="g-inp" style="width:100%" placeholder="Título o autor..." oninput="onGlobalSearch(this.value)" autocomplete="off">
-  </div>
-  <div id="g-drop" class="global-search-results"></div>
-</div>
-</div>
-
 <!-- ══════════════════════ APP SHELL ══════════════════════ -->
 <div class="app" id="app-shell">
 <nav class="sidebar">
@@ -1406,7 +1386,6 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
   </div>
-  <button class="sb-search-btn" onclick="openGlobalSearch()"><i class="ti ti-search"></i> Buscar <kbd>Ctrl K</kbd></button>
   <div class="sb-section">
     <div class="sb-lbl">Principal</div>
     <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
@@ -2268,7 +2247,7 @@ a{color:inherit}
       </div>
       <div class="profile-hero-info">
         <div class="profile-name" id="p-name">Aarón</div>
-        <div class="profile-handle">@<span id="p-username">aaron_reads</span><span class="profile-visibility-badge" id="p-visibility-badge"></span></div>
+        <div class="profile-handle">@<span id="p-username">aaron_reads</span></div>
         <div class="profile-bio-text" id="p-bio">Lector apasionado.</div>
         <div class="profile-city-row"><i class="ti ti-map-pin" style="font-size:12px;vertical-align:-1px"></i> <span id="p-city">Barcelona</span></div>
         <div class="profile-genre-tags" id="p-genre-tags"></div>
@@ -2439,7 +2418,7 @@ async function loadSupaBooks(){
       readHistory:row.read_history||[],
       finishedAt:row.finished_at||null,
       isFavorite:row.is_favorite||false,
-      rankPos:row.rank_pos||null,
+      rankPos:row.rank_pos??null,
       publisher:row.publisher||null,
       isbn:row.isbn||null,
       editionYear:row.edition_year||null,
@@ -2475,7 +2454,7 @@ async function saveSupaBook(book,attempt){
     read_history:book.readHistory||[],
     finished_at:book.finishedAt||null,
     is_favorite:book.isFavorite||false,
-    rank_pos:book.rankPos||null,
+    rank_pos:book.rankPos??null,
     publisher:book.publisher||null,
     isbn:book.isbn||null,
     edition_year:book.editionYear||null,
@@ -4333,37 +4312,6 @@ function onModalSearch(q){
   }),450);
 }
 
-// Ctrl/Cmd+K command-palette-style search: works the same on desktop and mobile
-// without needing to carve out header space anywhere, and reuses the existing
-// Open Library search + add-book flow once a result is picked.
-function openGlobalSearch(){
-  document.querySelector('.sidebar')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
-  openModal('modal-global-search');
-  document.getElementById('g-drop').innerHTML='';
-  setTimeout(()=>document.getElementById('g-inp').focus(),50);
-}
-function closeGlobalSearch(){
-  closeModal('modal-global-search');
-  document.getElementById('g-inp').value='';
-  document.getElementById('g-drop').innerHTML='';
-}
-
-function onGlobalSearch(q){
-  clearTimeout(searchTimers.global);
-  const drop=document.getElementById('g-drop');
-  if(!q||q.length<2){drop.innerHTML='';return;}
-  searchTimers.global=setTimeout(()=>searchOL(q,'g-drop', book=>{
-    closeGlobalSearch();
-    openModal('modal-add');
-    fetchOLWorkDetails(book);
-    setTimeout(()=>{
-      if(book.olKey){pendingBook=book;fetchEditionsAndPick(book);}
-      else{selectBookForAdd(book);}
-    },150);
-  }),450);
-}
-
 function onRetoSearch(q){
   const drop=document.getElementById('reto-srch-drop');
   const already=new Set(retoAssigned.map(b=>b.id));
@@ -4403,8 +4351,6 @@ function renderRetoAssigned(){
 }
 
 document.addEventListener('click',e=>{
-  // g-drop lives inside modal-global-search now (not a floating header dropdown), and
-  // that modal already closes on its own backdrop click — no outside-click handling needed for it.
   ['modal-srch-drop','reto-srch-drop'].forEach(id=>{
     const el=document.getElementById(id);
     if(el&&!e.target.closest('.srch-wrap'))el.style.display='none';
@@ -4523,12 +4469,13 @@ function handleDrop(e){e.preventDefault();const file=e.dataTransfer.files[0];if(
 // auto-crop the same source photo with CSS `background-size:cover` framed it
 // differently everywhere. Cropping once, here, to a fixed square before upload
 // means every place just displays that same square — identical framing everywhere.
-let _pcImg=null,_pcScale=1,_pcBaseScale=1,_pcLeft=0,_pcTop=0;
+let _pcImg=null,_pcFile=null,_pcScale=1,_pcBaseScale=1,_pcLeft=0,_pcTop=0;
 let _pcDragging=false,_pcDragStartX=0,_pcDragStartY=0,_pcStartLeft=0,_pcStartTop=0;
 const PC_VIEWPORT=280;
 
 function handleProfilePhoto(input){
   const file=input.files[0];if(!file)return;
+  _pcFile=file;
   const reader=new FileReader();
   reader.onload=e=>{
     const img=new Image();
@@ -4603,16 +4550,29 @@ initPhotoCropDrag();
 function closePhotoCrop(){
   closeModal('modal-photo-crop');
   document.getElementById('prof-photo').value='';
-  _pcImg=null;
+  _pcImg=null;_pcFile=null;
 }
 
-function confirmPhotoCrop(){
+async function confirmPhotoCrop(){
   if(!_pcImg)return;
   const OUT=500;
   const sx=(-_pcLeft)/_pcScale, sy=(-_pcTop)/_pcScale, sSize=PC_VIEWPORT/_pcScale;
   const canvas=document.createElement('canvas');
   canvas.width=OUT;canvas.height=OUT;
-  canvas.getContext('2d').drawImage(_pcImg,sx,sy,sSize,sSize,0,0,OUT,OUT);
+  // Phone photos routinely carry an EXIF orientation tag (portrait shot stored as
+  // rotated/mirrored landscape pixel data + a "please rotate me" flag). The <img>
+  // preview above already honors that for display, which is why dragging/zooming
+  // looked right — but canvas drawImage() on that same <img> element doesn't
+  // reliably apply it in every browser, so the exported square came out cropped
+  // from the WRONG (un-rotated) pixel data even though the preview looked correct.
+  // createImageBitmap's imageOrientation option decodes with orientation applied,
+  // guaranteeing the export matches what was actually shown and selected.
+  let drawSource=_pcImg;
+  if(_pcFile&&window.createImageBitmap){
+    try{drawSource=await createImageBitmap(_pcFile,{imageOrientation:'from-image'});}
+    catch(e){console.error('createImageBitmap failed, falling back to <img> data:',e);}
+  }
+  canvas.getContext('2d').drawImage(drawSource,sx,sy,sSize,sSize,0,0,OUT,OUT);
   canvas.toBlob(blob=>{
     const file=new File([blob],'avatar.jpg',{type:'image/jpeg'});
     PROFILE._pendingPhotoFile=file;
@@ -4620,7 +4580,7 @@ function confirmPhotoCrop(){
     av.style.background='none';av.style.backgroundImage=`url(${URL.createObjectURL(blob)})`;av.textContent='';
     closeModal('modal-photo-crop');
     document.getElementById('prof-photo').value='';
-    _pcImg=null;
+    _pcImg=null;_pcFile=null;
   },'image/jpeg',0.92);
 }
 
@@ -7450,9 +7410,6 @@ function renderProfile(){
   document.getElementById('p-username').textContent=PROFILE.username;
   document.getElementById('p-bio').textContent=PROFILE.bio;
   document.getElementById('p-city').textContent=PROFILE.city;
-  // Every profile/shelfie/post is public-read regardless of any flag (see supabase_schema.sql
-  // RLS policies) — there's no actual private mode, so this is a statement of fact, not a toggle.
-  document.getElementById('p-visibility-badge').textContent='🌍 Público';
   updateProfileStats();
 
   // racha de lectura + avatar ring + badge
@@ -8423,8 +8380,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-global-search','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();openGlobalSearch();}
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
 });
 
 // enter key on auth forms
