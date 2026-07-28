@@ -70,17 +70,28 @@ a{color:inherit}
 .landing-floaty-1{top:6px;right:-16px}
 .landing-floaty-2{bottom:2px;left:-20px}
 
-.landing-section{max-width:1180px;margin:0 auto;padding:88px 40px}
+.landing-section{max-width:1180px;margin:0 auto;padding:60px 40px}
 .landing-section-head{text-align:center;max-width:600px;margin:0 auto 48px}
 .landing-section-eyebrow{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--red)}
 .landing-section-title{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;color:var(--ink);letter-spacing:-0.01em;margin:10px 0 12px}
 .landing-section-sub{font-size:15px;color:var(--ink3);line-height:1.6}
 
-.landing-split{display:grid;grid-template-columns:0.85fr 1fr;gap:64px;align-items:center}
-.landing-split-rev{grid-template-columns:1fr 0.85fr}
+.landing-split{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+.landing-split-rev{grid-template-columns:1fr 1.05fr}
 .landing-split-rev .landing-split-visual{order:2}
 .landing-split-rev .landing-split-text{order:1}
-.landing-split-visual svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.12))}
+.landing-split-visual svg{width:100%;height:auto;max-width:420px;display:block;margin:0 auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.12))}
+
+.landing-demo-card{background:#FFFFFF;border:1px solid #EEE;border-radius:18px;padding:24px;max-width:440px;margin:0 auto;box-shadow:0 20px 40px rgba(0,0,0,0.12)}
+.landing-demo-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.landing-demo-tab{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:20px;border:none;cursor:pointer;background:#F2F2F2;color:#999;transition:all .15s}
+.landing-demo-tab.on{background:var(--ink);color:white}
+.landing-demo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;min-height:190px}
+.landing-demo-cover{aspect-ratio:2/3;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,0.15);transition:transform .12s}
+.landing-demo-cover:active{cursor:grabbing}
+.landing-demo-cover.drag-over{outline:2.5px dashed rgba(0,0,0,0.3);outline-offset:2px}
+.landing-demo-cover span{font-family:'Playfair Display',serif;font-size:10.5px;color:rgba(255,255,255,0.92);line-height:1.25}
+.landing-demo-hint{font-size:11.5px;color:#999;margin-top:14px;display:flex;align-items:center;gap:6px}
 .landing-split-text .landing-section-title{margin-top:6px}
 
 .landing-also-strip{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;padding:28px;background:var(--paper);border:1px solid var(--border);border-radius:18px}
@@ -93,11 +104,6 @@ a{color:inherit}
 .landing-feature-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:-0.01em}
 .landing-feature-desc{font-size:13.5px;color:var(--ink3);line-height:1.55}
 
-.landing-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;counter-reset:landing-step}
-.landing-step{position:relative;padding-left:0}
-.landing-step-n{font-family:'Playfair Display',serif;font-size:44px;font-weight:900;color:var(--red-light);line-height:1;margin-bottom:10px}
-.landing-step-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
-.landing-step-desc{font-size:13.5px;color:var(--ink3);line-height:1.55}
 
 .landing-cta-band{background:var(--ink);padding:70px 40px;text-align:center;position:relative;overflow:hidden}
 .landing-cta-band::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(74,124,95,0.25),transparent 70%)}
@@ -122,7 +128,6 @@ a{color:inherit}
   .landing-split-rev .landing-split-text{order:2}
   .landing-split-text .landing-section-title,.landing-split-text .landing-section-sub{text-align:center!important}
   .landing-also-strip{padding:20px}
-  .landing-steps{grid-template-columns:1fr;gap:26px}
   .landing-section{padding:64px 24px}
   .landing-nav{padding:16px 20px;gap:8px}
   .landing-nav-actions{gap:2px}
@@ -1208,7 +1213,6 @@ a{color:inherit}
           <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crea tu shelfie</button>
           <button class="btn btn-white btn-lg" onclick="showAuth('login')"><i class="ti ti-login"></i> Ya tengo cuenta</button>
         </div>
-        <div class="landing-microcopy">Gratis para siempre · Sin tarjeta de crédito</div>
       </div>
       <div class="landing-hero-visual">
         <svg class="landing-shelfie-card" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
@@ -1247,43 +1251,16 @@ a{color:inherit}
 
   <section class="landing-section landing-split">
     <div class="landing-split-visual">
-      <svg viewBox="0 0 340 360" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="340" height="360" rx="18" fill="#FFFFFF"/>
-        <rect x="0.5" y="0.5" width="339" height="359" rx="18" fill="none" stroke="#EEE"/>
-        <rect x="20" y="20" width="88" height="30" rx="15" fill="#1A1A1A"/>
-        <text x="64" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="white" text-anchor="middle">Leídos 24</text>
-        <text x="128" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#999" text-anchor="middle">Leyendo 2</text>
-        <text x="210" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#999" text-anchor="middle">Quiero leer 9</text>
-        <rect x="20" y="70" width="70" height="100" rx="6" fill="#8B2635"/>
-        <text x="55" y="115" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Cien años</text>
-        <text x="55" y="128" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">de soledad</text>
-        <rect x="98" y="70" width="70" height="100" rx="6" fill="#1E3A5F"/>
-        <text x="133" y="122" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Rayuela</text>
-        <rect x="176" y="70" width="70" height="100" rx="6" fill="#5B4636"/>
-        <text x="211" y="122" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">2666</text>
-        <circle cx="234" cy="82" r="12" fill="#D97706"/>
-        <path d="M234 76 L236.5 80.5 L241.5 81.2 L237.8 84.8 L238.7 89.8 L234 87.3 L229.3 89.8 L230.2 84.8 L226.5 81.2 L231.5 80.5Z" fill="white"/>
-        <rect x="254" y="70" width="66" height="100" rx="6" fill="#3D6B52"/>
-        <text x="287" y="115" font-family="'Playfair Display',serif" font-size="9.5" fill="rgba(255,255,255,0.9)" text-anchor="middle">Pedro</text>
-        <text x="287" y="128" font-family="'Playfair Display',serif" font-size="9.5" fill="rgba(255,255,255,0.9)" text-anchor="middle">Páramo</text>
-        <rect x="20" y="182" width="70" height="100" rx="6" fill="#7C3AED"/>
-        <text x="55" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Ficciones</text>
-        <rect x="98" y="182" width="70" height="100" rx="6" fill="#B45309"/>
-        <text x="133" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">El Aleph</text>
-        <rect x="176" y="182" width="70" height="100" rx="6" fill="#0F766E"/>
-        <text x="211" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Beloved</text>
-        <rect x="254" y="182" width="66" height="100" rx="6" fill="#2563EB"/>
-        <text x="287" y="234" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">1984</text>
-        <rect x="20" y="300" width="145" height="40" rx="12" fill="#EBF4EF"/>
-        <text x="92" y="325" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#2A4F3C" text-anchor="middle">📚 35 este año</text>
-        <rect x="175" y="300" width="145" height="40" rx="12" fill="#FFFBEB"/>
-        <text x="247" y="325" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#92400E" text-anchor="middle">🔥 12 días seguidos</text>
-      </svg>
+      <div class="landing-demo-card">
+        <div class="landing-demo-tabs" id="landing-demo-tabs"></div>
+        <div class="landing-demo-grid" id="landing-demo-grid"></div>
+        <div class="landing-demo-hint"><i class="ti ti-arrows-move"></i> Arrastra los libros para reordenar tu shelfie</div>
+      </div>
     </div>
     <div class="landing-split-text">
       <div class="landing-section-eyebrow">Tu estantería, tu perfil</div>
       <h2 class="landing-section-title" style="text-align:left">Monta tu shelfie con tus lecturas</h2>
-      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Leídos, leyendo, quiero leer y abandonados. Portadas reales, tu propio ranking de favoritos, y una estantería visual que se actualiza sola cada vez que añades un libro.</p>
+      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Leídos, leyendo y quiero leer, con portadas y tu propio orden. Pruébalo aquí mismo — así de sencillo es organizar tu shelfie de verdad.</p>
     </div>
   </section>
 
@@ -1327,30 +1304,6 @@ a{color:inherit}
       <div class="landing-also-item"><i class="ti ti-trophy"></i> Retos de lectura</div>
       <div class="landing-also-item"><i class="ti ti-chart-bar"></i> Estadísticas reales</div>
       <div class="landing-also-item"><i class="ti ti-telescope"></i> Descubre tu próxima lectura</div>
-    </div>
-  </section>
-
-  <section class="landing-section" style="padding-top:0">
-    <div class="landing-section-head">
-      <div class="landing-section-eyebrow">Así de fácil</div>
-      <h2 class="landing-section-title">Empieza en tres pasos</h2>
-    </div>
-    <div class="landing-steps">
-      <div class="landing-step">
-        <div class="landing-step-n">01</div>
-        <div class="landing-step-title">Crea tu cuenta gratis</div>
-        <div class="landing-step-desc">Con email o con Google — en menos de un minuto tienes tu shelfie lista.</div>
-      </div>
-      <div class="landing-step">
-        <div class="landing-step-n">02</div>
-        <div class="landing-step-title">Añade tus libros</div>
-        <div class="landing-step-desc">Los que ya leíste, los que estás leyendo y los que quieres leer — busca por título o ISBN.</div>
-      </div>
-      <div class="landing-step">
-        <div class="landing-step-n">03</div>
-        <div class="landing-step-title">Comparte tu shelfie</div>
-        <div class="landing-step-desc">Sigue a otros lectores, únete a un club y deja que tu próxima lectura te encuentre a ti.</div>
-      </div>
     </div>
   </section>
 
@@ -3884,6 +3837,53 @@ function showAuth(which){
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('register-error').classList.remove('show');
 }
+
+// ── Landing page: interactive shelfie demo (tabs + drag-to-reorder) ──
+// Pure decoration for logged-out visitors, so they can feel the real drag-and-
+// drop shelf before creating an account. No backend involved — resets on reload.
+const LANDING_DEMO_SHELF={
+  leidos:[
+    {t:'Cien años de soledad',c:'#8B2635'},{t:'Rayuela',c:'#1E3A5F'},{t:'2666',c:'#5B4636'},
+    {t:'Pedro Páramo',c:'#3D6B52'},{t:'Ficciones',c:'#7C3AED'},{t:'El Aleph',c:'#B45309'},
+    {t:'Beloved',c:'#0F766E'},{t:'1984',c:'#2563EB'},
+  ],
+  leyendo:[
+    {t:'La casa de los espíritus',c:'#C2410C'},{t:'Ana Karenina',c:'#7C2D12'},
+  ],
+  quiero:[
+    {t:'Los detectives salvajes',c:'#4338CA'},{t:'El nombre del viento',c:'#0369A1'},
+    {t:'La sombra del viento',c:'#78350F'},{t:'Middlemarch',c:'#166534'},
+  ],
+};
+let _landingDemoTab='leidos';
+let _landingDemoDragIdx=null;
+
+function renderLandingDemoShelf(){
+  const tabsEl=document.getElementById('landing-demo-tabs');
+  const gridEl=document.getElementById('landing-demo-grid');
+  if(!tabsEl||!gridEl)return;
+  const labels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer'};
+  tabsEl.innerHTML=Object.keys(labels).map(k=>`<button class="landing-demo-tab ${k===_landingDemoTab?'on':''}" onclick="setLandingDemoTab('${k}')">${labels[k]} ${LANDING_DEMO_SHELF[k].length}</button>`).join('');
+  gridEl.innerHTML=LANDING_DEMO_SHELF[_landingDemoTab].map((b,i)=>`
+    <div class="landing-demo-cover" style="background:${b.c}" draggable="true"
+      ondragstart="landingDemoDragStart(event,${i})" ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')" ondrop="landingDemoDrop(event,${i})" ondragend="landingDemoDragEnd(event)">
+      <span>${escapeHtml(b.t)}</span>
+    </div>`).join('');
+}
+function setLandingDemoTab(k){_landingDemoTab=k;renderLandingDemoShelf();}
+function landingDemoDragStart(e,i){_landingDemoDragIdx=i;e.currentTarget.style.opacity='0.35';}
+function landingDemoDragEnd(e){e.currentTarget.style.opacity='1';document.querySelectorAll('.landing-demo-cover').forEach(c=>c.classList.remove('drag-over'));}
+function landingDemoDrop(e,targetIdx){
+  e.preventDefault();
+  if(_landingDemoDragIdx===null||_landingDemoDragIdx===targetIdx){_landingDemoDragIdx=null;return;}
+  const arr=LANDING_DEMO_SHELF[_landingDemoTab];
+  const moved=arr.splice(_landingDemoDragIdx,1)[0];
+  arr.splice(targetIdx,0,moved);
+  _landingDemoDragIdx=null;
+  renderLandingDemoShelf();
+}
+renderLandingDemoShelf();
 
 function authErr(id,msg){const el=document.getElementById(id);el.textContent=msg;el.classList.add('show');}
 
