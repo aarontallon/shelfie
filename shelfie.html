@@ -2552,19 +2552,24 @@ async function deleteSupaPost(id){
 
 // ── Save comment to DB ──
 async function saveSupaComment(postId,text){
-  if(!SUPA_USER)return;
-  const{data}=await supa.from('comments').insert({post_id:postId,user_id:SUPA_USER.id,text}).select().single();
+  if(!SUPA_USER)return null;
+  const row={id:uuid(),post_id:postId,user_id:SUPA_USER.id,text};
+  const{data,error}=await supa.from('comments').insert(row).select().single();
+  if(error){console.error('saveSupaComment failed:',error);return null;}
   return data;
 }
 
 // ── Toggle like ──
 async function toggleSupaLike(postId,liked){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return true;
   if(liked){
-    await supa.from('likes').upsert({post_id:postId,user_id:SUPA_USER.id},{onConflict:'post_id,user_id'});
+    const{error}=await supa.from('likes').upsert({post_id:postId,user_id:SUPA_USER.id},{onConflict:'post_id,user_id'});
+    if(error){console.error('toggleSupaLike (like) failed:',error);return false;}
   } else {
-    await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+    const{error}=await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+    if(error){console.error('toggleSupaLike (unlike) failed:',error);return false;}
   }
+  return true;
 }
 
 // ── Save profile to DB ──
@@ -7900,14 +7905,22 @@ function refreshPostCard(id){
   document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>{el.outerHTML=renderOnePost(post);});
 }
 
-function togglePostLike(id,btn){
+async function togglePostLike(id,btn){
   const post=POSTS_BY_ID[id];
   if(!post)return;
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
   btn.querySelector('span').textContent=post.likes;
-  toggleSupaLike(id,post.likedByMe);
+  const ok=await toggleSupaLike(id,post.likedByMe);
+  if(!ok){
+    // revert the optimistic toggle — it never actually saved
+    post.likedByMe=!post.likedByMe;
+    post.likes=(post.likes||0)+(post.likedByMe?1:-1);
+    btn.classList.toggle('on',post.likedByMe);
+    btn.querySelector('span').textContent=post.likes;
+    toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }
 }
 
 function toggleCommentBox(id){
@@ -7925,8 +7938,18 @@ async function sendComment(id){
   const post=POSTS_BY_ID[id];
   if(!post)return;
   if(!post.comments)post.comments=[];
-  post.comments.push({name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'});
-  await saveSupaComment(id,text);
+  const optimisticComment={name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'};
+  post.comments.push(optimisticComment);
+  const saved=await saveSupaComment(id,text);
+  if(!saved){
+    post.comments.splice(post.comments.indexOf(optimisticComment),1);
+    refreshPostCard(id);
+    toggleCommentBox(id);
+    const newInput=document.getElementById('comment-input-'+id);
+    if(newInput)newInput.value=text; // keep what they typed so they don't have to retype it
+    toast('❌ No se pudo guardar el comentario. Inténtalo de nuevo.');
+    return;
+  }
   input.value='';
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
