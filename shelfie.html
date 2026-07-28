@@ -80,7 +80,7 @@ a{color:inherit}
 .landing-split-rev{grid-template-columns:1fr 0.85fr}
 .landing-split-rev .landing-split-visual{order:2}
 .landing-split-rev .landing-split-text{order:1}
-.landing-split-visual svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto}
+.landing-split-visual svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.12))}
 .landing-split-text .landing-section-title{margin-top:6px}
 
 .landing-also-strip{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;padding:28px;background:var(--paper);border:1px solid var(--border);border-radius:18px}
@@ -1201,9 +1201,9 @@ a{color:inherit}
   <header class="landing-hero">
     <div class="landing-hero-inner">
       <div>
-        <div class="landing-eyebrow"><i class="ti ti-sparkles"></i> Como una selfie, pero de tu estantería</div>
-        <h1 class="landing-h1">Tu estantería es tu perfil.<br>Compártela como un <em>shelfie</em>.</h1>
-        <p class="landing-sub">En shelfie, lo que lees ES tu perfil: una estantería viva que va creciendo libro a libro, y que puedes compartir con quien quieras — la foto de tu vida lectora, siempre al día.</p>
+        <div class="landing-eyebrow"><i class="ti ti-users"></i> La red social de los lectores</div>
+        <h1 class="landing-h1">Comparte tu <em>shelfie</em> con la comunidad</h1>
+        <p class="landing-sub">Monta tu estantería con lo que lees, compártela con quien quieras, y descubre qué está leyendo el resto de la comunidad.</p>
         <div class="landing-cta-row">
           <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crea tu shelfie</button>
           <button class="btn btn-white btn-lg" onclick="showAuth('login')"><i class="ti ti-login"></i> Ya tengo cuenta</button>
@@ -1247,67 +1247,77 @@ a{color:inherit}
 
   <section class="landing-section landing-split">
     <div class="landing-split-visual">
-      <svg viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="170" cy="292" rx="120" ry="20" fill="#000" opacity="0.06"/>
-        <path d="M60 250 Q40 150 120 90 Q200 30 270 90 Q320 140 280 220 Q250 280 170 290 Q90 300 60 250Z" fill="#EBF4EF"/>
-        <path d="M110 250 Q90 220 140 210 Q190 200 220 225 Q235 238 210 250 Q170 268 140 262 Q115 258 110 250Z" fill="#2A4F3C"/>
-        <path d="M120 150 Q118 110 170 105 Q222 110 220 150 L228 225 Q170 245 112 225 Z" fill="#3D6B52"/>
-        <path d="M126 160 Q95 175 100 205 Q102 218 122 220" stroke="#3D6B52" stroke-width="26" fill="none" stroke-linecap="round"/>
-        <path d="M214 160 Q245 175 240 205 Q238 218 218 220" stroke="#3D6B52" stroke-width="26" fill="none" stroke-linecap="round"/>
-        <path d="M116 208 L168 200 L168 226 L116 232 Z" fill="#FBF9F7"/>
-        <path d="M220 208 L168 200 L168 226 L220 232 Z" fill="#F1ECE3"/>
-        <line x1="168" y1="200" x2="168" y2="226" stroke="#D8CFC0" stroke-width="1.5"/>
-        <path d="M122 213 L160 207M122 220 L160 214M214 213 L176 207M214 220 L176 214" stroke="#D8CFC0" stroke-width="1.5"/>
-        <rect x="158" y="95" width="24" height="20" rx="8" fill="#E8B48C"/>
-        <circle cx="170" cy="72" r="38" fill="#E8B48C"/>
-        <path d="M132 68 Q128 28 170 26 Q212 28 208 68 Q208 50 190 46 Q196 60 186 58 Q188 45 170 44 Q152 45 154 58 Q144 60 150 46 Q132 50 132 68Z" fill="#2B1D14"/>
-        <ellipse cx="156" cy="76" rx="3" ry="4" fill="#2B1D14"/>
-        <ellipse cx="184" cy="76" rx="3" ry="4" fill="#2B1D14"/>
-        <path d="M162 92 Q170 97 178 92" stroke="#C68A5E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <path d="M148 68 Q156 63 164 68" stroke="#2B1D14" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <path d="M176 68 Q184 63 192 68" stroke="#2B1D14" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <svg viewBox="0 0 340 360" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="360" rx="18" fill="#FFFFFF"/>
+        <rect x="0.5" y="0.5" width="339" height="359" rx="18" fill="none" stroke="#EEE"/>
+        <rect x="20" y="20" width="88" height="30" rx="15" fill="#1A1A1A"/>
+        <text x="64" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="white" text-anchor="middle">Leídos 24</text>
+        <text x="128" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#999" text-anchor="middle">Leyendo 2</text>
+        <text x="210" y="40" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#999" text-anchor="middle">Quiero leer 9</text>
+        <rect x="20" y="70" width="70" height="100" rx="6" fill="#8B2635"/>
+        <text x="55" y="115" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Cien años</text>
+        <text x="55" y="128" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">de soledad</text>
+        <rect x="98" y="70" width="70" height="100" rx="6" fill="#1E3A5F"/>
+        <text x="133" y="122" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Rayuela</text>
+        <rect x="176" y="70" width="70" height="100" rx="6" fill="#5B4636"/>
+        <text x="211" y="122" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">2666</text>
+        <circle cx="234" cy="82" r="12" fill="#D97706"/>
+        <path d="M234 76 L236.5 80.5 L241.5 81.2 L237.8 84.8 L238.7 89.8 L234 87.3 L229.3 89.8 L230.2 84.8 L226.5 81.2 L231.5 80.5Z" fill="white"/>
+        <rect x="254" y="70" width="66" height="100" rx="6" fill="#3D6B52"/>
+        <text x="287" y="115" font-family="'Playfair Display',serif" font-size="9.5" fill="rgba(255,255,255,0.9)" text-anchor="middle">Pedro</text>
+        <text x="287" y="128" font-family="'Playfair Display',serif" font-size="9.5" fill="rgba(255,255,255,0.9)" text-anchor="middle">Páramo</text>
+        <rect x="20" y="182" width="70" height="100" rx="6" fill="#7C3AED"/>
+        <text x="55" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Ficciones</text>
+        <rect x="98" y="182" width="70" height="100" rx="6" fill="#B45309"/>
+        <text x="133" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">El Aleph</text>
+        <rect x="176" y="182" width="70" height="100" rx="6" fill="#0F766E"/>
+        <text x="211" y="234" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Beloved</text>
+        <rect x="254" y="182" width="66" height="100" rx="6" fill="#2563EB"/>
+        <text x="287" y="234" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">1984</text>
+        <rect x="20" y="300" width="145" height="40" rx="12" fill="#EBF4EF"/>
+        <text x="92" y="325" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#2A4F3C" text-anchor="middle">📚 35 este año</text>
+        <rect x="175" y="300" width="145" height="40" rx="12" fill="#FFFBEB"/>
+        <text x="247" y="325" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#92400E" text-anchor="middle">🔥 12 días seguidos</text>
       </svg>
     </div>
     <div class="landing-split-text">
-      <div class="landing-section-eyebrow">¿Qué es un shelfie?</div>
-      <h2 class="landing-section-title" style="text-align:left">La foto de tu vida lectora</h2>
-      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Así como una selfie captura un momento, tu shelfie captura tu recorrido como lector: lo que ya leíste, lo que estás leyendo ahora, lo que sueñas leer algún día. Se actualiza sola según avanzas — y es tan tuya como tu propio perfil.</p>
+      <div class="landing-section-eyebrow">Tu estantería, tu perfil</div>
+      <h2 class="landing-section-title" style="text-align:left">Monta tu shelfie con tus lecturas</h2>
+      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Leídos, leyendo, quiero leer y abandonados. Portadas reales, tu propio ranking de favoritos, y una estantería visual que se actualiza sola cada vez que añades un libro.</p>
     </div>
   </section>
 
   <section class="landing-section landing-split landing-split-rev">
     <div class="landing-split-visual">
-      <svg viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="160" cy="230" rx="130" ry="18" fill="#000" opacity="0.05"/>
-        <g transform="translate(30,50)">
-          <path d="M20 150 Q15 120 45 112 Q75 105 90 125 Q98 138 80 150 Q55 162 35 158 Q20 155 20 150Z" fill="#2A4F3C"/>
-          <path d="M25 90 Q23 60 60 57 Q97 60 95 90 L100 148 Q60 162 20 148Z" fill="#3D6B52"/>
-          <rect x="52" y="45" width="16" height="14" rx="5" fill="#E8B48C"/>
-          <circle cx="60" cy="30" r="24" fill="#E8B48C"/>
-          <path d="M36 28 Q34 4 60 3 Q86 4 84 28 Q84 16 70 13 Q75 23 68 22 Q69 12 60 12 Q51 12 52 22 Q45 23 50 13 Q36 16 36 28Z" fill="#4A2E1F"/>
-          <ellipse cx="52" cy="32" rx="2.4" ry="3.2" fill="#2B1D14"/>
-          <ellipse cx="68" cy="32" rx="2.4" ry="3.2" fill="#2B1D14"/>
-        </g>
-        <g transform="translate(170,65)">
-          <path d="M20 140 Q15 112 42 105 Q70 98 84 117 Q92 129 75 140 Q52 151 33 148 Q20 145 20 140Z" fill="#9461EB" opacity="0.9"/>
-          <path d="M24 84 Q22 56 56 53 Q90 56 88 84 L92 138 Q56 151 20 138Z" fill="#9461EB"/>
-          <rect x="48" y="42" width="15" height="13" rx="5" fill="#C68A5E"/>
-          <circle cx="55" cy="28" r="22" fill="#C68A5E"/>
-          <path d="M34 26 Q33 6 55 5 Q77 6 76 26 Q76 34 68 36 Q70 20 55 18 Q40 20 42 36 Q34 34 34 26Z" fill="#1A1310"/>
-          <ellipse cx="48" cy="29" rx="2.2" ry="3" fill="#2B1D14"/>
-          <ellipse cx="62" cy="29" rx="2.2" ry="3" fill="#2B1D14"/>
-        </g>
-        <g transform="translate(140,40)">
-          <rect x="0" y="0" width="46" height="34" rx="12" fill="white"/>
-          <path d="M10 34 L10 44 L20 34Z" fill="white"/>
-          <path d="M23 20 C23 14 15 14 15 20 C15 26 23 30 23 30 C23 30 31 26 31 20 C31 14 23 14 23 20Z" fill="#DC2626"/>
-        </g>
+      <svg viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="340" rx="18" fill="#FFFFFF"/>
+        <rect x="0.5" y="0.5" width="339" height="339" rx="18" fill="none" stroke="#EEE"/>
+        <circle cx="46" cy="46" r="22" fill="#7C3AED"/>
+        <text x="46" y="52" font-family="Inter,sans-serif" font-size="15" font-weight="700" fill="white" text-anchor="middle">M</text>
+        <text x="78" y="42" font-family="Inter,sans-serif" font-size="13.5" font-weight="700" fill="#1A1A1A">Marta Ibáñez</text>
+        <text x="78" y="58" font-family="Inter,sans-serif" font-size="11.5" fill="#999">terminó de leer · hace 2h</text>
+        <rect x="20" y="86" width="300" height="1" fill="#F0F0F0"/>
+        <rect x="20" y="102" width="58" height="84" rx="5" fill="#0F766E"/>
+        <text x="49" y="150" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Beloved</text>
+        <text x="90" y="118" font-family="'Playfair Display',serif" font-size="15" font-weight="700" fill="#1A1A1A">Beloved</text>
+        <text x="90" y="136" font-family="Inter,sans-serif" font-size="12" fill="#999">Toni Morrison</text>
+        <text x="90" y="156" font-family="Inter,sans-serif" font-size="14" fill="#D97706">★★★★★</text>
+        <rect x="20" y="202" width="300" height="52" rx="10" fill="#FBF9F7"/>
+        <text x="34" y="224" font-family="Inter,sans-serif" font-size="12" fill="#555">"Una novela que cambia la forma en la que</text>
+        <text x="34" y="240" font-family="Inter,sans-serif" font-size="12" fill="#555">lees todo lo que viene después."</text>
+        <rect x="20" y="272" width="300" height="1" fill="#F0F0F0"/>
+        <path d="M28 300 C28 294 20 294 20 300 C20 306 28 311 28 311 C28 311 36 306 36 300 C36 294 28 294 28 300Z" fill="#DC2626"/>
+        <text x="44" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">12</text>
+        <circle cx="90" cy="300" r="8" fill="none" stroke="#666" stroke-width="1.4"/>
+        <text x="106" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">4</text>
+        <text x="150" y="304" font-family="Inter,sans-serif" font-size="14">👍 😮 ❤️</text>
+        <text x="248" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#999">8</text>
       </svg>
     </div>
     <div class="landing-split-text">
-      <div class="landing-section-eyebrow">La red social de los lectores</div>
-      <h2 class="landing-section-title" style="text-align:left">Descubre las shelfies de otros lectores</h2>
-      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Sigue a tus amigos, mira su estantería actualizarse en tiempo real, comenta sus reseñas y reacciona a lo que publican. Una comunidad hecha por y para gente a la que de verdad le encanta leer.</p>
+      <div class="landing-section-eyebrow">Publica, sigue, reacciona</div>
+      <h2 class="landing-section-title" style="text-align:left">Comparte tu perfil para que todo el mundo lo vea</h2>
+      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Publica reseñas, citas o novedades sobre lo que estás leyendo. Sigue a otros lectores, comenta lo que publican, y reacciona en tiempo real.</p>
     </div>
   </section>
 
