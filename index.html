@@ -64,24 +64,28 @@ a{color:inherit}
 .landing-cta-row .btn{padding:13px 22px;font-size:14.5px;font-weight:600;border-radius:10px}
 .landing-microcopy{font-size:12.5px;color:rgba(255,255,255,0.45)}
 
-.landing-hero-visual{position:relative}
-.landing-shelf-card{background:linear-gradient(160deg,#243B30,#1A2B22);border-radius:20px;padding:26px;box-shadow:0 30px 70px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06)}
-.landing-shelf-row{display:flex;align-items:flex-end;gap:8px;height:150px;margin-bottom:18px;padding:0 4px}
-.landing-spine{border-radius:4px 4px 2px 2px;box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;flex-shrink:0}
-.landing-spine span{writing-mode:vertical-rl;font-family:'Playfair Display',serif;font-size:10.5px;color:rgba(255,255,255,0.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:100%}
-.landing-stat-chips{display:flex;gap:10px;flex-wrap:wrap}
-.landing-stat-chip{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 14px;flex:1;min-width:120px}
-.landing-stat-chip-n{font-family:'Inter',sans-serif;font-size:20px;font-weight:700;color:white;letter-spacing:-0.02em}
-.landing-stat-chip-l{font-size:11px;color:rgba(255,255,255,0.55);margin-top:1px}
+.landing-hero-visual{position:relative;max-width:340px;margin:0 auto}
+.landing-shelfie-card{width:100%;height:auto;display:block;filter:drop-shadow(0 30px 60px rgba(0,0,0,0.4))}
 .landing-floaty{position:absolute;background:white;border-radius:12px;padding:10px 14px;box-shadow:0 14px 30px rgba(0,0,0,0.25);display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink)}
-.landing-floaty-1{top:-16px;right:-10px}
-.landing-floaty-2{bottom:-18px;left:-16px}
+.landing-floaty-1{top:6px;right:-16px}
+.landing-floaty-2{bottom:2px;left:-20px}
 
 .landing-section{max-width:1180px;margin:0 auto;padding:88px 40px}
 .landing-section-head{text-align:center;max-width:600px;margin:0 auto 48px}
 .landing-section-eyebrow{font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--red)}
 .landing-section-title{font-family:'Playfair Display',serif;font-size:34px;font-weight:900;color:var(--ink);letter-spacing:-0.01em;margin:10px 0 12px}
 .landing-section-sub{font-size:15px;color:var(--ink3);line-height:1.6}
+
+.landing-split{display:grid;grid-template-columns:0.85fr 1fr;gap:64px;align-items:center}
+.landing-split-rev{grid-template-columns:1fr 0.85fr}
+.landing-split-rev .landing-split-visual{order:2}
+.landing-split-rev .landing-split-text{order:1}
+.landing-split-visual svg{width:100%;height:auto;max-width:320px;display:block;margin:0 auto}
+.landing-split-text .landing-section-title{margin-top:6px}
+
+.landing-also-strip{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;padding:28px;background:var(--paper);border:1px solid var(--border);border-radius:18px}
+.landing-also-item{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink2);background:white;border:1px solid var(--border);border-radius:20px;padding:9px 16px}
+.landing-also-item i{color:var(--red)}
 
 .landing-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .landing-feature-card{background:white;border:1px solid var(--border);border-radius:16px;padding:26px}
@@ -113,6 +117,11 @@ a{color:inherit}
   .landing-hero{padding:48px 24px 70px}
   .landing-h1{font-size:36px}
   .landing-features{grid-template-columns:1fr}
+  .landing-split,.landing-split-rev{grid-template-columns:1fr;gap:32px;text-align:center}
+  .landing-split-rev .landing-split-visual{order:1}
+  .landing-split-rev .landing-split-text{order:2}
+  .landing-split-text .landing-section-title,.landing-split-text .landing-section-sub{text-align:center!important}
+  .landing-also-strip{padding:20px}
   .landing-steps{grid-template-columns:1fr;gap:26px}
   .landing-section{padding:64px 24px}
   .landing-nav{padding:16px 20px;gap:8px}
@@ -124,6 +133,21 @@ a{color:inherit}
 }
 @media (max-width:400px){
   .landing-nav .logo-text{display:none}
+}
+
+/* ═══════ CONTENT PAGES (Acerca de / Términos / Privacidad) ═══════ */
+.content-page-wrap{max-width:720px;margin:0 auto;padding:56px 40px 100px}
+.content-page-title{font-family:'Playfair Display',serif;font-size:38px;font-weight:900;color:var(--ink);letter-spacing:-0.01em;margin-bottom:8px}
+.content-page-updated{font-size:12.5px;color:var(--ink3);margin-bottom:36px}
+.content-page-body h3{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--ink);margin:32px 0 10px}
+.content-page-body h3:first-child{margin-top:0}
+.content-page-body p{font-size:14.5px;line-height:1.75;color:var(--ink2);margin-bottom:14px}
+.content-page-body ul{margin:0 0 14px 20px;padding:0}
+.content-page-body li{font-size:14.5px;line-height:1.75;color:var(--ink2);margin-bottom:6px}
+.content-page-body strong{color:var(--ink)}
+@media (max-width:600px){
+  .content-page-wrap{padding:40px 22px 70px}
+  .content-page-title{font-size:28px}
 }
 
 /* ═══════ GENERAL ═══════ */
@@ -1177,75 +1201,122 @@ a{color:inherit}
   <header class="landing-hero">
     <div class="landing-hero-inner">
       <div>
-        <div class="landing-eyebrow"><i class="ti ti-sparkles"></i> Tu vida lectora, en un solo sitio</div>
-        <h1 class="landing-h1">El shelfie de tus <em>lecturas</em>, hecho para compartirse</h1>
-        <p class="landing-sub">Organiza lo que lees, sigue tu progreso día a día, y descubre qué están leyendo las personas que sigues — todo en una sola app, pensada para lectores de verdad.</p>
+        <div class="landing-eyebrow"><i class="ti ti-sparkles"></i> Como una selfie, pero de tu estantería</div>
+        <h1 class="landing-h1">Tu estantería es tu perfil.<br>Compártela como un <em>shelfie</em>.</h1>
+        <p class="landing-sub">En shelfie, lo que lees ES tu perfil: una estantería viva que va creciendo libro a libro, y que puedes compartir con quien quieras — la foto de tu vida lectora, siempre al día.</p>
         <div class="landing-cta-row">
-          <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Empieza gratis</button>
+          <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crea tu shelfie</button>
           <button class="btn btn-white btn-lg" onclick="showAuth('login')"><i class="ti ti-login"></i> Ya tengo cuenta</button>
         </div>
         <div class="landing-microcopy">Gratis para siempre · Sin tarjeta de crédito</div>
       </div>
       <div class="landing-hero-visual">
-        <div class="landing-shelf-card">
-          <div class="landing-shelf-row">
-            <div class="landing-spine" style="width:26px;height:88%;background:#8B2635"><span>Cien años de soledad</span></div>
-            <div class="landing-spine" style="width:22px;height:75%;background:#1E3A5F"><span>Rayuela</span></div>
-            <div class="landing-spine" style="width:30px;height:96%;background:#5B4636"><span>2666</span></div>
-            <div class="landing-spine" style="width:20px;height:68%;background:#3D6B52"><span>Pedro Páramo</span></div>
-            <div class="landing-spine" style="width:24px;height:82%;background:#7C3AED"><span>Ficciones</span></div>
-            <div class="landing-spine" style="width:22px;height:60%;background:#B45309"><span>El Aleph</span></div>
-            <div class="landing-spine" style="width:28px;height:90%;background:#0F766E"><span>Beloved</span></div>
-          </div>
-          <div class="landing-stat-chips">
-            <div class="landing-stat-chip"><div class="landing-stat-chip-n">47</div><div class="landing-stat-chip-l">libros leídos</div></div>
-            <div class="landing-stat-chip"><div class="landing-stat-chip-n">🔥 12</div><div class="landing-stat-chip-l">días de racha</div></div>
-            <div class="landing-stat-chip"><div class="landing-stat-chip-n">9</div><div class="landing-stat-chip-l">amigos lectores</div></div>
-          </div>
-        </div>
+        <svg class="landing-shelfie-card" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="300" height="320" rx="18" fill="#FFFFFF"/>
+          <rect x="10" y="10" width="300" height="320" rx="18" fill="none" stroke="#EEE" stroke-width="1"/>
+          <circle cx="60" cy="60" r="26" fill="#3D6B52"/>
+          <text x="60" y="67" font-family="Inter,sans-serif" font-size="18" font-weight="700" fill="white" text-anchor="middle">A</text>
+          <text x="98" y="55" font-family="Inter,sans-serif" font-size="15" font-weight="700" fill="#1A1A1A">Ana Torres</text>
+          <text x="98" y="72" font-family="Inter,sans-serif" font-size="12" fill="#999">@ana_lee · su shelfie</text>
+          <g transform="translate(30,100)">
+            <rect x="0" y="10" width="24" height="90" rx="3" fill="#8B2635"/>
+            <rect x="28" y="30" width="20" height="70" rx="3" fill="#1E3A5F"/>
+            <rect x="52" y="0" width="26" height="100" rx="3" fill="#5B4636"/>
+            <rect x="82" y="20" width="18" height="80" rx="3" fill="#3D6B52"/>
+            <rect x="104" y="15" width="22" height="85" rx="3" fill="#7C3AED"/>
+            <rect x="130" y="35" width="20" height="65" rx="3" fill="#B45309"/>
+            <rect x="154" y="8" width="24" height="92" rx="3" fill="#0F766E"/>
+            <rect x="182" y="25" width="20" height="75" rx="3" fill="#C2410C"/>
+            <rect x="206" y="18" width="22" height="82" rx="3" fill="#2563EB"/>
+            <rect x="232" y="40" width="18" height="60" rx="3" fill="#D97706"/>
+            <rect x="0" y="102" width="252" height="6" rx="3" fill="#E8E5DF"/>
+          </g>
+          <rect x="30" y="220" width="90" height="34" rx="10" fill="#EBF4EF"/>
+          <text x="75" y="241" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#2A4F3C" text-anchor="middle">47 leídos</text>
+          <rect x="128" y="220" width="90" height="34" rx="10" fill="#FFFBEB"/>
+          <text x="173" y="241" font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#92400E" text-anchor="middle">🔥 12 días</text>
+          <circle cx="270" cy="290" r="24" fill="#3D6B52"/>
+          <path d="M262 290 L268 296 L280 282" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="20" y="296" font-family="Inter,sans-serif" font-size="11" fill="#999">Compartida con 9 amigos</text>
+        </svg>
         <div class="landing-floaty landing-floaty-1"><i class="ti ti-heart" style="color:var(--red)"></i> A Ana le encantó tu reseña</div>
         <div class="landing-floaty landing-floaty-2"><i class="ti ti-trophy" style="color:var(--amber)"></i> Reto completado 🎉</div>
       </div>
     </div>
   </header>
 
-  <section class="landing-section">
-    <div class="landing-section-head">
-      <div class="landing-section-eyebrow">Todo en un mismo sitio</div>
-      <h2 class="landing-section-title">Lo que puedes hacer en shelfie</h2>
-      <p class="landing-section-sub">Desde llevar el registro de tus lecturas hasta debatir tu próximo libro con un club — sin saltar entre apps.</p>
+  <section class="landing-section landing-split">
+    <div class="landing-split-visual">
+      <svg viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="170" cy="292" rx="120" ry="20" fill="#000" opacity="0.06"/>
+        <path d="M60 250 Q40 150 120 90 Q200 30 270 90 Q320 140 280 220 Q250 280 170 290 Q90 300 60 250Z" fill="#EBF4EF"/>
+        <path d="M110 250 Q90 220 140 210 Q190 200 220 225 Q235 238 210 250 Q170 268 140 262 Q115 258 110 250Z" fill="#2A4F3C"/>
+        <path d="M120 150 Q118 110 170 105 Q222 110 220 150 L228 225 Q170 245 112 225 Z" fill="#3D6B52"/>
+        <path d="M126 160 Q95 175 100 205 Q102 218 122 220" stroke="#3D6B52" stroke-width="26" fill="none" stroke-linecap="round"/>
+        <path d="M214 160 Q245 175 240 205 Q238 218 218 220" stroke="#3D6B52" stroke-width="26" fill="none" stroke-linecap="round"/>
+        <path d="M116 208 L168 200 L168 226 L116 232 Z" fill="#FBF9F7"/>
+        <path d="M220 208 L168 200 L168 226 L220 232 Z" fill="#F1ECE3"/>
+        <line x1="168" y1="200" x2="168" y2="226" stroke="#D8CFC0" stroke-width="1.5"/>
+        <path d="M122 213 L160 207M122 220 L160 214M214 213 L176 207M214 220 L176 214" stroke="#D8CFC0" stroke-width="1.5"/>
+        <rect x="158" y="95" width="24" height="20" rx="8" fill="#E8B48C"/>
+        <circle cx="170" cy="72" r="38" fill="#E8B48C"/>
+        <path d="M132 68 Q128 28 170 26 Q212 28 208 68 Q208 50 190 46 Q196 60 186 58 Q188 45 170 44 Q152 45 154 58 Q144 60 150 46 Q132 50 132 68Z" fill="#2B1D14"/>
+        <ellipse cx="156" cy="76" rx="3" ry="4" fill="#2B1D14"/>
+        <ellipse cx="184" cy="76" rx="3" ry="4" fill="#2B1D14"/>
+        <path d="M162 92 Q170 97 178 92" stroke="#C68A5E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M148 68 Q156 63 164 68" stroke="#2B1D14" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M176 68 Q184 63 192 68" stroke="#2B1D14" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </svg>
     </div>
-    <div class="landing-features">
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:var(--red-light);color:var(--red-dark)"><i class="ti ti-books"></i></div>
-        <div class="landing-feature-title">Tu shelfie, organizado</div>
-        <div class="landing-feature-desc">Leídos, leyendo, quiero leer y abandonados — con estanterías visuales, portadas reales y tu propio ranking de favoritos.</div>
-      </div>
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:var(--blue-light);color:var(--blue)"><i class="ti ti-message-circle"></i></div>
-        <div class="landing-feature-title">Comparte lo que lees</div>
-        <div class="landing-feature-desc">Publica reseñas, citas, marginalia o historias sobre tus libros — con comentarios, likes y reacciones en tiempo real.</div>
-      </div>
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:var(--purple-light);color:var(--purple)"><i class="ti ti-users"></i></div>
-        <div class="landing-feature-title">Sigue a otros lectores</div>
-        <div class="landing-feature-desc">Descubre qué están leyendo tus amigos, quién tiene el mismo libro que tú, y qué opinan de verdad.</div>
-      </div>
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:var(--amber-light);color:var(--amber)"><i class="ti ti-users-group"></i></div>
-        <div class="landing-feature-title">Clubs de lectura</div>
-        <div class="landing-feature-desc">Únete o crea un club, debate en el foro, comparte anuncios y lee en comunidad con nickname propio buscable.</div>
-      </div>
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:var(--green-light);color:var(--green)"><i class="ti ti-trophy"></i></div>
-        <div class="landing-feature-title">Retos de lectura</div>
-        <div class="landing-feature-desc">Márcate metas propias o únete a retos de la comunidad, y sigue tu progreso libro a libro.</div>
-      </div>
-      <div class="landing-feature-card">
-        <div class="landing-feature-icon" style="background:#FFF1E6;color:#C2410C"><i class="ti ti-chart-bar"></i></div>
-        <div class="landing-feature-title">Tus estadísticas reales</div>
-        <div class="landing-feature-desc">Racha de lectura, calendario de actividad, géneros y autores favoritos — calculado a partir de tus propios libros.</div>
-      </div>
+    <div class="landing-split-text">
+      <div class="landing-section-eyebrow">¿Qué es un shelfie?</div>
+      <h2 class="landing-section-title" style="text-align:left">La foto de tu vida lectora</h2>
+      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Así como una selfie captura un momento, tu shelfie captura tu recorrido como lector: lo que ya leíste, lo que estás leyendo ahora, lo que sueñas leer algún día. Se actualiza sola según avanzas — y es tan tuya como tu propio perfil.</p>
+    </div>
+  </section>
+
+  <section class="landing-section landing-split landing-split-rev">
+    <div class="landing-split-visual">
+      <svg viewBox="0 0 320 260" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="160" cy="230" rx="130" ry="18" fill="#000" opacity="0.05"/>
+        <g transform="translate(30,50)">
+          <path d="M20 150 Q15 120 45 112 Q75 105 90 125 Q98 138 80 150 Q55 162 35 158 Q20 155 20 150Z" fill="#2A4F3C"/>
+          <path d="M25 90 Q23 60 60 57 Q97 60 95 90 L100 148 Q60 162 20 148Z" fill="#3D6B52"/>
+          <rect x="52" y="45" width="16" height="14" rx="5" fill="#E8B48C"/>
+          <circle cx="60" cy="30" r="24" fill="#E8B48C"/>
+          <path d="M36 28 Q34 4 60 3 Q86 4 84 28 Q84 16 70 13 Q75 23 68 22 Q69 12 60 12 Q51 12 52 22 Q45 23 50 13 Q36 16 36 28Z" fill="#4A2E1F"/>
+          <ellipse cx="52" cy="32" rx="2.4" ry="3.2" fill="#2B1D14"/>
+          <ellipse cx="68" cy="32" rx="2.4" ry="3.2" fill="#2B1D14"/>
+        </g>
+        <g transform="translate(170,65)">
+          <path d="M20 140 Q15 112 42 105 Q70 98 84 117 Q92 129 75 140 Q52 151 33 148 Q20 145 20 140Z" fill="#9461EB" opacity="0.9"/>
+          <path d="M24 84 Q22 56 56 53 Q90 56 88 84 L92 138 Q56 151 20 138Z" fill="#9461EB"/>
+          <rect x="48" y="42" width="15" height="13" rx="5" fill="#C68A5E"/>
+          <circle cx="55" cy="28" r="22" fill="#C68A5E"/>
+          <path d="M34 26 Q33 6 55 5 Q77 6 76 26 Q76 34 68 36 Q70 20 55 18 Q40 20 42 36 Q34 34 34 26Z" fill="#1A1310"/>
+          <ellipse cx="48" cy="29" rx="2.2" ry="3" fill="#2B1D14"/>
+          <ellipse cx="62" cy="29" rx="2.2" ry="3" fill="#2B1D14"/>
+        </g>
+        <g transform="translate(140,40)">
+          <rect x="0" y="0" width="46" height="34" rx="12" fill="white"/>
+          <path d="M10 34 L10 44 L20 34Z" fill="white"/>
+          <path d="M23 20 C23 14 15 14 15 20 C15 26 23 30 23 30 C23 30 31 26 31 20 C31 14 23 14 23 20Z" fill="#DC2626"/>
+        </g>
+      </svg>
+    </div>
+    <div class="landing-split-text">
+      <div class="landing-section-eyebrow">La red social de los lectores</div>
+      <h2 class="landing-section-title" style="text-align:left">Descubre las shelfies de otros lectores</h2>
+      <p class="landing-section-sub" style="text-align:left;margin-bottom:0">Sigue a tus amigos, mira su estantería actualizarse en tiempo real, comenta sus reseñas y reacciona a lo que publican. Una comunidad hecha por y para gente a la que de verdad le encanta leer.</p>
+    </div>
+  </section>
+
+  <section class="landing-section" style="padding-top:0">
+    <div class="landing-also-strip">
+      <div class="landing-also-item"><i class="ti ti-users-group"></i> Clubs de lectura</div>
+      <div class="landing-also-item"><i class="ti ti-trophy"></i> Retos de lectura</div>
+      <div class="landing-also-item"><i class="ti ti-chart-bar"></i> Estadísticas reales</div>
+      <div class="landing-also-item"><i class="ti ti-telescope"></i> Descubre tu próxima lectura</div>
     </div>
   </section>
 
@@ -1267,8 +1338,8 @@ a{color:inherit}
       </div>
       <div class="landing-step">
         <div class="landing-step-n">03</div>
-        <div class="landing-step-title">Sigue, comparte, descubre</div>
-        <div class="landing-step-desc">Conecta con otros lectores, únete a un club y deja que tu próxima lectura te encuentre a ti.</div>
+        <div class="landing-step-title">Comparte tu shelfie</div>
+        <div class="landing-step-desc">Sigue a otros lectores, únete a un club y deja que tu próxima lectura te encuentre a ti.</div>
       </div>
     </div>
   </section>
@@ -1287,12 +1358,112 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="landing-footer-links">
-      <a href="#">Términos</a>
-      <a href="#">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
     </div>
     <div class="landing-footer-copy">© 2026 Shelfie</div>
   </footer>
 
+</div>
+
+<!-- ══════════════════════ CONTENT: ACERCA DE ══════════════════════ -->
+<div class="landing-screen" id="auth-about">
+  <nav class="landing-nav">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+    </div>
+  </nav>
+  <div class="content-page-wrap">
+    <div class="content-page-title">Acerca de shelfie</div>
+    <div class="content-page-updated">Última actualización: 2026</div>
+    <div class="content-page-body">
+      <p>Shelfie nació de una idea sencilla: el sitio donde llevas la cuenta de lo que lees debería ser el mismo sitio donde lo compartes con la gente a la que le importa. Nada de hojas de cálculo por un lado y grupos de mensajería por otro.</p>
+      <p>Es un proyecto personal, hecho por y para lectores, pensado para que tu estantería —tu <strong>shelfie</strong>— sea a la vez tu diario de lectura y tu perfil social: lo que lees, cuánto llevas, qué opinas, y quién más lo está leyendo contigo.</p>
+      <h3>Lo que nos importa</h3>
+      <ul>
+        <li><strong>Tus datos son tuyos.</strong> Tu shelfie, tus reseñas y tus estadísticas se calculan siempre a partir de tus libros reales — nunca inventamos números para rellenar huecos.</li>
+        <li><strong>Sin ruido.</strong> Sin anuncios, sin algoritmos que decidan qué debes leer, sin cuentas falsas de relleno.</li>
+        <li><strong>Hecho con calma.</strong> Es un proyecto pequeño e independiente, no una empresa — y sigue creciendo poco a poco, escuchando a quien lo usa.</li>
+      </ul>
+      <h3>¿Tienes algo que decirnos?</h3>
+      <p>Si algo no funciona como debería, o se te ocurre algo que shelfie debería tener, cuéntanoslo — este proyecto mejora gracias a la gente que lo usa de verdad.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CONTENT: TÉRMINOS ══════════════════════ -->
+<div class="landing-screen" id="auth-terms">
+  <nav class="landing-nav">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+    </div>
+  </nav>
+  <div class="content-page-wrap">
+    <div class="content-page-title">Términos y condiciones</div>
+    <div class="content-page-updated">Última actualización: 2026</div>
+    <div class="content-page-body">
+      <p>Shelfie es un proyecto personal e independiente, no una empresa. Al crear una cuenta y usar la aplicación, aceptas estas condiciones. Si no estás de acuerdo con ellas, por favor no uses el servicio.</p>
+      <h3>1. Tu cuenta</h3>
+      <p>Eres responsable de mantener segura tu contraseña y de todo lo que ocurra en tu cuenta. Debes darnos un email válido y un nombre de usuario que no suplante a otra persona o entidad. Puedes borrar tus libros, publicaciones y demás contenido en cualquier momento desde la app; si quieres que eliminemos tu cuenta y credenciales de acceso por completo, contáctanos.</p>
+      <h3>2. Tu contenido</h3>
+      <p>Todo lo que publiques (reseñas, citas, comentarios, tu shelfie) sigue siendo tuyo. Al publicarlo, nos das permiso únicamente para mostrarlo dentro de la aplicación a quien tú decidas (tus seguidores, o públicamente si así lo configuras). No lo usamos para nada más.</p>
+      <h3>3. Uso aceptable</h3>
+      <ul>
+        <li>No subas contenido ilegal, difamatorio o que suplante a otra persona.</li>
+        <li>No uses la aplicación para spam, acoso o para intentar acceder a cuentas ajenas.</li>
+        <li>No intentes sobrecargar o dañar el servicio de forma deliberada.</li>
+      </ul>
+      <p>Podemos suspender o eliminar cuentas que incumplan estas normas.</p>
+      <h3>4. El servicio, tal cual</h3>
+      <p>Shelfie se ofrece "tal cual", como el proyecto personal que es, sin garantías de disponibilidad continua ni de ausencia de errores. Hacemos lo posible por mantenerlo funcionando y por no perder tus datos, pero no podemos garantizarlo al 100%: haz tus propias copias de lo que te importe si es crítico para ti.</p>
+      <h3>5. Cambios</h3>
+      <p>Podemos actualizar estos términos según evolucione la aplicación. Si el cambio es importante, intentaremos avisarte dentro de la propia app.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CONTENT: PRIVACIDAD ══════════════════════ -->
+<div class="landing-screen" id="auth-privacy">
+  <nav class="landing-nav">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+    </div>
+  </nav>
+  <div class="content-page-wrap">
+    <div class="content-page-title">Política de privacidad</div>
+    <div class="content-page-updated">Última actualización: 2026</div>
+    <div class="content-page-body">
+      <p>Shelfie es un proyecto personal e independiente. Esta página explica, en lenguaje llano, qué datos guardamos y para qué los usamos.</p>
+      <h3>Qué datos guardamos</h3>
+      <ul>
+        <li><strong>De tu cuenta:</strong> email, nombre, nombre de usuario, bio, ciudad y foto de perfil (todos opcionales salvo el email).</li>
+        <li><strong>De tu shelfie:</strong> los libros que añades, su estado (leído/leyendo/quiero leer/abandonado), valoraciones, reseñas y tu historial de lectura.</li>
+        <li><strong>De tu actividad social:</strong> tus publicaciones, comentarios, likes, reacciones, a quién sigues, y los clubs/retos que creas o te unes.</li>
+        <li><strong>De tu racha de lectura:</strong> los días en los que marcas actividad, para calcular tu racha y tu calendario de lectura.</li>
+      </ul>
+      <h3>Para qué los usamos</h3>
+      <p>Únicamente para hacer funcionar la aplicación: mostrarte tu shelfie, calcular tus estadísticas reales, mostrar tu actividad a quien tú decidas, y avisarte de notificaciones (como que alguien empezó a seguirte). No vendemos ni compartimos tus datos con terceros con fines publicitarios — no hay publicidad en shelfie.</p>
+      <h3>Dónde se guardan</h3>
+      <p>Tus datos se almacenan en Supabase, un proveedor de base de datos e infraestructura de autenticación, con controles de acceso (RLS) que limitan quién puede leer o modificar cada dato. Tu sesión se guarda en el almacenamiento local de tu navegador para mantenerte conectado entre visitas.</p>
+      <h3>Tu control sobre tus datos</h3>
+      <p>Puedes editar o borrar cualquier libro, publicación o dato de tu perfil directamente desde la app, en cualquier momento. Si quieres que eliminemos por completo tu cuenta y todos los datos asociados, contáctanos y lo haremos.</p>
+      <h3>Cambios</h3>
+      <p>Si esta política cambia de forma relevante, lo indicaremos en esta misma página.</p>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
