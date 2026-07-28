@@ -2578,7 +2578,7 @@ async function toggleSupaLike(postId,liked){
 
 // ── Save profile to DB ──
 async function saveSupaProfile(){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return{ok:true};
   const{error}=await supa.from('profiles').update({
     name:PROFILE.name,
     username:PROFILE.username,
@@ -2587,7 +2587,12 @@ async function saveSupaProfile(){
     photo:PROFILE.photo,
     public:PROFILE.public,
   }).eq('id',SUPA_USER.id);
-  if(error){console.error('saveSupaProfile failed:',error);toast('❌ No se pudieron guardar los cambios del perfil.');}
+  if(error){
+    console.error('saveSupaProfile failed:',error);
+    const dup=/duplicate key|unique constraint/i.test(error.message||'');
+    return{ok:false,dup};
+  }
+  return{ok:true};
 }
 
 // ── Load friends from DB (friendships → profiles) ──
@@ -3232,15 +3237,51 @@ async function doLogin(){
 }
 
 let _usernameCheckTimer=null;
+let _usernameCheckGen=0;
 let _usernameAvailable=false;
 
+// Debounced real check against the profiles table — this used to just look at the
+// text length ("_usernameAvailable=clean.length>=3") despite the label promising a
+// unique handle, so two people could type the same username and only the SECOND
+// one's registration would silently fail later (caught by the unique constraint,
+// but with no clue why in the UI).
 function onUsernameInput(val){
   const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(val!==clean)document.getElementById('reg-username').value=clean;
-  _usernameAvailable=clean.length>=3;
   const el=document.getElementById('username-status');
-  el.textContent=clean.length>=3?'@'+clean:'';
+  clearTimeout(_usernameCheckTimer);
+  _usernameAvailable=false;
+  if(clean.length<3){
+    el.textContent=clean.length?'Mínimo 3 caracteres':'';
+    el.style.color='var(--ink3)';
+    return;
+  }
+  el.textContent='Comprobando disponibilidad...';
   el.style.color='var(--ink3)';
+  const gen=++_usernameCheckGen;
+  _usernameCheckTimer=setTimeout(async()=>{
+    try{
+      const{data,error}=await supa.from('profiles').select('id').eq('username',clean).limit(1);
+      if(gen!==_usernameCheckGen)return; // a newer keystroke already started another check
+      if(error)throw error;
+      if(data&&data.length){
+        el.textContent='❌ Ese usuario ya está en uso';
+        el.style.color='var(--red)';
+        _usernameAvailable=false;
+      }else{
+        el.textContent='✓ @'+clean+' disponible';
+        el.style.color='var(--green)';
+        _usernameAvailable=true;
+      }
+    }catch(e){
+      if(gen!==_usernameCheckGen)return;
+      console.error('username availability check failed:',e);
+      // Don't block registration on a network hiccup — the DB's unique constraint
+      // is still the real backstop if this optimistic pass turns out to be wrong.
+      el.textContent='';
+      _usernameAvailable=true;
+    }
+  },500);
 }
 
 function passStrength(p){
@@ -3275,7 +3316,7 @@ async function doRegister(){
   if(!nombre){authErr('register-error','Escribe tu nombre');return;}
   if(!apellido){authErr('register-error','Escribe tu apellido');return;}
   if(!username||username.length<3){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
-  if(!_usernameAvailable){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
+  if(!_usernameAvailable){authErr('register-error','Ese nombre de usuario ya está en uso, o todavía estamos comprobándolo — espera un momento y prueba con otro si hace falta.');return;}
   if(!email||!email.includes('@')){authErr('register-error','Introduce un email válido');return;}
   if(!pass||pass.length<8){authErr('register-error','La contraseña debe tener al menos 8 caracteres');return;}
   if(passStrength(pass)<2){authErr('register-error','La contraseña es demasiado débil. Usa mayúsculas, números o símbolos.');return;}
@@ -4339,6 +4380,11 @@ async function uploadProfilePhoto(file){
 }
 
 async function saveProfile(){
+  // Snapshot so a rejected save (e.g. username already taken by someone else) can be
+  // rolled back — PROFILE is the same object used everywhere else in the app (post
+  // authorship, the profile page, ...), so leaving it on the un-saved values made the
+  // UI show a change that silently never reached the database.
+  const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,public:PROFILE.public,photo:PROFILE.photo};
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
   PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
@@ -4366,7 +4412,13 @@ async function saveProfile(){
       PROFILE.photo=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
     }
   }
-  await saveSupaProfile();
+  const{ok,dup}=await saveSupaProfile();
+  if(!ok){
+    Object.assign(PROFILE,prevProfile); // roll back — none of this actually saved
+    renderProfile();updateHome();
+    toast(dup?'❌ Ese nombre de usuario ya está en uso por otra persona.':'❌ No se pudieron guardar los cambios del perfil.');
+    return;
+  }
   closeModal('modal-profile-edit');
   renderProfile();updateHome();
   // Don't let a generic "saved" toast stomp the specific photo-upload error — show
