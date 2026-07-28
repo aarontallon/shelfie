@@ -2459,9 +2459,10 @@ async function saveSupaBook(book,attempt){
 
 // ── Delete book from DB ──
 async function deleteSupaBook(id){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return true;
   const{error}=await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
-  if(error){console.error('deleteSupaBook failed:',error);toast('❌ No se pudo eliminar el libro. Puede reaparecer al recargar — inténtalo de nuevo.');}
+  if(error){console.error('deleteSupaBook failed:',error);toast('❌ No se pudo eliminar el libro. Inténtalo de nuevo.');return false;}
+  return true;
 }
 
 // ── Load posts from DB ──
@@ -2547,9 +2548,10 @@ async function saveSupaPost(post,attempt){
 
 // ── Delete post from DB ──
 async function deleteSupaPost(id){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return true;
   const{error}=await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
-  if(error){console.error('deleteSupaPost failed:',error);toast('❌ No se pudo eliminar la publicación. Puede reaparecer al recargar — inténtalo de nuevo.');}
+  if(error){console.error('deleteSupaPost failed:',error);toast('❌ No se pudo eliminar la publicación. Inténtalo de nuevo.');return false;}
+  return true;
 }
 
 // ── Save comment to DB ──
@@ -4958,11 +4960,15 @@ async function startReadingWithEdition(book,from){
   _pendingStartReading={bookId:book.id,from};
 }
 
-function removeBook(id,from){
+async function removeBook(id,from){
   if(!confirm('¿Eliminar este libro de tu shelfie?'))return;
+  // Wait for the actual delete before touching local state — same reasoning as
+  // deleteUserPost: removing it optimistically meant a failed delete looked
+  // identical to a successful one until you reloaded and found it back.
+  const ok=await deleteSupaBook(id);
+  if(!ok)return;
   DB[from]=DB[from].filter(b=>b.id!==id);
   YEAR_GOAL_IDS.delete(id);
-  deleteSupaBook(id);
   updateAll();renderShelf();
   toast('Libro eliminado');
 }
@@ -7750,10 +7756,18 @@ function onShelfiePostSpineClick(bookId){
 }
 
 function renderOnePost(p){
-  const author=p.author||{id:SUPA_USER?SUPA_USER.id:'local',name:PROFILE.name||'Tú',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white'};
+  // p.author is only ever missing for local/demo posts (no SUPA_USER — those are always
+  // "yours" by construction). If we're logged in and it's still missing, this is an
+  // author that hasn't been resolved/cached — treat it as unknown, NOT as you. Defaulting
+  // an unresolved author to "you" would show Editar/Eliminar on someone else's post.
+  const author=p.author||(SUPA_USER?{id:null,name:'Alguien',photo:null,bg:'var(--ink3)',tc:'white',username:null}:{id:'local',name:PROFILE.name||'Tú',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white'});
   const av=author.photo?`background-image:url(${author.photo});background-size:cover`:`background:${author.bg||'var(--red)'}`;
   const initials=(author.name||'??').slice(0,2).toUpperCase();
   const isOwnPost=author.id===(SUPA_USER?SUPA_USER.id:'local');
+  // For the "write a comment" row below — always the CURRENT viewer's own identity,
+  // never the post author's (this used to reuse author's av/initials by mistake).
+  const myAv=PROFILE.photo?`background-image:url(${PROFILE.photo});background-size:cover`:`background:var(--red)`;
+  const myInitials=(PROFILE.name||'??').slice(0,2).toUpperCase();
 
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
@@ -7920,7 +7934,7 @@ function renderOnePost(p){
       <div style="${needsOwnPadding?'padding:0 18px 16px':''}">
         ${commentsHtml}
         <div class="upost-comment-input-row" id="comment-row-${p.id}" style="display:none">
-          <div class="upost-comment-av" style="${av}">${PROFILE.photo?'':initials}</div>
+          <div class="upost-comment-av" style="${myAv}">${PROFILE.photo?'':myInitials}</div>
           <input class="upost-comment-input" id="comment-input-${p.id}" placeholder="Escribe un comentario..." onkeydown="if(event.key==='Enter')sendComment('${p.id}')">
           <button class="upost-comment-send" onclick="sendComment('${p.id}')"><i class="ti ti-send-2" style="font-size:13px"></i></button>
         </div>
@@ -7943,9 +7957,14 @@ function refreshPostCard(id){
   document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>{el.outerHTML=renderOnePost(post);});
 }
 
+const _likeInFlight=new Set();
 async function togglePostLike(id,btn){
+  // A second click while the first toggle is still saving would race it — the two
+  // requests can resolve out of order and leave the DB one click behind the UI.
+  if(_likeInFlight.has(id))return;
+  _likeInFlight.add(id);
   const post=POSTS_BY_ID[id];
-  if(!post)return;
+  if(!post){_likeInFlight.delete(id);return;}
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
@@ -7959,6 +7978,7 @@ async function togglePostLike(id,btn){
     btn.querySelector('span').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
   }
+  _likeInFlight.delete(id);
 }
 
 function toggleCommentBox(id){
@@ -7969,12 +7989,17 @@ function toggleCommentBox(id){
   if(!showing)setTimeout(()=>document.getElementById('comment-input-'+id)?.focus(),50);
 }
 
+const _commentInFlight=new Set();
 async function sendComment(id){
+  // Guards against a double Enter-press / double-click submitting the same comment twice
+  // before the first save resolves and clears the input.
+  if(_commentInFlight.has(id))return;
   const input=document.getElementById('comment-input-'+id);
   const text=input.value.trim();
   if(!text)return;
   const post=POSTS_BY_ID[id];
   if(!post)return;
+  _commentInFlight.add(id);
   if(!post.comments)post.comments=[];
   const optimisticComment={name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'};
   post.comments.push(optimisticComment);
@@ -7986,21 +8011,27 @@ async function sendComment(id){
     const newInput=document.getElementById('comment-input-'+id);
     if(newInput)newInput.value=text; // keep what they typed so they don't have to retype it
     toast('❌ No se pudo guardar el comentario. Inténtalo de nuevo.');
+    _commentInFlight.delete(id);
     return;
   }
   input.value='';
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
+  _commentInFlight.delete(id);
 }
 
-function deleteUserPost(id){
+async function deleteUserPost(id){
   const post=POSTS_BY_ID[id]||USER_POSTS.find(p=>p.id===id);
   if(post&&post.author&&post.author.id!==(SUPA_USER?SUPA_USER.id:'local'))return; // never your call to make on someone else's post
   if(!confirm('¿Eliminar esta publicación?'))return;
+  // Wait for the actual delete before touching local state/DOM — removing it
+  // optimistically meant a failed delete left the post gone from the UI (with a
+  // "✓ eliminada" toast) even though it was still sitting in the database.
+  const ok=await deleteSupaPost(id);
+  if(!ok)return;
   USER_POSTS=USER_POSTS.filter(p=>p.id!==id);
   delete POSTS_BY_ID[id];
-  deleteSupaPost(id);
   document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>el.remove());
   toast('Publicación eliminada');
 }
