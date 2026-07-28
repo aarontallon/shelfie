@@ -1250,6 +1250,27 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: RECORTAR FOTO DE PERFIL ══════════════════════ -->
+<div class="overlay" id="modal-photo-crop" style="display:none" onclick="if(event.target===this)closePhotoCrop()">
+<div class="modal" style="max-width:360px">
+  <button class="modal-close" onclick="closePhotoCrop()"><i class="ti ti-x"></i></button>
+  <h2>Encuadra tu foto</h2>
+  <p class="sub">Arrastra para mover, usa el control para hacer zoom — así se verá igual en todo Shelfie</p>
+  <div id="photo-crop-viewport" style="width:280px;height:280px;border-radius:50%;overflow:hidden;position:relative;margin:0 auto;background:#111;cursor:grab;touch-action:none">
+    <img id="photo-crop-img" style="position:absolute;user-select:none;pointer-events:none" draggable="false">
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-top:16px">
+    <i class="ti ti-zoom-out" style="color:var(--ink3);font-size:16px"></i>
+    <input type="range" id="photo-crop-zoom" min="100" max="300" value="100" style="flex:1" oninput="onPhotoCropZoom(this.value)">
+    <i class="ti ti-zoom-in" style="color:var(--ink3);font-size:16px"></i>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:16px">
+    <button class="btn btn-ghost" style="flex:1" onclick="closePhotoCrop()">Cancelar</button>
+    <button class="btn btn-red" style="flex:1" onclick="confirmPhotoCrop()"><i class="ti ti-check"></i> Usar esta foto</button>
+  </div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: RETO ══════════════════════ -->
 <div class="overlay" id="modal-reto" style="display:none" onclick="if(event.target===this)closeModal('modal-reto')">
 <div class="modal">
@@ -4503,13 +4524,112 @@ function handleCoverFile(input){
 function handleDrop(e){e.preventDefault();const file=e.dataTransfer.files[0];if(file?.type.startsWith('image/')){const inp=document.getElementById('cover-file');const dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;handleCoverFile(inp);}}
 
 // ═══════════════════════════════════════════════
-// PROFILE PHOTO
+// PROFILE PHOTO — cropper
 // ═══════════════════════════════════════════════
+// The avatar shows at very different sizes/shapes around the app (the 80px
+// profile hero circle vs. a 34px post-card circle, etc.), so letting each spot
+// auto-crop the same source photo with CSS `background-size:cover` framed it
+// differently everywhere. Cropping once, here, to a fixed square before upload
+// means every place just displays that same square — identical framing everywhere.
+let _pcImg=null,_pcScale=1,_pcBaseScale=1,_pcLeft=0,_pcTop=0;
+let _pcDragging=false,_pcDragStartX=0,_pcDragStartY=0,_pcStartLeft=0,_pcStartTop=0;
+const PC_VIEWPORT=280;
+
 function handleProfilePhoto(input){
   const file=input.files[0];if(!file)return;
-  PROFILE._pendingPhotoFile=file;
-  const av=document.getElementById('prof-av-preview');
-  av.style.backgroundImage=`url(${URL.createObjectURL(file)})`;av.style.background='none';av.textContent='';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      _pcImg=img;
+      _pcBaseScale=PC_VIEWPORT/Math.min(img.naturalWidth,img.naturalHeight);
+      _pcScale=_pcBaseScale;
+      _pcLeft=(PC_VIEWPORT-img.naturalWidth*_pcScale)/2;
+      _pcTop=(PC_VIEWPORT-img.naturalHeight*_pcScale)/2;
+      document.getElementById('photo-crop-zoom').value=100;
+      document.getElementById('photo-crop-img').src=e.target.result;
+      renderPhotoCrop();
+      openModal('modal-photo-crop');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderPhotoCrop(){
+  const el=document.getElementById('photo-crop-img');
+  el.style.width=(_pcImg.naturalWidth*_pcScale)+'px';
+  el.style.height=(_pcImg.naturalHeight*_pcScale)+'px';
+  el.style.left=_pcLeft+'px';
+  el.style.top=_pcTop+'px';
+}
+
+function clampPhotoCropPosition(){
+  const w=_pcImg.naturalWidth*_pcScale, h=_pcImg.naturalHeight*_pcScale;
+  _pcLeft=Math.max(Math.min(0,PC_VIEWPORT-w),Math.min(0,_pcLeft));
+  _pcTop=Math.max(Math.min(0,PC_VIEWPORT-h),Math.min(0,_pcTop));
+}
+
+function onPhotoCropZoom(val){
+  if(!_pcImg)return;
+  const prevScale=_pcScale;
+  _pcScale=_pcBaseScale*(val/100);
+  // keep whatever was centered in the viewport centered after the zoom changes, instead
+  // of always re-centering on the image's own center
+  const cx=PC_VIEWPORT/2, cy=PC_VIEWPORT/2;
+  const imgX=(cx-_pcLeft)/prevScale, imgY=(cy-_pcTop)/prevScale;
+  _pcLeft=cx-imgX*_pcScale;
+  _pcTop=cy-imgY*_pcScale;
+  clampPhotoCropPosition();
+  renderPhotoCrop();
+}
+
+function initPhotoCropDrag(){
+  const vp=document.getElementById('photo-crop-viewport');
+  if(!vp)return;
+  vp.addEventListener('pointerdown',e=>{
+    if(!_pcImg)return;
+    _pcDragging=true;
+    vp.setPointerCapture(e.pointerId);
+    vp.style.cursor='grabbing';
+    _pcDragStartX=e.clientX;_pcDragStartY=e.clientY;
+    _pcStartLeft=_pcLeft;_pcStartTop=_pcTop;
+  });
+  vp.addEventListener('pointermove',e=>{
+    if(!_pcDragging)return;
+    _pcLeft=_pcStartLeft+(e.clientX-_pcDragStartX);
+    _pcTop=_pcStartTop+(e.clientY-_pcDragStartY);
+    clampPhotoCropPosition();
+    renderPhotoCrop();
+  });
+  const stopDrag=()=>{_pcDragging=false;vp.style.cursor='grab';};
+  vp.addEventListener('pointerup',stopDrag);
+  vp.addEventListener('pointerleave',stopDrag);
+}
+initPhotoCropDrag();
+
+function closePhotoCrop(){
+  closeModal('modal-photo-crop');
+  document.getElementById('prof-photo').value='';
+  _pcImg=null;
+}
+
+function confirmPhotoCrop(){
+  if(!_pcImg)return;
+  const OUT=500;
+  const sx=(-_pcLeft)/_pcScale, sy=(-_pcTop)/_pcScale, sSize=PC_VIEWPORT/_pcScale;
+  const canvas=document.createElement('canvas');
+  canvas.width=OUT;canvas.height=OUT;
+  canvas.getContext('2d').drawImage(_pcImg,sx,sy,sSize,sSize,0,0,OUT,OUT);
+  canvas.toBlob(blob=>{
+    const file=new File([blob],'avatar.jpg',{type:'image/jpeg'});
+    PROFILE._pendingPhotoFile=file;
+    const av=document.getElementById('prof-av-preview');
+    av.style.background='none';av.style.backgroundImage=`url(${URL.createObjectURL(blob)})`;av.textContent='';
+    closeModal('modal-photo-crop');
+    document.getElementById('prof-photo').value='';
+    _pcImg=null;
+  },'image/jpeg',0.92);
 }
 
 // Uploads to Supabase Storage instead of stuffing a base64 blob into the `photo`
@@ -8310,7 +8430,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-global-search'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-global-search','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
   if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();openGlobalSearch();}
 });
 
