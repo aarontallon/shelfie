@@ -4064,6 +4064,37 @@ function testCoverUrl(url){
   });
 }
 
+// Second source for ISBN lookups. Open Library is a volunteer-curated catalog —
+// good coverage for well-known English-language books, but it simply doesn't have
+// every ISBN ever printed (regional/local editions, older or out-of-print books,
+// non-English editions, small-press books...). Google Books' free lookup often has
+// what Open Library is missing, especially for Spanish-language editions.
+async function fetchFromGoogleBooks(isbn){
+  try{
+    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    if(!res.ok)return null;
+    const d=await res.json();
+    const item=(d.items||[])[0];
+    if(!item)return null;
+    const info=item.volumeInfo||{};
+    let cover=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||null;
+    if(cover)cover=cover.replace(/^http:/,'https:').replace(/&edge=curl/,'').replace('zoom=1','zoom=2');
+    return{
+      title:info.title||'Sin título',
+      author:(info.authors||[])[0]||'',
+      year:info.publishedDate?info.publishedDate.slice(0,4):'',
+      pages:info.pageCount||null,
+      cover:cover||null,
+      olKey:null,
+      authorOlKey:null,
+      isbn,
+      publisher:info.publisher||null,
+      editionYear:info.publishedDate||null,
+      synopsis:info.description?info.description.substring(0,1200):null,
+    };
+  }catch(e){console.error('fetchFromGoogleBooks failed:',e);return null;}
+}
+
 let _isbnTimer=null;
 let _isbnGen=0;
 function onISBNSearch(val){
@@ -4077,7 +4108,18 @@ function onISBNSearch(val){
     try{
       const res=await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
       if(gen!==_isbnGen)return;
-      if(!res.ok){status.textContent='ISBN no encontrado. Prueba otro o busca por título.';return;}
+      if(!res.ok){
+        // Open Library doesn't have this one — try Google Books before giving up.
+        const gb=await fetchFromGoogleBooks(isbn);
+        if(gen!==_isbnGen)return;
+        if(gb){
+          status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada (Google Books)</span>';
+          selectBookForAdd(gb);
+        } else {
+          status.textContent='ISBN no encontrado en Open Library ni Google Books. Prueba otro o busca por título.';
+        }
+        return;
+      }
       const d=await res.json();
       const title=d.title||'Sin título';
       const publisher=(d.publishers||[])[0]||'';
@@ -4111,6 +4153,12 @@ function onISBNSearch(val){
       // deduplicate valid covers (isbn URL and cover_id URL can point to same image)
       const uniqueCovers=[...new Set(validCovers)];
       bookData.cover=uniqueCovers[0]||null;
+      // Open Library found the edition but has no cover on file — Google Books often does.
+      if(!uniqueCovers.length){
+        const gb=await fetchFromGoogleBooks(isbn);
+        if(gen!==_isbnGen)return;
+        if(gb?.cover)bookData.cover=gb.cover;
+      }
       if(gen!==_isbnGen)return; // a newer ISBN search superseded this one while we awaited
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
       if(uniqueCovers.length>1){
@@ -4118,7 +4166,20 @@ function onISBNSearch(val){
       } else {
         selectBookForAdd(bookData);
       }
-    }catch(err){if(gen===_isbnGen)status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
+    }catch(err){
+      // Even a network error talking to Open Library shouldn't be the final word —
+      // give Google Books a chance before reporting failure.
+      try{
+        const gb=await fetchFromGoogleBooks(isbn);
+        if(gen!==_isbnGen)return;
+        if(gb){
+          status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada (Google Books)</span>';
+          selectBookForAdd(gb);
+          return;
+        }
+      }catch(_){}
+      if(gen===_isbnGen)status.textContent='Error al buscar ISBN. Intenta de nuevo.';
+    }
   },600);
 }
 
