@@ -5624,7 +5624,7 @@ function discoverBookCard(b){
   const addBtn=inShelf
     ?`<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>`
     :`<button class="disc-add-btn" onclick="event.stopPropagation();quickAddDirect('${t}','${a}','quiero');this.outerHTML='<button class=\\'disc-add-btn added\\' disabled>✓ En tu shelfie</button>'">+ Quiero leer</button>`;
-  return`<div class="disc-book-card" onclick="openBookPage('${t}','${a}')">
+  return`<div class="disc-book-card" onclick="openDiscoverBookCard('${t}','${a}')">
     <div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>
     <div class="disc-book-info">
       <div class="disc-book-title">${escapeHtml(b.title)}</div>
@@ -5633,6 +5633,17 @@ function discoverBookCard(b){
       ${addBtn}
     </div>
   </div>`;
+}
+
+// Clicking a Discover card called an undefined openBookPage() and silently did
+// nothing. renderBookPage() only knows about books already in your own shelf (it
+// looks them up by id in allBooks()), and a Discover catalog book isn't one until
+// you add it — so: if you've already added it, go to its real book page; otherwise
+// this does what the card's own "+ Quiero leer" button does.
+function openDiscoverBookCard(title,author){
+  const existing=allBooks().find(b=>b.title.toLowerCase()===title.toLowerCase());
+  if(existing){go('bookdetail',null,existing.id);return;}
+  quickAddDirect(title,author,'quiero');
 }
 
 function renderDiscover(){
@@ -6450,6 +6461,11 @@ function joinDiscoverClub(e,id){
 }
 
 function joinClub(btn,name){btn.textContent='¡Unido! ✓';btn.className='btn btn-sm btn-red';btn.disabled=true;toast(`✅ Unido al club «${name}»`);}
+
+// Same "join" treatment as joinClub() above, for the static illustrative reto card in
+// the feed (not backed by a real COMMUNITY_RETOS entry) — this button called an
+// undefined joinCommunityReto() and silently did nothing when clicked.
+function joinCommunityReto(btn,name){btn.textContent='¡Unido! ✓';btn.disabled=true;toast(`✅ Unido al reto «${name}»`);}
 
 // ── CLUB DETAIL ──
 function renderClubDetail(id){
