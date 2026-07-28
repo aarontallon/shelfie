@@ -2156,7 +2156,7 @@ a{color:inherit}
 </div>
 
 <!-- ── ESTADÍSTICAS ── -->
-<div id="p-stats" class="page" id="stats-printable">
+<div id="p-stats" class="page">
   <div class="tb">
     <div>
       <h1>Estadísticas</h1>
@@ -2460,7 +2460,8 @@ async function saveSupaBook(book,attempt){
 // ── Delete book from DB ──
 async function deleteSupaBook(id){
   if(!SUPA_USER)return;
-  await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  const{error}=await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaBook failed:',error);toast('❌ No se pudo eliminar el libro. Puede reaparecer al recargar — inténtalo de nuevo.');}
 }
 
 // ── Load posts from DB ──
@@ -2547,7 +2548,8 @@ async function saveSupaPost(post,attempt){
 // ── Delete post from DB ──
 async function deleteSupaPost(id){
   if(!SUPA_USER)return;
-  await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  const{error}=await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaPost failed:',error);toast('❌ No se pudo eliminar la publicación. Puede reaparecer al recargar — inténtalo de nuevo.');}
 }
 
 // ── Save comment to DB ──
@@ -2660,6 +2662,10 @@ async function _supaEnterApp(){
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
+  // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
+  // signs out from another tab mid-load) — don't flip into the app for a session
+  // that no longer exists.
+  if(!SUPA_USER)return;
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
 }
 
@@ -3226,8 +3232,6 @@ async function doLogin(){
 let _usernameCheckTimer=null;
 let _usernameAvailable=false;
 
-function checkUsername(){}
-
 function onUsernameInput(val){
   const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(val!==clean)document.getElementById('reg-username').value=clean;
@@ -3298,7 +3302,11 @@ async function doRegister(){
     SUPA_USER=sd?.session?.user||null;
   }
   if(SUPA_USER){
-    await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+    // If the project requires email confirmation, signUp() returns a user but no
+    // session yet — this update then runs unauthenticated and RLS (auth.uid()=id)
+    // silently blocks it, leaving the trigger-generated default username in place.
+    const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+    if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
   }
   PROFILE.name=fullName;
   PROFILE.email=email;
@@ -3565,11 +3573,19 @@ function restoreLastPage(){
   catch(e){console.error('restoreLastPage failed, staying on Inicio:',e);}
 }
 
+// Detail pages' DOM ids are hyphenated (p-book-detail, p-author-page, ...) but
+// every other place that identifies a page (NB_INDEX, CURRENT_ENTITY, the render
+// dispatch table below, and go()'s own id==='bookdetail' branches) uses the
+// un-hyphenated logical id — so a raw `fromPage.id.replace(/^p-/,'')` produced a
+// mismatched key that silently dropped the entity id and skipped re-rendering
+// whenever you navigated away from a detail page.
+const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile'};
 function go(id,btn,extraId,_isBack){
   if(!_isBack){
     const fromPage=document.querySelector('.page.on');
     if(fromPage){
-      const fromId=fromPage.id.replace(/^p-/,'');
+      const rawId=fromPage.id.replace(/^p-/,'');
+      const fromId=DOM_ID_TO_PAGE_ID[rawId]||rawId;
       NAV_STACK.push({id:fromId,extraId:CURRENT_ENTITY[fromId]});
       if(NAV_STACK.length>50)NAV_STACK.shift();
     }
@@ -3682,7 +3698,10 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
 
-  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
+  // Capped at 8, same as your own profile's "Últimos libros leídos" — previously showed
+  // every single book this user had ever read, unbounded, which both contradicted the
+  // "latest" framing of the heading and could render hundreds of grid cells for prolific readers.
+  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
 
   // "Leyendo ahora" — same banner as your own profile shows to others
@@ -3787,7 +3806,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
 function renderFeedPage(){
   const av=document.getElementById('composer-avatar');
   if(av){
-    if(PROFILE.photo){av.style.backgroundImage=`url(${PROFILE.photo})`;av.style.background='none';av.textContent='';}
+    if(PROFILE.photo){av.style.background='none';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
     else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
   }
   populateComposerRetoSelect();
@@ -3865,14 +3884,20 @@ function openProfileEdit(){
 // BOOK SEARCH → Open Library
 // ═══════════════════════════════════════════════
 let searchTimers={};
+// Keyed by dropId so unrelated dropdowns (modal search, global search, reto search)
+// never cancel each other — only a newer query against the SAME dropdown wins.
+let _olSearchGen={};
 async function searchOL(q, dropId, onAddClick){
   const drop=document.getElementById(dropId);
   if(!q||q.length<3){drop.style.display='none';return;}
+  const gen=(_olSearchGen[dropId]=(_olSearchGen[dropId]||0)+1);
+  const isStale=()=>_olSearchGen[dropId]!==gen;
   drop.style.display='block';
   drop.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando en Open Library...</div>';
   try{
     const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,key,author_key,subject`);
     const data=await res.json();
+    if(isStale())return; // a newer search for this same dropdown has already started
     if(!data.docs?.length){drop.innerHTML='<div class="s-loading">Sin resultados. Usa la entrada manual.</div>';return;}
     drop.innerHTML='';
     data.docs.forEach((d,i)=>{
@@ -3894,7 +3919,7 @@ async function searchOL(q, dropId, onAddClick){
       row.addEventListener('click', ()=>{drop.style.display='none';onAddClick(bookData);fetchOLWorkDetails(bookData);});
       drop.appendChild(row);
     });
-  }catch(e){drop.innerHTML='<div class="s-loading">Error de red. Usa la entrada manual.</div>';}
+  }catch(e){if(!isStale())drop.innerHTML='<div class="s-loading">Error de red. Usa la entrada manual.</div>';}
 }
 
 async function fetchOLWorkDetails(bookData){
@@ -3930,15 +3955,18 @@ function testCoverUrl(url){
 }
 
 let _isbnTimer=null;
+let _isbnGen=0;
 function onISBNSearch(val){
   clearTimeout(_isbnTimer);
   const isbn=val.replace(/[^0-9X]/gi,'');
   const status=document.getElementById('isbn-status');
   if(isbn.length<10){status.textContent='';return;}
   status.innerHTML='<i class="ti ti-loader-2 spin"></i> Buscando edición…';
+  const gen=++_isbnGen; // guards against a slower, older ISBN lookup overwriting a newer one
   _isbnTimer=setTimeout(async()=>{
     try{
       const res=await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+      if(gen!==_isbnGen)return;
       if(!res.ok){status.textContent='ISBN no encontrado. Prueba otro o busca por título.';return;}
       const d=await res.json();
       const title=d.title||'Sin título';
@@ -3973,13 +4001,14 @@ function onISBNSearch(val){
       // deduplicate valid covers (isbn URL and cover_id URL can point to same image)
       const uniqueCovers=[...new Set(validCovers)];
       bookData.cover=uniqueCovers[0]||null;
+      if(gen!==_isbnGen)return; // a newer ISBN search superseded this one while we awaited
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
       if(uniqueCovers.length>1){
         showCoverPicker(bookData,uniqueCovers,'url');
       } else {
         selectBookForAdd(bookData);
       }
-    }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
+    }catch(err){if(gen===_isbnGen)status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
 }
 
@@ -4264,7 +4293,7 @@ function saveManual(){
 }
 
 function quickAddDirect(title,author,status){
-  if(Object.values(DB).flat().find(b=>b.title===title)){toast(`«${title}» ya está en tu shelfie`);return;}
+  if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===title.toLowerCase())){toast(`«${title}» ya está en tu shelfie`);return;}
   const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null};
   DB[status].unshift(book);
   saveSupaBook(book);
@@ -4480,7 +4509,11 @@ async function markTodayAsRead(){
   const streak=calculateCurrentStreak();
   toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
   if(SUPA_USER){
-    await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    if(error){
+      console.error('markTodayAsRead: failed to save reading_days:',error);
+      toast('⚠️ Racha marcada localmente, pero no se pudo guardar en el servidor. Revisa tu conexión.');
+    }
   }
 }
 
@@ -4501,9 +4534,13 @@ function calculateCurrentStreak(days){
 
 function calculateBestStreak(){
   if(!READING_DAYS.size)return 0;
+  // Use Date.UTC (not `new Date(y,m-1,dd)`) so each calendar day is exactly 86400000ms
+  // apart regardless of local DST transitions — with local time, the day a clock springs
+  // forward/falls back is only 23h/25h long, which made consecutive-day streaks that
+  // crossed a DST change get miscounted as broken.
   const dates=[...READING_DAYS].map(k=>{
     const[y,m,dd]=k.split('-').map(Number);
-    return new Date(y,m-1,dd).getTime();
+    return Date.UTC(y,m-1,dd);
   }).sort((a,b)=>a-b);
   let best=1,cur=1;
   const DAY=86400000;
@@ -4823,12 +4860,6 @@ function renderMultiRowShelf(books){
 
 function initShelfDragAndDrop(){
   // native drag events already attached inline; just ensure dragover works on empty shelf areas
-}
-
-// Override shelfDragOver to add visual indicator
-function shelfDragOver(e,idx){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
 }
 
 function moveMenuHtml(id,currentStatus){
@@ -5298,7 +5329,7 @@ function rankDrop(e,targetIdx){
   const favs=getFavoriteBooks();
   const moved=favs.splice(dragSrcIdx,1)[0];
   favs.splice(targetIdx,0,moved);
-  favs.forEach((b,i)=>{b.rankPos=i;});
+  favs.forEach((b,i)=>{b.rankPos=i;saveSupaBook(b);});
   dragSrcIdx=null;
   renderRanking();
   toast('✓ Ranking actualizado');
@@ -5455,6 +5486,7 @@ function pfAddFav(id){
   if(!book||getFavoriteBooks().length>=MAX_FAVORITES)return;
   book.isFavorite=true;
   book.rankPos=getFavoriteBooks().length-1;
+  saveSupaBook(book);
   const srch=document.getElementById('pf-srch');
   const drop=document.getElementById('pf-srch-drop');
   if(srch)srch.value='';
@@ -5468,6 +5500,7 @@ function pfRemoveFav(id){
   if(!book)return;
   book.isFavorite=false;
   delete book.rankPos;
+  saveSupaBook(book);
   renderProfileFavSection();
   toast(`«${book.title}» quitado de favoritos`);
 }
@@ -5480,7 +5513,7 @@ function pfDrop(e,targetIdx){
   const favs=getFavoriteBooks();
   const moved=favs.splice(pfDragSrcIdx,1)[0];
   favs.splice(targetIdx,0,moved);
-  favs.forEach((b,i)=>{b.rankPos=i;});
+  favs.forEach((b,i)=>{b.rankPos=i;saveSupaBook(b);});
   pfDragSrcIdx=null;
   renderProfileFavSection();
   toast('✓ Orden actualizado');
@@ -5678,7 +5711,7 @@ function renderStats(){
   const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   let lastMonth=-1;
   for(let w=0;w<totalWeeks;w++){
-    const d=new Date(2026,0,1+w*7);
+    const d=new Date(hmYear,0,1+w*7);
     const m=d.getMonth();
     const lbl=document.createElement('div');
     lbl.className='hm-month-lbl';
@@ -5688,7 +5721,7 @@ function renderStats(){
   }
   // cells: one per day, arranged in weeks (columns)
   for(let i=0;i<totalDays;i++){
-    const d=new Date(2026,0,1+i);
+    const d=new Date(hmYear,0,1+i);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const isRead=READING_DAYS.has(key);
     const isToday=key===todayKey();
@@ -5770,10 +5803,14 @@ function renderStats(){
 
   // ── Distribución shelfie ──
   const states=[['Leídos',leidos.length,'var(--green)','ti-check'],['Leyendo',DB.leyendo.length,'var(--blue)','ti-book-2'],['Quiero leer',DB.quiero.length,'var(--amber)','ti-bookmark'],['Abandonados',DB.dnf.length,'var(--ink3)','ti-x']];
+  // Use the sum of the rows actually shown as the denominator — when a year filter is
+  // active, `total` (leidos filtered by year) can be far smaller than the unfiltered
+  // leyendo/quiero/dnf counts above, which made these bars render past 100% width.
+  const distTotal=states.reduce((s,[,n])=>s+n,0);
   document.getElementById('st-dist').innerHTML=states.map(([l,n,c,ic])=>`
     <div class="bar-row">
       <div style="display:flex;align-items:center;gap:5px;width:100px;flex-shrink:0"><i class="ti ${ic}" style="color:${c};font-size:12px"></i><span class="bar-lbl" style="width:auto">${l}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${total?Math.round(n/total*100):0}%;background:${c}"></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${distTotal?Math.round(n/distTotal*100):0}%;background:${c}"></div></div>
       <div class="bar-pct">${n}</div>
     </div>`).join('');
 
@@ -6264,9 +6301,6 @@ async function searchFriends(q){
   }
 }
 
-// ═══════════════════════════════════════════════
-// CLUBS
-// ═══════════════════════════════════════════════
 // ═══════════════════════════════════════════════
 // CLUBS
 // ═══════════════════════════════════════════════
@@ -6998,10 +7032,8 @@ function updateProfileStats(){
 }
 
 // ═══════════════════════════════════════════════
-// FOLLOWERS
-// ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════
 // NOTIFICATIONS
+// (FOLLOWERS rendering lives above, under FRIENDS — renderFollowersTab() etc.)
 // ═══════════════════════════════════════════════
 function setNotifBadge(n){
   const badge=document.getElementById('notif-badge');
@@ -7054,11 +7086,14 @@ function renderProfile(){
   const badge=document.getElementById('profile-streak-badge');
   if(badge){badge.style.opacity=streak>0?'1':'0.35';}
 
-  // genre tags in hero (top genres from read books)
+  // genre tags in hero — real distribution from read books (matches renderUserProfileView,
+  // was previously a hardcoded genre-name list unrelated to the user's actual books)
   const genreTagsEl=document.getElementById('p-genre-tags');
-  const GENRES=['Ficción','Realismo mágico','Histórica','Clásico','Ensayo','Ciencia ficción','Terror','Romance','Biografía','Poesía'];
-  const availGenres=GENRES.filter((_,i)=>i<Math.min(4,Math.ceil(DB.leidos.length/3)));
-  genreTagsEl.innerHTML=availGenres.length?availGenres.map(g=>`<span class="profile-genre-tag">${g}</span>`).join(''):'';
+  const profileGenreCounts={};
+  DB.leidos.forEach(b=>{(b.genres||[]).forEach(g=>{profileGenreCounts[g]=(profileGenreCounts[g]||0)+1;});});
+  const profileGenreEntries=Object.entries(profileGenreCounts).sort((a,b)=>b[1]-a[1]);
+  const availGenres=profileGenreEntries.slice(0,4).map(([g])=>g);
+  genreTagsEl.innerHTML=availGenres.length?availGenres.map(g=>`<span class="profile-genre-tag">${escapeHtml(g)}</span>`).join(''):'';
 
   // "Leyendo ahora" banner — visible para otros
   const rnWrap=document.getElementById('profile-reading-now-wrap');
@@ -7086,15 +7121,17 @@ function renderProfile(){
   if(!DB.leidos.length){rb.innerHTML='<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>';}
   else{rb.innerHTML=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${DB.leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${b.id}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${b.title}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`;}
 
-  // genres
+  // genres — real distribution from read books (was a hardcoded genre-name list with a
+  // made-up decay formula, unrelated to the user's actual books; other users' profiles
+  // via renderUserProfileView always computed this for real — now both match)
   const ge=document.getElementById('p-genres');
   if(!DB.leidos.length){ge.innerHTML='<div style="font-size:13px;color:var(--ink3)">Añade libros para ver géneros.</div>';}
   else{
-    ge.innerHTML=['Ficción','Realismo mágico','Histórica','Clásico','Ensayo'].map((g,i)=>{
-      const n=Math.max(0,DB.leidos.length-i*Math.max(1,Math.floor(DB.leidos.length/5)));
-      const pct=DB.leidos.length?Math.min(100,Math.round(n/DB.leidos.length*100)):0;
-      return pct?`<div class="bar-row"><div class="bar-lbl">${g}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`:'';
-    }).filter(Boolean).join('');
+    const geEntries=profileGenreEntries.slice(0,5);
+    ge.innerHTML=geEntries.length?geEntries.map(([g,n])=>{
+      const pct=Math.round(n/DB.leidos.length*100);
+      return `<div class="bar-row"><div class="bar-lbl">${escapeHtml(g)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`;
+    }).join(''):'<div style="font-size:13px;color:var(--ink3)">Sin géneros registrados.</div>';
   }
 
   // public ranking on profile — rendered by dedicated function
@@ -7624,7 +7661,7 @@ function buildPostFieldsFromComposer(post){
     const chapter=document.getElementById('composer-cita-chapter').value.trim();
     if(!quote){toast('⚠️ Escribe el fragmento que quieres citar');return false;}
     post.quote=quote;post.page=page;post.chapter=chapter;
-    delete post.text;delete post.thread;delete post.note;delete post.character;delete post.subject;
+    delete post.text;delete post.thread;delete post.note;delete post.character;delete post.subject;delete post.shelfBooks;delete post.shelfViewMode;
   } else if(composerMode==='marginalia'){
     const quote=document.getElementById('composer-quote').value.trim();
     const note=document.getElementById('composer-note').value.trim();
@@ -7633,14 +7670,14 @@ function buildPostFieldsFromComposer(post){
     if(!quote){toast('⚠️ Escribe el fragmento de la página');return false;}
     if(!note){toast('⚠️ Escribe tus anotaciones');return false;}
     post.quote=quote;post.note=note;post.page=page;post.chapter=chapter;
-    delete post.text;delete post.thread;delete post.character;delete post.subject;
+    delete post.text;delete post.thread;delete post.character;delete post.subject;delete post.shelfBooks;delete post.shelfViewMode;
   } else {
     const text=document.getElementById('composer-text').value.trim();
     if(!text){toast('⚠️ Escribe algo antes de publicar');return false;}
     post.text=text;
     post.page=document.getElementById('composer-text-page').value.trim();
     post.chapter=document.getElementById('composer-text-chapter').value.trim();
-    delete post.quote;delete post.note;
+    delete post.quote;delete post.note;delete post.shelfBooks;delete post.shelfViewMode;
     if(composerMode==='hilo'){
       post.thread=threadParts.filter(t=>t!==null&&t.text&&t.text.trim().length).map(t=>({text:t.text.trim(),character:(t.character||'').trim()}));
       post.character=document.getElementById('composer-main-char-name').value.trim()||null;
@@ -7674,6 +7711,7 @@ function publishPost(){
     if(composerMode!=='tweet')post.book=composerBook;
     if(!buildPostFieldsFromComposer(post)){post.type=prevType;post.book=prevBook;post.spoiler=prevSpoiler;return;}
     post.editedAt=Date.now();
+    saveSupaPost(post); // persist the edit — was previously only updated in local state and lost on reload
     renderUserPosts();
     resetComposer();
     toast('✅ Publicación actualizada');
