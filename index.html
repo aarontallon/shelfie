@@ -2609,11 +2609,26 @@ function postRowToObject(row){
 // Feed = your posts + the posts of everyone you follow, newest first.
 async function loadSupaPosts(){
   const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
-  const{data,error}=await supa.from('posts')
+  let{data,error}=await supa.from('posts')
     .select('*, comments(*, comment_likes(*)), likes(*), post_reactions(*)')
     .in('user_id',authorIds)
     .order('created_at',{ascending:false})
     .limit(100);
+  if(error){
+    // comment_likes/post_reactions are new tables — until the matching SQL
+    // migration has actually been run against this Supabase project, asking for
+    // them makes the WHOLE query invalid, and PostgREST returns an error for the
+    // entire request rather than just those columns. That used to silently wipe
+    // the whole feed (real posts included) instead of just missing two features.
+    // Fall back to the base query so real posts/comments/likes still load.
+    console.error('loadSupaPosts: extended select failed (migration not run yet?), falling back:',error);
+    const fallback=await supa.from('posts')
+      .select('*, comments(*), likes(*)')
+      .in('user_id',authorIds)
+      .order('created_at',{ascending:false})
+      .limit(100);
+    data=fallback.data;error=fallback.error;
+  }
   if(error||!data)return;
   const commenterIds=data.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
   await ensureAuthorsLoaded([...data.map(r=>r.user_id),...commenterIds]);
