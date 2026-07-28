@@ -1243,9 +1243,6 @@ a{color:inherit}
   <div class="f-row"><label class="f-label">Username</label><div style="position:relative"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink3)">@</span><input class="f-input" style="padding-left:26px" id="prof-username"></div></div>
   <div class="f-row"><label class="f-label">Bio</label><textarea class="f-input" id="prof-bio" style="height:70px;resize:none"></textarea></div>
   <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="prof-city"></div>
-  <div class="f-row"><label class="f-label">Perfil público</label>
-    <select class="f-input" id="prof-public"><option value="1">🌍 Sí, cualquiera puede ver mi shelfie y mi ranking</option><option value="0">🔒 No, solo amigos</option></select>
-  </div>
   <button class="btn btn-red w-full" onclick="saveProfile()"><i class="ti ti-check"></i> Guardar perfil</button>
 </div>
 </div>
@@ -1419,8 +1416,8 @@ a{color:inherit}
   <div class="sb-section">
     <div class="sb-lbl">Social</div>
     <button class="sb-notif-btn" onclick="openNotifications()"><i class="ti ti-bell"></i> Notificaciones <span class="nb-badge" id="notif-badge" style="display:none">0</span></button>
-    <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed <span class="nb-badge" id="feed-badge">3</span></button>
-    <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos <span class="nb-badge" id="friends-badge">2</span></button>
+    <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed</button>
+    <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos</button>
     <button class="nb" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> Clubs</button>
   </div>
   <div class="sb-section">
@@ -2412,7 +2409,6 @@ async function loadSupaProfile(){
   PROFILE.bio=data.bio||PROFILE.bio;
   PROFILE.city=data.city||'';
   PROFILE.photo=data.photo||null;
-  PROFILE.public=data.public!==false;
   PROFILE.email=SUPA_USER.email||'';
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -2676,7 +2672,6 @@ async function saveSupaProfile(){
     bio:PROFILE.bio,
     city:PROFILE.city,
     photo:PROFILE.photo,
-    public:PROFILE.public,
   }).eq('id',SUPA_USER.id);
   if(error){
     console.error('saveSupaProfile failed:',error);
@@ -2848,7 +2843,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
 
 let CLUBS=[
   {
@@ -3663,7 +3658,7 @@ async function doLogout(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   RETOS=[];
-  PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',public:true};
+  PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
   DEMO_SEEDED=false;
   document.getElementById('app-shell').classList.remove('on');
   showAuth('login');
@@ -3755,8 +3750,6 @@ function go(id,btn,extraId,_isBack){
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,reviews:renderReviews,
     home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs})[id]?.();
-  if(id==='feed')document.getElementById('feed-badge').style.display='none';
-  if(id==='friends')document.getElementById('friends-badge').style.display='none';
 }
 
 // Pops the last page off the history stack and returns to it. Falls back to a
@@ -4007,7 +4000,6 @@ function openProfileEdit(){
   document.getElementById('prof-username').value=PROFILE.username;
   document.getElementById('prof-bio').value=PROFILE.bio;
   document.getElementById('prof-city').value=PROFILE.city;
-  document.getElementById('prof-public').value=PROFILE.public?'1':'0';
   openModal('modal-profile-edit');
 }
 
@@ -4649,12 +4641,11 @@ async function saveProfile(){
   // rolled back — PROFILE is the same object used everywhere else in the app (post
   // authorship, the profile page, ...), so leaving it on the un-saved values made the
   // UI show a change that silently never reached the database.
-  const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,public:PROFILE.public,photo:PROFILE.photo};
+  const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,photo:PROFILE.photo};
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
   PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
   PROFILE.city=document.getElementById('prof-city').value.trim();
-  PROFILE.public=document.getElementById('prof-public').value==='1';
   const saveBtn=document.querySelector('#modal-profile-edit .btn-red');
   let photoErrorMsg=null;
   if(PROFILE._pendingPhotoFile){
@@ -7459,7 +7450,9 @@ function renderProfile(){
   document.getElementById('p-username').textContent=PROFILE.username;
   document.getElementById('p-bio').textContent=PROFILE.bio;
   document.getElementById('p-city').textContent=PROFILE.city;
-  document.getElementById('p-visibility-badge').textContent=PROFILE.public?'🌍 Público':'🔒 Solo amigos';
+  // Every profile/shelfie/post is public-read regardless of any flag (see supabase_schema.sql
+  // RLS policies) — there's no actual private mode, so this is a statement of fact, not a toggle.
+  document.getElementById('p-visibility-badge').textContent='🌍 Público';
   updateProfileStats();
 
   // racha de lectura + avatar ring + badge
