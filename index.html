@@ -971,6 +971,12 @@ a{color:inherit}
 .s-title{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s-author{font-size:11px;color:var(--ink3)}
 .s-loading{padding:14px;text-align:center;font-size:13px;color:var(--ink3);display:flex;align-items:center;justify-content:center;gap:8px}
+.global-search-modal{width:520px;max-width:92vw}
+.global-search-results{margin-top:12px;max-height:min(60vh,420px);overflow-y:auto;border-radius:12px}
+.global-search-results:not(:empty){border:1px solid var(--border)}
+.sb-search-btn{display:flex;align-items:center;gap:10px;width:calc(100% - 36px);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.55);font-size:13px;font-family:'Inter',sans-serif;padding:9px 12px;border-radius:8px;cursor:pointer;margin:0 18px 14px;transition:background 0.15s}
+.sb-search-btn:hover{background:rgba(255,255,255,0.1);color:white}
+.sb-search-btn kbd{margin-left:auto;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:2px 5px;font-family:inherit}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .spin{animation:spin 0.8s linear infinite;display:inline-block}
 .qadd-panel{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--border)}
@@ -998,11 +1004,6 @@ a{color:inherit}
 .cover-drop{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all 0.12s}
 .cover-drop:hover{border-color:var(--red);background:var(--red-light)}
 .cover-drop input{display:none}
-.global-srch{position:relative}
-.global-srch input{padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:white;color:var(--ink);width:220px;outline:none}
-.global-srch input:focus{border-color:var(--red)}
-.global-srch .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--ink3);pointer-events:none}
-.global-srch .drop{position:absolute;top:calc(100% + 4px);left:0;width:340px;background:white;border:1px solid var(--border);border-radius:12px;z-index:400;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.1);display:none;max-height:320px;overflow-y:auto}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:2px}
@@ -1065,7 +1066,6 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
 <div class="auth-screen" id="auth-login">
-  <button onclick="devQuickEnter()" title="Acceso rápido de prueba" style="position:absolute;top:16px;right:16px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.7);font-size:11px;font-family:'Inter',sans-serif;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:0.3px;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='white'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">⚡ Dev</button>
   <div class="auth-box" id="login-box">
     <div class="auth-logo">
       <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
@@ -1365,6 +1365,20 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: BÚSQUEDA GLOBAL (Ctrl/Cmd+K) ══════════════════════ -->
+<div class="overlay" id="modal-global-search" style="display:none;align-items:flex-start" onclick="if(event.target===this)closeGlobalSearch()">
+<div class="modal global-search-modal">
+  <button class="modal-close" onclick="closeGlobalSearch()"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-search" style="font-size:20px;color:var(--red)"></i> Buscar</h2>
+  <p class="sub">Busca cualquier libro y añádelo directamente a tu shelfie</p>
+  <div class="srch-wrap" style="width:100%">
+    <i class="ti ti-search srch-ico"></i>
+    <input class="srch-inp" id="g-inp" style="width:100%" placeholder="Título o autor..." oninput="onGlobalSearch(this.value)" autocomplete="off">
+  </div>
+  <div id="g-drop" class="global-search-results"></div>
+</div>
+</div>
+
 <!-- ══════════════════════ APP SHELL ══════════════════════ -->
 <div class="app" id="app-shell">
 <nav class="sidebar">
@@ -1374,6 +1388,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
   </div>
+  <button class="sb-search-btn" onclick="openGlobalSearch()"><i class="ti ti-search"></i> Buscar <kbd>Ctrl K</kbd></button>
   <div class="sb-section">
     <div class="sb-lbl">Principal</div>
     <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
@@ -2156,7 +2171,7 @@ a{color:inherit}
 </div>
 
 <!-- ── ESTADÍSTICAS ── -->
-<div id="p-stats" class="page" id="stats-printable">
+<div id="p-stats" class="page">
   <div class="tb">
     <div>
       <h1>Estadísticas</h1>
@@ -2420,8 +2435,9 @@ async function loadSupaBooks(){
 }
 
 // ── Save book to DB ──
-async function saveSupaBook(book){
+async function saveSupaBook(book,attempt){
   if(!SUPA_USER)return;
+  attempt=attempt||1;
   const row={
     id:book.id,
     user_id:SUPA_USER.id,
@@ -2448,13 +2464,71 @@ async function saveSupaBook(book){
     author_ol_key:book.authorOlKey||null,
     synopsis:book.synopsis||null,
   };
-  await supa.from('user_books').upsert(row,{onConflict:'id'});
+  const{error}=await supa.from('user_books').upsert(row,{onConflict:'id'});
+  if(error){
+    console.error(`saveSupaBook failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaBook(book,attempt+1),1000*attempt);}
+    else{toast(`❌ No se pudo guardar «${book.title}». Comprueba tu conexión — vuelve a intentarlo, no se ha guardado.`);}
+  }
 }
 
 // ── Delete book from DB ──
 async function deleteSupaBook(id){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaBook failed:',error);toast('❌ No se pudo eliminar el libro. Inténtalo de nuevo.');return false;}
+  return true;
+}
+
+// ── Retos & Clubs: both are personal spaces today (see supabase_schema.sql
+// for why) — the whole nested object round-trips as-is through a single
+// jsonb column, just like a book or post's own object shape does elsewhere. ──
+async function loadSupaRetos(){
+  const{data,error}=await supa.from('retos').select('id,data').eq('user_id',SUPA_USER.id).order('created_at',{ascending:true});
+  if(error||!data)return;
+  RETOS=data.map(row=>({...row.data,id:row.id}));
+}
+
+async function saveSupaReto(reto,attempt){
   if(!SUPA_USER)return;
-  await supa.from('user_books').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  attempt=attempt||1;
+  const{error}=await supa.from('retos').upsert({id:reto.id,user_id:SUPA_USER.id,data:reto},{onConflict:'id'});
+  if(error){
+    console.error(`saveSupaReto failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaReto(reto,attempt+1),1000*attempt);}
+    else{toast(`❌ No se pudo guardar el reto «${reto.name}». No se ha guardado — vuelve a intentarlo.`);}
+  }
+}
+
+async function deleteSupaReto(id){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('retos').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaReto failed:',error);toast('❌ No se pudo eliminar el reto. Inténtalo de nuevo.');return false;}
+  return true;
+}
+
+async function loadSupaClubs(){
+  const{data,error}=await supa.from('clubs').select('id,data').eq('user_id',SUPA_USER.id).order('created_at',{ascending:true});
+  if(error||!data)return;
+  CLUBS=data.map(row=>({...row.data,id:row.id}));
+}
+
+async function saveSupaClub(club,attempt){
+  if(!SUPA_USER)return;
+  attempt=attempt||1;
+  const{error}=await supa.from('clubs').upsert({id:club.id,user_id:SUPA_USER.id,data:club},{onConflict:'id'});
+  if(error){
+    console.error(`saveSupaClub failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaClub(club,attempt+1),1000*attempt);}
+    else{toast(`❌ No se pudo guardar el club «${club.name}». No se ha guardado — vuelve a intentarlo.`);}
+  }
+}
+
+async function deleteSupaClub(id){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('clubs').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaClub failed:',error);toast('❌ No se pudo eliminar el club. Inténtalo de nuevo.');return false;}
+  return true;
 }
 
 // ── Load posts from DB ──
@@ -2506,8 +2580,9 @@ async function loadSupaPosts(){
 }
 
 // ── Save post to DB ──
-async function saveSupaPost(post){
+async function saveSupaPost(post,attempt){
   if(!SUPA_USER)return;
+  attempt=attempt||1;
   const row={
     id:post.id,
     user_id:SUPA_USER.id,
@@ -2530,35 +2605,46 @@ async function saveSupaPost(post){
     },
   };
   const{error}=await supa.from('posts').upsert(row,{onConflict:'id'});
-  if(error){console.error('saveSupaPost failed:',error);toast('❌ No se pudo guardar la publicación.');}
+  if(error){
+    console.error(`saveSupaPost failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaPost(post,attempt+1),1000*attempt);}
+    else{toast('❌ No se pudo guardar la publicación. Comprueba tu conexión — no se ha guardado.');}
+  }
 }
 
 // ── Delete post from DB ──
 async function deleteSupaPost(id){
-  if(!SUPA_USER)return;
-  await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('posts').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaPost failed:',error);toast('❌ No se pudo eliminar la publicación. Inténtalo de nuevo.');return false;}
+  return true;
 }
 
 // ── Save comment to DB ──
 async function saveSupaComment(postId,text){
-  if(!SUPA_USER)return;
-  const{data}=await supa.from('comments').insert({post_id:postId,user_id:SUPA_USER.id,text}).select().single();
+  if(!SUPA_USER)return null;
+  const row={id:uuid(),post_id:postId,user_id:SUPA_USER.id,text};
+  const{data,error}=await supa.from('comments').insert(row).select().single();
+  if(error){console.error('saveSupaComment failed:',error);return null;}
   return data;
 }
 
 // ── Toggle like ──
 async function toggleSupaLike(postId,liked){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return true;
   if(liked){
-    await supa.from('likes').upsert({post_id:postId,user_id:SUPA_USER.id},{onConflict:'post_id,user_id'});
+    const{error}=await supa.from('likes').upsert({post_id:postId,user_id:SUPA_USER.id},{onConflict:'post_id,user_id'});
+    if(error){console.error('toggleSupaLike (like) failed:',error);return false;}
   } else {
-    await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+    const{error}=await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
+    if(error){console.error('toggleSupaLike (unlike) failed:',error);return false;}
   }
+  return true;
 }
 
 // ── Save profile to DB ──
 async function saveSupaProfile(){
-  if(!SUPA_USER)return;
+  if(!SUPA_USER)return{ok:true};
   const{error}=await supa.from('profiles').update({
     name:PROFILE.name,
     username:PROFILE.username,
@@ -2567,7 +2653,12 @@ async function saveSupaProfile(){
     photo:PROFILE.photo,
     public:PROFILE.public,
   }).eq('id',SUPA_USER.id);
-  if(error){console.error('saveSupaProfile failed:',error);toast('❌ No se pudieron guardar los cambios del perfil.');}
+  if(error){
+    console.error('saveSupaProfile failed:',error);
+    const dup=/duplicate key|unique constraint/i.test(error.message||'');
+    return{ok:false,dup};
+  }
+  return{ok:true};
 }
 
 // ── Load friends from DB (friendships → profiles) ──
@@ -2643,7 +2734,13 @@ async function _supaEnterApp(){
   try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
+  try{await loadSupaRetos();}catch(e){console.error('loadSupaRetos failed:',e);}
+  try{await loadSupaClubs();}catch(e){console.error('loadSupaClubs failed:',e);}
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
+  // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
+  // signs out from another tab mid-load) — don't flip into the app for a session
+  // that no longer exists.
+  if(!SUPA_USER)return;
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
 }
 
@@ -2955,7 +3052,7 @@ function setAvatarEl(el,photoUrl,initials,bg,tc){
   showFallback();
   if(!photoUrl)return;
   const img=new Image();
-  img.onload=()=>{el.style.backgroundImage=`url(${photoUrl})`;el.style.background='none';el.textContent='';};
+  img.onload=()=>{el.style.background='none';el.style.backgroundImage=`url(${photoUrl})`;el.textContent='';};
   img.onerror=()=>{console.error('avatar image failed to load — check the Storage bucket is set to Public (broken URL otherwise):',photoUrl);showFallback();};
   img.src=photoUrl;
 }
@@ -3180,11 +3277,6 @@ function getAuthorData(authorName){
 // ═══════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════
-function devQuickEnter(){
-  PROFILE={name:'Aaron Tallón',username:'aarontallon',bio:'Dev mode 🛠️',city:'Barcelona',photo:null,email:'test@dev.local',public:true};
-  enterApp(false);
-}
-
 function showAuth(which){
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('auth-'+which).classList.add('on');
@@ -3208,17 +3300,51 @@ async function doLogin(){
 }
 
 let _usernameCheckTimer=null;
+let _usernameCheckGen=0;
 let _usernameAvailable=false;
 
-function checkUsername(){}
-
+// Debounced real check against the profiles table — this used to just look at the
+// text length ("_usernameAvailable=clean.length>=3") despite the label promising a
+// unique handle, so two people could type the same username and only the SECOND
+// one's registration would silently fail later (caught by the unique constraint,
+// but with no clue why in the UI).
 function onUsernameInput(val){
   const clean=val.toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(val!==clean)document.getElementById('reg-username').value=clean;
-  _usernameAvailable=clean.length>=3;
   const el=document.getElementById('username-status');
-  el.textContent=clean.length>=3?'@'+clean:'';
+  clearTimeout(_usernameCheckTimer);
+  _usernameAvailable=false;
+  if(clean.length<3){
+    el.textContent=clean.length?'Mínimo 3 caracteres':'';
+    el.style.color='var(--ink3)';
+    return;
+  }
+  el.textContent='Comprobando disponibilidad...';
   el.style.color='var(--ink3)';
+  const gen=++_usernameCheckGen;
+  _usernameCheckTimer=setTimeout(async()=>{
+    try{
+      const{data,error}=await supa.from('profiles').select('id').eq('username',clean).limit(1);
+      if(gen!==_usernameCheckGen)return; // a newer keystroke already started another check
+      if(error)throw error;
+      if(data&&data.length){
+        el.textContent='❌ Ese usuario ya está en uso';
+        el.style.color='var(--red)';
+        _usernameAvailable=false;
+      }else{
+        el.textContent='✓ @'+clean+' disponible';
+        el.style.color='var(--green)';
+        _usernameAvailable=true;
+      }
+    }catch(e){
+      if(gen!==_usernameCheckGen)return;
+      console.error('username availability check failed:',e);
+      // Don't block registration on a network hiccup — the DB's unique constraint
+      // is still the real backstop if this optimistic pass turns out to be wrong.
+      el.textContent='';
+      _usernameAvailable=true;
+    }
+  },500);
 }
 
 function passStrength(p){
@@ -3253,7 +3379,7 @@ async function doRegister(){
   if(!nombre){authErr('register-error','Escribe tu nombre');return;}
   if(!apellido){authErr('register-error','Escribe tu apellido');return;}
   if(!username||username.length<3){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
-  if(!_usernameAvailable){authErr('register-error','El usuario debe tener al menos 3 caracteres');return;}
+  if(!_usernameAvailable){authErr('register-error','Ese nombre de usuario ya está en uso, o todavía estamos comprobándolo — espera un momento y prueba con otro si hace falta.');return;}
   if(!email||!email.includes('@')){authErr('register-error','Introduce un email válido');return;}
   if(!pass||pass.length<8){authErr('register-error','La contraseña debe tener al menos 8 caracteres');return;}
   if(passStrength(pass)<2){authErr('register-error','La contraseña es demasiado débil. Usa mayúsculas, números o símbolos.');return;}
@@ -3282,7 +3408,11 @@ async function doRegister(){
     SUPA_USER=sd?.session?.user||null;
   }
   if(SUPA_USER){
-    await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+    // If the project requires email confirmation, signUp() returns a user but no
+    // session yet — this update then runs unauthenticated and RLS (auth.uid()=id)
+    // silently blocks it, leaving the trigger-generated default username in place.
+    const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+    if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
   }
   PROFILE.name=fullName;
   PROFILE.email=email;
@@ -3306,6 +3436,18 @@ async function socialLogin(provider){
 }
 
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+// Real UUID, required by every uuid-typed primary key this app inserts into
+// (user_books.id, posts.id, ...) — a non-UUID string id makes Supabase reject
+// the row outright, which used to fail silently and looked like data loss.
+function uuid(){
+  if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r=Math.random()*16|0;
+    const v=c==='x'?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
 
 function mkBook(title,author,status,opts={}){
   const id='b'+Date.now()+Math.random().toString(36).slice(2,8);
@@ -3537,11 +3679,19 @@ function restoreLastPage(){
   catch(e){console.error('restoreLastPage failed, staying on Inicio:',e);}
 }
 
+// Detail pages' DOM ids are hyphenated (p-book-detail, p-author-page, ...) but
+// every other place that identifies a page (NB_INDEX, CURRENT_ENTITY, the render
+// dispatch table below, and go()'s own id==='bookdetail' branches) uses the
+// un-hyphenated logical id — so a raw `fromPage.id.replace(/^p-/,'')` produced a
+// mismatched key that silently dropped the entity id and skipped re-rendering
+// whenever you navigated away from a detail page.
+const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile'};
 function go(id,btn,extraId,_isBack){
   if(!_isBack){
     const fromPage=document.querySelector('.page.on');
     if(fromPage){
-      const fromId=fromPage.id.replace(/^p-/,'');
+      const rawId=fromPage.id.replace(/^p-/,'');
+      const fromId=DOM_ID_TO_PAGE_ID[rawId]||rawId;
       NAV_STACK.push({id:fromId,extraId:CURRENT_ENTITY[fromId]});
       if(NAV_STACK.length>50)NAV_STACK.shift();
     }
@@ -3654,7 +3804,10 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
 
-  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
+  // Capped at 8, same as your own profile's "Últimos libros leídos" — previously showed
+  // every single book this user had ever read, unbounded, which both contradicted the
+  // "latest" framing of the heading and could render hundreds of grid cells for prolific readers.
+  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
 
   // "Leyendo ahora" — same banner as your own profile shows to others
@@ -3759,7 +3912,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
 function renderFeedPage(){
   const av=document.getElementById('composer-avatar');
   if(av){
-    if(PROFILE.photo){av.style.backgroundImage=`url(${PROFILE.photo})`;av.style.background='none';av.textContent='';}
+    if(PROFILE.photo){av.style.background='none';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
     else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
   }
   populateComposerRetoSelect();
@@ -3837,14 +3990,20 @@ function openProfileEdit(){
 // BOOK SEARCH → Open Library
 // ═══════════════════════════════════════════════
 let searchTimers={};
+// Keyed by dropId so unrelated dropdowns (modal search, global search, reto search)
+// never cancel each other — only a newer query against the SAME dropdown wins.
+let _olSearchGen={};
 async function searchOL(q, dropId, onAddClick){
   const drop=document.getElementById(dropId);
   if(!q||q.length<3){drop.style.display='none';return;}
+  const gen=(_olSearchGen[dropId]=(_olSearchGen[dropId]||0)+1);
+  const isStale=()=>_olSearchGen[dropId]!==gen;
   drop.style.display='block';
   drop.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando en Open Library...</div>';
   try{
     const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,key,author_key,subject`);
     const data=await res.json();
+    if(isStale())return; // a newer search for this same dropdown has already started
     if(!data.docs?.length){drop.innerHTML='<div class="s-loading">Sin resultados. Usa la entrada manual.</div>';return;}
     drop.innerHTML='';
     data.docs.forEach((d,i)=>{
@@ -3866,7 +4025,7 @@ async function searchOL(q, dropId, onAddClick){
       row.addEventListener('click', ()=>{drop.style.display='none';onAddClick(bookData);fetchOLWorkDetails(bookData);});
       drop.appendChild(row);
     });
-  }catch(e){drop.innerHTML='<div class="s-loading">Error de red. Usa la entrada manual.</div>';}
+  }catch(e){if(!isStale())drop.innerHTML='<div class="s-loading">Error de red. Usa la entrada manual.</div>';}
 }
 
 async function fetchOLWorkDetails(bookData){
@@ -3902,15 +4061,18 @@ function testCoverUrl(url){
 }
 
 let _isbnTimer=null;
+let _isbnGen=0;
 function onISBNSearch(val){
   clearTimeout(_isbnTimer);
   const isbn=val.replace(/[^0-9X]/gi,'');
   const status=document.getElementById('isbn-status');
   if(isbn.length<10){status.textContent='';return;}
   status.innerHTML='<i class="ti ti-loader-2 spin"></i> Buscando edición…';
+  const gen=++_isbnGen; // guards against a slower, older ISBN lookup overwriting a newer one
   _isbnTimer=setTimeout(async()=>{
     try{
       const res=await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+      if(gen!==_isbnGen)return;
       if(!res.ok){status.textContent='ISBN no encontrado. Prueba otro o busca por título.';return;}
       const d=await res.json();
       const title=d.title||'Sin título';
@@ -3945,13 +4107,14 @@ function onISBNSearch(val){
       // deduplicate valid covers (isbn URL and cover_id URL can point to same image)
       const uniqueCovers=[...new Set(validCovers)];
       bookData.cover=uniqueCovers[0]||null;
+      if(gen!==_isbnGen)return; // a newer ISBN search superseded this one while we awaited
       status.innerHTML='<span style="color:var(--green)"><i class="ti ti-check"></i> Edición encontrada</span>';
       if(uniqueCovers.length>1){
         showCoverPicker(bookData,uniqueCovers,'url');
       } else {
         selectBookForAdd(bookData);
       }
-    }catch(err){status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
+    }catch(err){if(gen===_isbnGen)status.textContent='Error al buscar ISBN. Intenta de nuevo.';}
   },600);
 }
 
@@ -4092,13 +4255,28 @@ function onModalSearch(q){
   }),450);
 }
 
+// Ctrl/Cmd+K command-palette-style search: works the same on desktop and mobile
+// without needing to carve out header space anywhere, and reuses the existing
+// Open Library search + add-book flow once a result is picked.
+function openGlobalSearch(){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  openModal('modal-global-search');
+  document.getElementById('g-drop').innerHTML='';
+  setTimeout(()=>document.getElementById('g-inp').focus(),50);
+}
+function closeGlobalSearch(){
+  closeModal('modal-global-search');
+  document.getElementById('g-inp').value='';
+  document.getElementById('g-drop').innerHTML='';
+}
+
 function onGlobalSearch(q){
   clearTimeout(searchTimers.global);
   const drop=document.getElementById('g-drop');
-  if(!q||q.length<2){drop.style.display='none';return;}
+  if(!q||q.length<2){drop.innerHTML='';return;}
   searchTimers.global=setTimeout(()=>searchOL(q,'g-drop', book=>{
-    document.getElementById('g-inp').value='';
-    drop.style.display='none';
+    closeGlobalSearch();
     openModal('modal-add');
     fetchOLWorkDetails(book);
     setTimeout(()=>{
@@ -4147,9 +4325,11 @@ function renderRetoAssigned(){
 }
 
 document.addEventListener('click',e=>{
-  ['modal-srch-drop','g-drop','reto-srch-drop'].forEach(id=>{
+  // g-drop lives inside modal-global-search now (not a floating header dropdown), and
+  // that modal already closes on its own backdrop click — no outside-click handling needed for it.
+  ['modal-srch-drop','reto-srch-drop'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el&&!e.target.closest('.srch-wrap')&&!e.target.closest('.global-srch'))el.style.display='none';
+    if(el&&!e.target.closest('.srch-wrap'))el.style.display='none';
   });
 });
 
@@ -4206,7 +4386,7 @@ function confirmAdd(){
   // allow duplicate titles (different editions) — just warn if exact same cover
   const existing=Object.values(DB).flat().filter(b=>b.title.toLowerCase()===pendingBook.title.toLowerCase());
   if(existing.length&&existing.some(b=>b.cover===pendingBook.cover&&b.cover)){toast(`Ya tienes esta edición de «${pendingBook.title}»`);return;}
-  const book={id:'b'+Date.now(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null,publisher:pendingBook.publisher||null,isbn:pendingBook.isbn||null,editionYear:pendingBook.editionYear||null};
+  const book={id:uuid(),title:pendingBook.title,author:pendingBook.author,year:pendingBook.year||'',status,stars:starVal,review,cover:pendingBook.cover||null,color:COLORS[(pendingBook.title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:pages||pendingBook.pages||null,curPage:0,rankPos:null,synopsis:pendingBook.synopsis||null,olKey:pendingBook.olKey||null,authorOlKey:pendingBook.authorOlKey||null,publisher:pendingBook.publisher||null,isbn:pendingBook.isbn||null,editionYear:pendingBook.editionYear||null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   saveSupaBook(book);
@@ -4225,7 +4405,7 @@ function saveManual(){
   if(!title){toast('⚠️ Escribe el título');document.getElementById('m-title').focus();return;}
   if(!author){toast('⚠️ Escribe el autor');document.getElementById('m-author').focus();return;}
   if(status==='leidos'&&!starManualVal){toast('⚠️ Selecciona una valoración');return;}
-  const book={id:'b'+Date.now(),title,author,year:'',status,stars:starManualVal,review,cover:customCover||null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
+  const book={id:uuid(),title,author,year:'',status,stars:starManualVal,review,cover:customCover||null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
   DB[status].unshift(book);
   if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
   saveSupaBook(book);
@@ -4236,8 +4416,10 @@ function saveManual(){
 }
 
 function quickAddDirect(title,author,status){
-  if(Object.values(DB).flat().find(b=>b.title===title)){toast(`«${title}» ya está en tu shelfie`);return;}
-  DB[status].unshift({id:'b'+Date.now(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null});
+  if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===title.toLowerCase())){toast(`«${title}» ya está en tu shelfie`);return;}
+  const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null};
+  DB[status].unshift(book);
+  saveSupaBook(book);
   updateAll();
   toast(`✅ «${title}» añadido a ${status==='quiero'?'Quiero leer':'tu shelfie'}`);
 }
@@ -4278,6 +4460,11 @@ async function uploadProfilePhoto(file){
 }
 
 async function saveProfile(){
+  // Snapshot so a rejected save (e.g. username already taken by someone else) can be
+  // rolled back — PROFILE is the same object used everywhere else in the app (post
+  // authorship, the profile page, ...), so leaving it on the un-saved values made the
+  // UI show a change that silently never reached the database.
+  const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,public:PROFILE.public,photo:PROFILE.photo};
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
   PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
@@ -4305,7 +4492,13 @@ async function saveProfile(){
       PROFILE.photo=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
     }
   }
-  await saveSupaProfile();
+  const{ok,dup}=await saveSupaProfile();
+  if(!ok){
+    Object.assign(PROFILE,prevProfile); // roll back — none of this actually saved
+    renderProfile();updateHome();
+    toast(dup?'❌ Ese nombre de usuario ya está en uso por otra persona.':'❌ No se pudieron guardar los cambios del perfil.');
+    return;
+  }
   closeModal('modal-profile-edit');
   renderProfile();updateHome();
   // Don't let a generic "saved" toast stomp the specific photo-upload error — show
@@ -4450,7 +4643,11 @@ async function markTodayAsRead(){
   const streak=calculateCurrentStreak();
   toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
   if(SUPA_USER){
-    await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    if(error){
+      console.error('markTodayAsRead: failed to save reading_days:',error);
+      toast('⚠️ Racha marcada localmente, pero no se pudo guardar en el servidor. Revisa tu conexión.');
+    }
   }
 }
 
@@ -4471,9 +4668,13 @@ function calculateCurrentStreak(days){
 
 function calculateBestStreak(){
   if(!READING_DAYS.size)return 0;
+  // Use Date.UTC (not `new Date(y,m-1,dd)`) so each calendar day is exactly 86400000ms
+  // apart regardless of local DST transitions — with local time, the day a clock springs
+  // forward/falls back is only 23h/25h long, which made consecutive-day streaks that
+  // crossed a DST change get miscounted as broken.
   const dates=[...READING_DAYS].map(k=>{
     const[y,m,dd]=k.split('-').map(Number);
-    return new Date(y,m-1,dd).getTime();
+    return Date.UTC(y,m-1,dd);
   }).sort((a,b)=>a-b);
   let best=1,cur=1;
   const DAY=86400000;
@@ -4795,12 +4996,6 @@ function initShelfDragAndDrop(){
   // native drag events already attached inline; just ensure dragover works on empty shelf areas
 }
 
-// Override shelfDragOver to add visual indicator
-function shelfDragOver(e,idx){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
-}
-
 function moveMenuHtml(id,currentStatus){
   const statusLabels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
   const options=Object.keys(statusLabels).filter(s=>s!==currentStatus);
@@ -4897,11 +5092,15 @@ async function startReadingWithEdition(book,from){
   _pendingStartReading={bookId:book.id,from};
 }
 
-function removeBook(id,from){
+async function removeBook(id,from){
   if(!confirm('¿Eliminar este libro de tu shelfie?'))return;
+  // Wait for the actual delete before touching local state — same reasoning as
+  // deleteUserPost: removing it optimistically meant a failed delete looked
+  // identical to a successful one until you reloaded and found it back.
+  const ok=await deleteSupaBook(id);
+  if(!ok)return;
   DB[from]=DB[from].filter(b=>b.id!==id);
   YEAR_GOAL_IDS.delete(id);
-  deleteSupaBook(id);
   updateAll();renderShelf();
   toast('Libro eliminado');
 }
@@ -5268,7 +5467,7 @@ function rankDrop(e,targetIdx){
   const favs=getFavoriteBooks();
   const moved=favs.splice(dragSrcIdx,1)[0];
   favs.splice(targetIdx,0,moved);
-  favs.forEach((b,i)=>{b.rankPos=i;});
+  favs.forEach((b,i)=>{b.rankPos=i;saveSupaBook(b);});
   dragSrcIdx=null;
   renderRanking();
   toast('✓ Ranking actualizado');
@@ -5425,6 +5624,7 @@ function pfAddFav(id){
   if(!book||getFavoriteBooks().length>=MAX_FAVORITES)return;
   book.isFavorite=true;
   book.rankPos=getFavoriteBooks().length-1;
+  saveSupaBook(book);
   const srch=document.getElementById('pf-srch');
   const drop=document.getElementById('pf-srch-drop');
   if(srch)srch.value='';
@@ -5438,6 +5638,7 @@ function pfRemoveFav(id){
   if(!book)return;
   book.isFavorite=false;
   delete book.rankPos;
+  saveSupaBook(book);
   renderProfileFavSection();
   toast(`«${book.title}» quitado de favoritos`);
 }
@@ -5450,7 +5651,7 @@ function pfDrop(e,targetIdx){
   const favs=getFavoriteBooks();
   const moved=favs.splice(pfDragSrcIdx,1)[0];
   favs.splice(targetIdx,0,moved);
-  favs.forEach((b,i)=>{b.rankPos=i;});
+  favs.forEach((b,i)=>{b.rankPos=i;saveSupaBook(b);});
   pfDragSrcIdx=null;
   renderProfileFavSection();
   toast('✓ Orden actualizado');
@@ -5503,7 +5704,7 @@ function discoverBookCard(b){
   const addBtn=inShelf
     ?`<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>`
     :`<button class="disc-add-btn" onclick="event.stopPropagation();quickAddDirect('${t}','${a}','quiero');this.outerHTML='<button class=\\'disc-add-btn added\\' disabled>✓ En tu shelfie</button>'">+ Quiero leer</button>`;
-  return`<div class="disc-book-card" onclick="openBookPage('${t}','${a}')">
+  return`<div class="disc-book-card" onclick="openDiscoverBookCard('${t}','${a}')">
     <div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>
     <div class="disc-book-info">
       <div class="disc-book-title">${escapeHtml(b.title)}</div>
@@ -5512,6 +5713,17 @@ function discoverBookCard(b){
       ${addBtn}
     </div>
   </div>`;
+}
+
+// Clicking a Discover card called an undefined openBookPage() and silently did
+// nothing. renderBookPage() only knows about books already in your own shelf (it
+// looks them up by id in allBooks()), and a Discover catalog book isn't one until
+// you add it — so: if you've already added it, go to its real book page; otherwise
+// this does what the card's own "+ Quiero leer" button does.
+function openDiscoverBookCard(title,author){
+  const existing=allBooks().find(b=>b.title.toLowerCase()===title.toLowerCase());
+  if(existing){go('bookdetail',null,existing.id);return;}
+  quickAddDirect(title,author,'quiero');
 }
 
 function renderDiscover(){
@@ -5648,7 +5860,7 @@ function renderStats(){
   const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   let lastMonth=-1;
   for(let w=0;w<totalWeeks;w++){
-    const d=new Date(2026,0,1+w*7);
+    const d=new Date(hmYear,0,1+w*7);
     const m=d.getMonth();
     const lbl=document.createElement('div');
     lbl.className='hm-month-lbl';
@@ -5658,7 +5870,7 @@ function renderStats(){
   }
   // cells: one per day, arranged in weeks (columns)
   for(let i=0;i<totalDays;i++){
-    const d=new Date(2026,0,1+i);
+    const d=new Date(hmYear,0,1+i);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const isRead=READING_DAYS.has(key);
     const isToday=key===todayKey();
@@ -5740,10 +5952,14 @@ function renderStats(){
 
   // ── Distribución shelfie ──
   const states=[['Leídos',leidos.length,'var(--green)','ti-check'],['Leyendo',DB.leyendo.length,'var(--blue)','ti-book-2'],['Quiero leer',DB.quiero.length,'var(--amber)','ti-bookmark'],['Abandonados',DB.dnf.length,'var(--ink3)','ti-x']];
+  // Use the sum of the rows actually shown as the denominator — when a year filter is
+  // active, `total` (leidos filtered by year) can be far smaller than the unfiltered
+  // leyendo/quiero/dnf counts above, which made these bars render past 100% width.
+  const distTotal=states.reduce((s,[,n])=>s+n,0);
   document.getElementById('st-dist').innerHTML=states.map(([l,n,c,ic])=>`
     <div class="bar-row">
       <div style="display:flex;align-items:center;gap:5px;width:100px;flex-shrink:0"><i class="ti ${ic}" style="color:${c};font-size:12px"></i><span class="bar-lbl" style="width:auto">${l}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${total?Math.round(n/total*100):0}%;background:${c}"></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${distTotal?Math.round(n/distTotal*100):0}%;background:${c}"></div></div>
       <div class="bar-pct">${n}</div>
     </div>`).join('');
 
@@ -5956,7 +6172,9 @@ function joinCommunityRetoById(id){
   const cr=COMMUNITY_RETOS.find(r=>r.id===id);
   if(!cr)return;
   if(RETOS.find(r=>r.name===cr.name)){toast('Ya estás en este reto');return;}
-  RETOS.push({name:cr.name,desc:cr.desc,requirements:cr.requirements,goal:cr.goal,progress:0,vis:'publico',books:[],createdByMe:false,participants:cr.participants});
+  const reto={id:uuid(),name:cr.name,desc:cr.desc,requirements:cr.requirements,goal:cr.goal,progress:0,vis:'publico',books:[],createdByMe:false,participants:cr.participants};
+  RETOS.push(reto);
+  saveSupaReto(reto);
   cr.participantCount++;
   renderCommunityRetos();
   renderRetos();
@@ -5972,7 +6190,9 @@ function saveReto(){
   const vis=document.getElementById('reto-vis').value;
   if(!name){toast('⚠️ Escribe un nombre');return;}
   if(!goal||goal<1){toast('⚠️ Meta inválida');return;}
-  RETOS.push({name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]});
+  const reto={id:uuid(),name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]};
+  RETOS.push(reto);
+  saveSupaReto(reto);
   retoAssigned=[];
   ['reto-name','reto-desc','reto-requirements','reto-deadline','reto-goal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   closeModal('modal-reto');renderRetos();
@@ -6001,6 +6221,7 @@ function editReto(i){
     r.vis=document.getElementById('reto-vis').value;
     r.books=[...retoAssigned];
     retoAssigned=[];
+    saveSupaReto(r);
     closeModal('modal-reto');renderRetos();
     btn.textContent='Crear y publicar reto';btn.onclick=saveReto;
     toast('✅ Reto actualizado');
@@ -6008,7 +6229,12 @@ function editReto(i){
   openModal('modal-reto');
 }
 
-function deleteReto(i){if(!confirm('¿Eliminar este reto?'))return;RETOS.splice(i,1);renderRetos();toast('Reto eliminado');}
+async function deleteReto(i){
+  if(!confirm('¿Eliminar este reto?'))return;
+  const ok=await deleteSupaReto(RETOS[i].id);
+  if(!ok)return;
+  RETOS.splice(i,1);renderRetos();toast('Reto eliminado');
+}
 
 let pendingAssignRetoIdx=null;
 function assignBookToReto(i){
@@ -6040,6 +6266,7 @@ function onAssignRetoBookSearch(q){
       if(!r.books)r.books=[];
       r.books.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
       r.progress=Math.min(r.progress+1,r.goal);
+      saveSupaReto(r);
       closeModal('modal-assign-reto-book');renderRetos();
       toast(`📖 «${b.title}» asignado al reto`);
     };
@@ -6237,9 +6464,6 @@ async function searchFriends(q){
 // ═══════════════════════════════════════════════
 // CLUBS
 // ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════
-// CLUBS
-// ═══════════════════════════════════════════════
 // ── CLUBS HELPERS ──
 function clubMemberCount(c){return c.members?c.members.length:0;}
 
@@ -6282,7 +6506,10 @@ function renderMyClubs(){
 function renderDiscoverClubs(){
   const el=document.getElementById('discover-clubs-list');
   if(!el)return;
-  const joinedIds=new Set(CLUBS.map(c=>c.id));
+  // Joined clubs get their own real id (uuid, so it can be saved to Supabase) rather
+  // than reusing the catalog's id — sourceId is what still ties them back to the
+  // DISCOVER_CLUBS entry so it can be hidden here once you've joined it.
+  const joinedIds=new Set(CLUBS.map(c=>c.sourceId||c.id));
   const list=DISCOVER_CLUBS.filter(c=>!joinedIds.has(c.id));
   el.innerHTML=list.map(c=>{
     const privLabel=c.privacy==='open'?'Abierto':c.privacy==='request'?'Pedir acceso':'Solo invitación';
@@ -6311,12 +6538,14 @@ function joinDiscoverClub(e,id){
   const dc=DISCOVER_CLUBS.find(c=>c.id===id);
   if(!dc)return;
   if(dc.privacy==='open'){
-    CLUBS.push({
-      id:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
+    const club={
+      id:uuid(),sourceId:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
       myRole:'member',nextMeeting:null,
       members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'member',booksRead:0,joined:'2026-06'}],
       books:[],threads:[],clubRetos:[],forumPosts:[],announcements:[],
-    });
+    };
+    CLUBS.push(club);
+    saveSupaClub(club);
     renderClubs();
     toast(`✅ Unido a «${dc.name}»`);
   } else if(dc.privacy==='request'){
@@ -6328,6 +6557,11 @@ function joinDiscoverClub(e,id){
 }
 
 function joinClub(btn,name){btn.textContent='¡Unido! ✓';btn.className='btn btn-sm btn-red';btn.disabled=true;toast(`✅ Unido al club «${name}»`);}
+
+// Same "join" treatment as joinClub() above, for the static illustrative reto card in
+// the feed (not backed by a real COMMUNITY_RETOS entry) — this button called an
+// undefined joinCommunityReto() and silently did nothing when clicked.
+function joinCommunityReto(btn,name){btn.textContent='¡Unido! ✓';btn.disabled=true;toast(`✅ Unido al reto «${name}»`);}
 
 // ── CLUB DETAIL ──
 function renderClubDetail(id){
@@ -6375,15 +6609,19 @@ function renderClubDetail(id){
   renderClubAnuncios(club);
 }
 
-function deleteClub(id){
+async function deleteClub(id){
   if(!confirm('¿Eliminar este club? Esta acción no se puede deshacer.'))return;
+  const ok=await deleteSupaClub(id);
+  if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
   go('clubs',document.querySelectorAll('.nb')[5]);
   toast('Club eliminado');
 }
 
-function leaveClub(id){
+async function leaveClub(id){
   if(!confirm('¿Salir de este club?'))return;
+  const ok=await deleteSupaClub(id);
+  if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
   go('clubs',document.querySelectorAll('.nb')[5]);
   toast('Has salido del club');
@@ -6509,6 +6747,7 @@ function likePost(clubId,threadId,postIdx){
   const t=club.threads.find(th=>th.id===threadId);
   if(!t||!t.posts[postIdx])return;
   t.posts[postIdx].likes=(t.posts[postIdx].likes||0)+1;
+  saveSupaClub(club);
   renderClubDebates(club);
 }
 
@@ -6524,6 +6763,7 @@ function postReply(clubId,threadId){
   t.posts.push(reply);
   input.value='';
   QUOTE_REPLY_TARGET=null;
+  saveSupaClub(club);
   renderClubDebates(club);
   toast('💬 Respuesta publicada');
 }
@@ -6575,6 +6815,7 @@ function likeForumPost(clubId,idx){
   const p=club.forumPosts[idx];
   p.likedByMe=!p.likedByMe;
   p.likes=(p.likes||0)+(p.likedByMe?1:-1);
+  saveSupaClub(club);
   renderClubForo(club);
 }
 
@@ -6593,6 +6834,7 @@ function addForumComment(clubId,postId){
   if(!text){toast('Escribe un comentario');return;}
   if(!p.comments)p.comments=[];
   p.comments.push({author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',text,date:'ahora mismo'});
+  saveSupaClub(club);
   renderClubForo(club);
 }
 
@@ -6601,6 +6843,7 @@ function deleteForumPost(clubId,postId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.forumPosts=club.forumPosts.filter(p=>p.id!==postId);
+  saveSupaClub(club);
   renderClubForo(club);
   toast('Publicación eliminada');
 }
@@ -6616,6 +6859,7 @@ function saveClubForumPost(){
   const id='fp_'+Date.now();
   if(!club.forumPosts)club.forumPosts=[];
   club.forumPosts.unshift({id,type,author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'ahora mismo',likes:0,likedByMe:false,spoiler,text,source:source||null,comments:[]});
+  saveSupaClub(club);
   closeModal('modal-club-forum-post');
   document.getElementById('fp-text').value='';
   document.getElementById('fp-source').value='';
@@ -6658,6 +6902,7 @@ function changeClubBookStatus(clubId,bookIdx,newStatus){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club||!club.books[bookIdx])return;
   club.books[bookIdx].status=newStatus;
+  saveSupaClub(club);
   renderClubDetail(clubId);
   toast(`Estado actualizado: ${{leyendo:'📖 Leyendo',pendiente:'📋 Pendiente',leido:'✅ Leído'}[newStatus]}`);
 }
@@ -6703,6 +6948,7 @@ function saveClubBook(){
   const existing=club.books.find(b=>b.title===_clubBookPending.title);
   if(existing){toast('Este libro ya está en el club');return;}
   club.books.push({title:_clubBookPending.title,author:_clubBookPending.author,color:_clubBookPending.color||'#1A3A5C',status,addedBy:'Tú'});
+  saveSupaClub(club);
   closeModal('modal-club-add-book');
   _clubBookPending=null;
   renderClubLibros(club);
@@ -6764,6 +7010,7 @@ function changeMemberRole(clubId,initials,newRole){
   if(!club)return;
   const m=club.members.find(m=>m.initials===initials);
   if(m)m.role=newRole;
+  saveSupaClub(club);
   renderClubMiembros(club);
   toast(`Rol actualizado: ${newRole==='mod'?'🛡️ Moderador':'👤 Miembro'}`);
 }
@@ -6773,6 +7020,7 @@ function kickMember(clubId,initials){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.members=club.members.filter(m=>m.initials!==initials);
+  saveSupaClub(club);
   renderClubMiembros(club);
   renderClubDetail(clubId);
   toast('Miembro eliminado del club');
@@ -6840,6 +7088,7 @@ function saveClubReto(){
     id,emoji,name,desc,requirements,goal,deadline,
     participants:club.members.map(m=>({name:m.name,initials:m.initials,bg:m.bg,tc:m.tc,progress:0,goal,done:false})),
   });
+  saveSupaClub(club);
   closeModal('modal-club-reto');
   ['cr-name','cr-desc','cr-requirements'].forEach(i=>document.getElementById(i)&&(document.getElementById(i).value=''));
   document.getElementById('cr-emoji').value='📚';
@@ -6854,6 +7103,7 @@ function deleteClubReto(clubId,retoId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.clubRetos=club.clubRetos.filter(r=>r.id!==retoId);
+  saveSupaClub(club);
   renderClubRetos(club);
   toast('Reto eliminado');
 }
@@ -6889,6 +7139,7 @@ function saveAnnouncement(){
   if(!text){toast('Escribe el anuncio primero');return;}
   if(!club.announcements)club.announcements=[];
   club.announcements.unshift({id:'ann_'+Date.now(),author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'ahora mismo',text});
+  saveSupaClub(club);
   closeModal('modal-club-announcement');
   renderClubAnuncios(club);
   toast('📢 Anuncio publicado');
@@ -6899,6 +7150,7 @@ function deleteAnnouncement(clubId,annId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.announcements=club.announcements.filter(a=>a.id!==annId);
+  saveSupaClub(club);
   renderClubAnuncios(club);
   toast('Anuncio eliminado');
 }
@@ -6919,12 +7171,13 @@ function saveNewClub(){
   const desc=document.getElementById('cc-desc').value.trim()||'';
   const type=document.getElementById('cc-type').value;
   const privacy=document.getElementById('cc-privacy').value;
-  const id='club_'+Date.now();
-  CLUBS.push({
-    id,name,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
+  const club={
+    id:uuid(),name,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
     members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'admin',booksRead:0,joined:'2026-06'}],
     books:[],threads:[],clubRetos:[],forumPosts:[],announcements:[],
-  });
+  };
+  CLUBS.push(club);
+  saveSupaClub(club);
   closeModal('modal-create-club');
   ['cc-name','cc-desc','cc-emoji'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
   renderClubs();
@@ -6948,6 +7201,7 @@ function saveNewThread(){
   };
   if(!club.threads)club.threads=[];
   club.threads.unshift(thread);
+  saveSupaClub(club);
   closeModal('modal-create-thread');
   document.getElementById('ct-title').value='';
   document.getElementById('ct-body').value='';
@@ -6968,10 +7222,8 @@ function updateProfileStats(){
 }
 
 // ═══════════════════════════════════════════════
-// FOLLOWERS
-// ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════
 // NOTIFICATIONS
+// (FOLLOWERS rendering lives above, under FRIENDS — renderFollowersTab() etc.)
 // ═══════════════════════════════════════════════
 function setNotifBadge(n){
   const badge=document.getElementById('notif-badge');
@@ -7024,11 +7276,14 @@ function renderProfile(){
   const badge=document.getElementById('profile-streak-badge');
   if(badge){badge.style.opacity=streak>0?'1':'0.35';}
 
-  // genre tags in hero (top genres from read books)
+  // genre tags in hero — real distribution from read books (matches renderUserProfileView,
+  // was previously a hardcoded genre-name list unrelated to the user's actual books)
   const genreTagsEl=document.getElementById('p-genre-tags');
-  const GENRES=['Ficción','Realismo mágico','Histórica','Clásico','Ensayo','Ciencia ficción','Terror','Romance','Biografía','Poesía'];
-  const availGenres=GENRES.filter((_,i)=>i<Math.min(4,Math.ceil(DB.leidos.length/3)));
-  genreTagsEl.innerHTML=availGenres.length?availGenres.map(g=>`<span class="profile-genre-tag">${g}</span>`).join(''):'';
+  const profileGenreCounts={};
+  DB.leidos.forEach(b=>{(b.genres||[]).forEach(g=>{profileGenreCounts[g]=(profileGenreCounts[g]||0)+1;});});
+  const profileGenreEntries=Object.entries(profileGenreCounts).sort((a,b)=>b[1]-a[1]);
+  const availGenres=profileGenreEntries.slice(0,4).map(([g])=>g);
+  genreTagsEl.innerHTML=availGenres.length?availGenres.map(g=>`<span class="profile-genre-tag">${escapeHtml(g)}</span>`).join(''):'';
 
   // "Leyendo ahora" banner — visible para otros
   const rnWrap=document.getElementById('profile-reading-now-wrap');
@@ -7056,15 +7311,17 @@ function renderProfile(){
   if(!DB.leidos.length){rb.innerHTML='<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>';}
   else{rb.innerHTML=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${DB.leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${b.id}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${b.title}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`;}
 
-  // genres
+  // genres — real distribution from read books (was a hardcoded genre-name list with a
+  // made-up decay formula, unrelated to the user's actual books; other users' profiles
+  // via renderUserProfileView always computed this for real — now both match)
   const ge=document.getElementById('p-genres');
   if(!DB.leidos.length){ge.innerHTML='<div style="font-size:13px;color:var(--ink3)">Añade libros para ver géneros.</div>';}
   else{
-    ge.innerHTML=['Ficción','Realismo mágico','Histórica','Clásico','Ensayo'].map((g,i)=>{
-      const n=Math.max(0,DB.leidos.length-i*Math.max(1,Math.floor(DB.leidos.length/5)));
-      const pct=DB.leidos.length?Math.min(100,Math.round(n/DB.leidos.length*100)):0;
-      return pct?`<div class="bar-row"><div class="bar-lbl">${g}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`:'';
-    }).filter(Boolean).join('');
+    const geEntries=profileGenreEntries.slice(0,5);
+    ge.innerHTML=geEntries.length?geEntries.map(([g,n])=>{
+      const pct=Math.round(n/DB.leidos.length*100);
+      return `<div class="bar-row"><div class="bar-lbl">${escapeHtml(g)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`;
+    }).join(''):'<div style="font-size:13px;color:var(--ink3)">Sin géneros registrados.</div>';
   }
 
   // public ranking on profile — rendered by dedicated function
@@ -7594,7 +7851,7 @@ function buildPostFieldsFromComposer(post){
     const chapter=document.getElementById('composer-cita-chapter').value.trim();
     if(!quote){toast('⚠️ Escribe el fragmento que quieres citar');return false;}
     post.quote=quote;post.page=page;post.chapter=chapter;
-    delete post.text;delete post.thread;delete post.note;delete post.character;delete post.subject;
+    delete post.text;delete post.thread;delete post.note;delete post.character;delete post.subject;delete post.shelfBooks;delete post.shelfViewMode;
   } else if(composerMode==='marginalia'){
     const quote=document.getElementById('composer-quote').value.trim();
     const note=document.getElementById('composer-note').value.trim();
@@ -7603,14 +7860,14 @@ function buildPostFieldsFromComposer(post){
     if(!quote){toast('⚠️ Escribe el fragmento de la página');return false;}
     if(!note){toast('⚠️ Escribe tus anotaciones');return false;}
     post.quote=quote;post.note=note;post.page=page;post.chapter=chapter;
-    delete post.text;delete post.thread;delete post.character;delete post.subject;
+    delete post.text;delete post.thread;delete post.character;delete post.subject;delete post.shelfBooks;delete post.shelfViewMode;
   } else {
     const text=document.getElementById('composer-text').value.trim();
     if(!text){toast('⚠️ Escribe algo antes de publicar');return false;}
     post.text=text;
     post.page=document.getElementById('composer-text-page').value.trim();
     post.chapter=document.getElementById('composer-text-chapter').value.trim();
-    delete post.quote;delete post.note;
+    delete post.quote;delete post.note;delete post.shelfBooks;delete post.shelfViewMode;
     if(composerMode==='hilo'){
       post.thread=threadParts.filter(t=>t!==null&&t.text&&t.text.trim().length).map(t=>({text:t.text.trim(),character:(t.character||'').trim()}));
       post.character=document.getElementById('composer-main-char-name').value.trim()||null;
@@ -7644,13 +7901,14 @@ function publishPost(){
     if(composerMode!=='tweet')post.book=composerBook;
     if(!buildPostFieldsFromComposer(post)){post.type=prevType;post.book=prevBook;post.spoiler=prevSpoiler;return;}
     post.editedAt=Date.now();
+    saveSupaPost(post); // persist the edit — was previously only updated in local state and lost on reload
     renderUserPosts();
     resetComposer();
     toast('✅ Publicación actualizada');
     return;
   }
 
-  const post={id:'p'+Date.now(),author:authorFromId(SUPA_USER?SUPA_USER.id:null),type:composerMode,book:composerMode==='tweet'?null:composerBook,spoiler:isSpoiler,createdAt:Date.now(),likes:0,likedByMe:false,comments:[]};
+  const post={id:uuid(),author:authorFromId(SUPA_USER?SUPA_USER.id:null),type:composerMode,book:composerMode==='tweet'?null:composerBook,spoiler:isSpoiler,createdAt:Date.now(),likes:0,likedByMe:false,comments:[]};
   if(!buildPostFieldsFromComposer(post))return;
 
   USER_POSTS.unshift(post);
@@ -7682,10 +7940,18 @@ function onShelfiePostSpineClick(bookId){
 }
 
 function renderOnePost(p){
-  const author=p.author||{id:SUPA_USER?SUPA_USER.id:'local',name:PROFILE.name||'Tú',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white'};
+  // p.author is only ever missing for local/demo posts (no SUPA_USER — those are always
+  // "yours" by construction). If we're logged in and it's still missing, this is an
+  // author that hasn't been resolved/cached — treat it as unknown, NOT as you. Defaulting
+  // an unresolved author to "you" would show Editar/Eliminar on someone else's post.
+  const author=p.author||(SUPA_USER?{id:null,name:'Alguien',photo:null,bg:'var(--ink3)',tc:'white',username:null}:{id:'local',name:PROFILE.name||'Tú',photo:PROFILE.photo||null,bg:'var(--red)',tc:'white'});
   const av=author.photo?`background-image:url(${author.photo});background-size:cover`:`background:${author.bg||'var(--red)'}`;
   const initials=(author.name||'??').slice(0,2).toUpperCase();
   const isOwnPost=author.id===(SUPA_USER?SUPA_USER.id:'local');
+  // For the "write a comment" row below — always the CURRENT viewer's own identity,
+  // never the post author's (this used to reuse author's av/initials by mistake).
+  const myAv=PROFILE.photo?`background-image:url(${PROFILE.photo});background-size:cover`:`background:var(--red)`;
+  const myInitials=(PROFILE.name||'??').slice(0,2).toUpperCase();
 
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
@@ -7852,7 +8118,7 @@ function renderOnePost(p){
       <div style="${needsOwnPadding?'padding:0 18px 16px':''}">
         ${commentsHtml}
         <div class="upost-comment-input-row" id="comment-row-${p.id}" style="display:none">
-          <div class="upost-comment-av" style="${av}">${PROFILE.photo?'':initials}</div>
+          <div class="upost-comment-av" style="${myAv}">${PROFILE.photo?'':myInitials}</div>
           <input class="upost-comment-input" id="comment-input-${p.id}" placeholder="Escribe un comentario..." onkeydown="if(event.key==='Enter')sendComment('${p.id}')">
           <button class="upost-comment-send" onclick="sendComment('${p.id}')"><i class="ti ti-send-2" style="font-size:13px"></i></button>
         </div>
@@ -7875,14 +8141,28 @@ function refreshPostCard(id){
   document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>{el.outerHTML=renderOnePost(post);});
 }
 
-function togglePostLike(id,btn){
+const _likeInFlight=new Set();
+async function togglePostLike(id,btn){
+  // A second click while the first toggle is still saving would race it — the two
+  // requests can resolve out of order and leave the DB one click behind the UI.
+  if(_likeInFlight.has(id))return;
+  _likeInFlight.add(id);
   const post=POSTS_BY_ID[id];
-  if(!post)return;
+  if(!post){_likeInFlight.delete(id);return;}
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
   btn.querySelector('span').textContent=post.likes;
-  toggleSupaLike(id,post.likedByMe);
+  const ok=await toggleSupaLike(id,post.likedByMe);
+  if(!ok){
+    // revert the optimistic toggle — it never actually saved
+    post.likedByMe=!post.likedByMe;
+    post.likes=(post.likes||0)+(post.likedByMe?1:-1);
+    btn.classList.toggle('on',post.likedByMe);
+    btn.querySelector('span').textContent=post.likes;
+    toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }
+  _likeInFlight.delete(id);
 }
 
 function toggleCommentBox(id){
@@ -7893,28 +8173,49 @@ function toggleCommentBox(id){
   if(!showing)setTimeout(()=>document.getElementById('comment-input-'+id)?.focus(),50);
 }
 
+const _commentInFlight=new Set();
 async function sendComment(id){
+  // Guards against a double Enter-press / double-click submitting the same comment twice
+  // before the first save resolves and clears the input.
+  if(_commentInFlight.has(id))return;
   const input=document.getElementById('comment-input-'+id);
   const text=input.value.trim();
   if(!text)return;
   const post=POSTS_BY_ID[id];
   if(!post)return;
+  _commentInFlight.add(id);
   if(!post.comments)post.comments=[];
-  post.comments.push({name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'});
-  await saveSupaComment(id,text);
+  const optimisticComment={name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'};
+  post.comments.push(optimisticComment);
+  const saved=await saveSupaComment(id,text);
+  if(!saved){
+    post.comments.splice(post.comments.indexOf(optimisticComment),1);
+    refreshPostCard(id);
+    toggleCommentBox(id);
+    const newInput=document.getElementById('comment-input-'+id);
+    if(newInput)newInput.value=text; // keep what they typed so they don't have to retype it
+    toast('❌ No se pudo guardar el comentario. Inténtalo de nuevo.');
+    _commentInFlight.delete(id);
+    return;
+  }
   input.value='';
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
+  _commentInFlight.delete(id);
 }
 
-function deleteUserPost(id){
+async function deleteUserPost(id){
   const post=POSTS_BY_ID[id]||USER_POSTS.find(p=>p.id===id);
   if(post&&post.author&&post.author.id!==(SUPA_USER?SUPA_USER.id:'local'))return; // never your call to make on someone else's post
   if(!confirm('¿Eliminar esta publicación?'))return;
+  // Wait for the actual delete before touching local state/DOM — removing it
+  // optimistically meant a failed delete left the post gone from the UI (with a
+  // "✓ eliminada" toast) even though it was still sitting in the database.
+  const ok=await deleteSupaPost(id);
+  if(!ok)return;
   USER_POSTS=USER_POSTS.filter(p=>p.id!==id);
   delete POSTS_BY_ID[id];
-  deleteSupaPost(id);
   document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>el.remove());
   toast('Publicación eliminada');
 }
@@ -7935,8 +8236,8 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member'].forEach(id=>document.getElementById(id).style.display='none');
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();document.getElementById('g-inp').focus();}
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-create-club','modal-create-thread','modal-invite-member','modal-global-search'].forEach(id=>document.getElementById(id).style.display='none');
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'&&isLoggedIn){e.preventDefault();openGlobalSearch();}
 });
 
 // enter key on auth forms

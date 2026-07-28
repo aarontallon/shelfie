@@ -223,3 +223,52 @@ create policy "avatar_owner_delete" on storage.objects for delete using (bucket_
 -- libros, etc. perdían esos datos al recargar la página. Este campo guarda
 -- el resto de la publicación tal cual, sin necesitar una columna por campo.
 alter table public.posts add column if not exists extra jsonb default '{}'::jsonb;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: guardar Retos y Clubs (antes no se guardaban en ningún sitio)
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Retos y Clubs son, tal y como están construidos hoy, espacios PERSONALES:
+-- cuando creas o te unes a uno, los "miembros"/"participantes" que ves (aparte
+-- de ti) son contenido de ejemplo, no cuentas reales — invitar a alguien con
+-- @usuario solo muestra un aviso de "invitación enviada" y no conecta con
+-- ningún otro usuario real. Por eso cada fila pertenece a un solo usuario y
+-- guarda toda la estructura (miembros, debates, foro, anuncios, retos del
+-- club...) tal cual, en una columna jsonb — el mismo patrón que ya usan
+-- posts.extra y user_books.read_history, en vez de inventar un esquema
+-- relacional para una función que no es realmente multiusuario todavía.
+create table if not exists public.retos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.clubs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+alter table public.retos enable row level security;
+alter table public.clubs enable row level security;
+
+drop policy if exists "retos_select" on public.retos;
+create policy "retos_select" on public.retos for select using (auth.uid()=user_id);
+drop policy if exists "retos_insert" on public.retos;
+create policy "retos_insert" on public.retos for insert with check (auth.uid()=user_id);
+drop policy if exists "retos_update" on public.retos;
+create policy "retos_update" on public.retos for update using (auth.uid()=user_id);
+drop policy if exists "retos_delete" on public.retos;
+create policy "retos_delete" on public.retos for delete using (auth.uid()=user_id);
+
+drop policy if exists "clubs_select" on public.clubs;
+create policy "clubs_select" on public.clubs for select using (auth.uid()=user_id);
+drop policy if exists "clubs_insert" on public.clubs;
+create policy "clubs_insert" on public.clubs for insert with check (auth.uid()=user_id);
+drop policy if exists "clubs_update" on public.clubs;
+create policy "clubs_update" on public.clubs for update using (auth.uid()=user_id);
+drop policy if exists "clubs_delete" on public.clubs;
+create policy "clubs_delete" on public.clubs for delete using (auth.uid()=user_id);

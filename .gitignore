@@ -1,5 +1,8 @@
 node_modules/
 
+# Claude Code local tooling state (agent worktrees, etc.) — never project content
+.claude/
+
 # Android
 android/app/build/
 android/build/
