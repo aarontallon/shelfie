@@ -285,8 +285,12 @@ create table if not exists public.comment_likes (
   primary key (comment_id, user_id)
 );
 
+-- post_id is `text`, not `uuid`, on purpose — posts.id itself is `text` in this
+-- project (an earlier iteration of this schema, before ids were standardized on
+-- uuid; likes.post_id/comments.post_id are `text` for the same reason), so a
+-- `uuid` foreign key here fails at creation time with "incompatible types".
 create table if not exists public.post_reactions (
-  post_id uuid references public.posts(id) on delete cascade,
+  post_id text references public.posts(id) on delete cascade,
   user_id uuid references public.profiles(id) on delete cascade,
   emoji text not null,
   created_at timestamptz default now(),
