@@ -4001,8 +4001,8 @@ function resetAddModal(){
 function openProfileEdit(){
   const av=document.getElementById('prof-av-preview');
   av.textContent=PROFILE.photo?'':PROFILE.name.slice(0,2).toUpperCase();
-  av.style.backgroundImage=PROFILE.photo?`url(${PROFILE.photo})`:'';
   av.style.background=PROFILE.photo?'none':'var(--red)';
+  av.style.backgroundImage=PROFILE.photo?`url(${PROFILE.photo})`:'';
   document.getElementById('prof-name').value=PROFILE.name;
   document.getElementById('prof-username').value=PROFILE.username;
   document.getElementById('prof-bio').value=PROFILE.bio;
@@ -4728,7 +4728,7 @@ function updateHome(){
   document.getElementById('sb-name').textContent=PROFILE.name;
   document.getElementById('sb-stat').textContent=DB.leidos.length+' libros leídos';
   const av=document.getElementById('sb-avatar');
-  if(PROFILE.photo){av.style.backgroundImage=`url(${PROFILE.photo})`;av.style.background='none';av.textContent='';}
+  if(PROFILE.photo){av.style.background='none';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
   else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
 
   // ── Reading hero ──
