@@ -2480,6 +2480,57 @@ async function deleteSupaBook(id){
   return true;
 }
 
+// ── Retos & Clubs: both are personal spaces today (see supabase_schema.sql
+// for why) — the whole nested object round-trips as-is through a single
+// jsonb column, just like a book or post's own object shape does elsewhere. ──
+async function loadSupaRetos(){
+  const{data,error}=await supa.from('retos').select('id,data').eq('user_id',SUPA_USER.id).order('created_at',{ascending:true});
+  if(error||!data)return;
+  RETOS=data.map(row=>({...row.data,id:row.id}));
+}
+
+async function saveSupaReto(reto,attempt){
+  if(!SUPA_USER)return;
+  attempt=attempt||1;
+  const{error}=await supa.from('retos').upsert({id:reto.id,user_id:SUPA_USER.id,data:reto},{onConflict:'id'});
+  if(error){
+    console.error(`saveSupaReto failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaReto(reto,attempt+1),1000*attempt);}
+    else{toast(`❌ No se pudo guardar el reto «${reto.name}». No se ha guardado — vuelve a intentarlo.`);}
+  }
+}
+
+async function deleteSupaReto(id){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('retos').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaReto failed:',error);toast('❌ No se pudo eliminar el reto. Inténtalo de nuevo.');return false;}
+  return true;
+}
+
+async function loadSupaClubs(){
+  const{data,error}=await supa.from('clubs').select('id,data').eq('user_id',SUPA_USER.id).order('created_at',{ascending:true});
+  if(error||!data)return;
+  CLUBS=data.map(row=>({...row.data,id:row.id}));
+}
+
+async function saveSupaClub(club,attempt){
+  if(!SUPA_USER)return;
+  attempt=attempt||1;
+  const{error}=await supa.from('clubs').upsert({id:club.id,user_id:SUPA_USER.id,data:club},{onConflict:'id'});
+  if(error){
+    console.error(`saveSupaClub failed (intento ${attempt}):`,error);
+    if(attempt<3){setTimeout(()=>saveSupaClub(club,attempt+1),1000*attempt);}
+    else{toast(`❌ No se pudo guardar el club «${club.name}». No se ha guardado — vuelve a intentarlo.`);}
+  }
+}
+
+async function deleteSupaClub(id){
+  if(!SUPA_USER)return true;
+  const{error}=await supa.from('clubs').delete().eq('id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('deleteSupaClub failed:',error);toast('❌ No se pudo eliminar el club. Inténtalo de nuevo.');return false;}
+  return true;
+}
+
 // ── Load posts from DB ──
 // Turns one `posts` row (+ its joined comments/likes) into the shape renderOnePost
 // expects, resolving the post's and each comment's author via authorFromId — the
@@ -2683,6 +2734,8 @@ async function _supaEnterApp(){
   try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
+  try{await loadSupaRetos();}catch(e){console.error('loadSupaRetos failed:',e);}
+  try{await loadSupaClubs();}catch(e){console.error('loadSupaClubs failed:',e);}
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
   // signs out from another tab mid-load) — don't flip into the app for a session
@@ -6119,7 +6172,9 @@ function joinCommunityRetoById(id){
   const cr=COMMUNITY_RETOS.find(r=>r.id===id);
   if(!cr)return;
   if(RETOS.find(r=>r.name===cr.name)){toast('Ya estás en este reto');return;}
-  RETOS.push({name:cr.name,desc:cr.desc,requirements:cr.requirements,goal:cr.goal,progress:0,vis:'publico',books:[],createdByMe:false,participants:cr.participants});
+  const reto={id:uuid(),name:cr.name,desc:cr.desc,requirements:cr.requirements,goal:cr.goal,progress:0,vis:'publico',books:[],createdByMe:false,participants:cr.participants};
+  RETOS.push(reto);
+  saveSupaReto(reto);
   cr.participantCount++;
   renderCommunityRetos();
   renderRetos();
@@ -6135,7 +6190,9 @@ function saveReto(){
   const vis=document.getElementById('reto-vis').value;
   if(!name){toast('⚠️ Escribe un nombre');return;}
   if(!goal||goal<1){toast('⚠️ Meta inválida');return;}
-  RETOS.push({name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]});
+  const reto={id:uuid(),name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]};
+  RETOS.push(reto);
+  saveSupaReto(reto);
   retoAssigned=[];
   ['reto-name','reto-desc','reto-requirements','reto-deadline','reto-goal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   closeModal('modal-reto');renderRetos();
@@ -6164,6 +6221,7 @@ function editReto(i){
     r.vis=document.getElementById('reto-vis').value;
     r.books=[...retoAssigned];
     retoAssigned=[];
+    saveSupaReto(r);
     closeModal('modal-reto');renderRetos();
     btn.textContent='Crear y publicar reto';btn.onclick=saveReto;
     toast('✅ Reto actualizado');
@@ -6171,7 +6229,12 @@ function editReto(i){
   openModal('modal-reto');
 }
 
-function deleteReto(i){if(!confirm('¿Eliminar este reto?'))return;RETOS.splice(i,1);renderRetos();toast('Reto eliminado');}
+async function deleteReto(i){
+  if(!confirm('¿Eliminar este reto?'))return;
+  const ok=await deleteSupaReto(RETOS[i].id);
+  if(!ok)return;
+  RETOS.splice(i,1);renderRetos();toast('Reto eliminado');
+}
 
 let pendingAssignRetoIdx=null;
 function assignBookToReto(i){
@@ -6203,6 +6266,7 @@ function onAssignRetoBookSearch(q){
       if(!r.books)r.books=[];
       r.books.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
       r.progress=Math.min(r.progress+1,r.goal);
+      saveSupaReto(r);
       closeModal('modal-assign-reto-book');renderRetos();
       toast(`📖 «${b.title}» asignado al reto`);
     };
@@ -6442,7 +6506,10 @@ function renderMyClubs(){
 function renderDiscoverClubs(){
   const el=document.getElementById('discover-clubs-list');
   if(!el)return;
-  const joinedIds=new Set(CLUBS.map(c=>c.id));
+  // Joined clubs get their own real id (uuid, so it can be saved to Supabase) rather
+  // than reusing the catalog's id — sourceId is what still ties them back to the
+  // DISCOVER_CLUBS entry so it can be hidden here once you've joined it.
+  const joinedIds=new Set(CLUBS.map(c=>c.sourceId||c.id));
   const list=DISCOVER_CLUBS.filter(c=>!joinedIds.has(c.id));
   el.innerHTML=list.map(c=>{
     const privLabel=c.privacy==='open'?'Abierto':c.privacy==='request'?'Pedir acceso':'Solo invitación';
@@ -6471,12 +6538,14 @@ function joinDiscoverClub(e,id){
   const dc=DISCOVER_CLUBS.find(c=>c.id===id);
   if(!dc)return;
   if(dc.privacy==='open'){
-    CLUBS.push({
-      id:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
+    const club={
+      id:uuid(),sourceId:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
       myRole:'member',nextMeeting:null,
       members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'member',booksRead:0,joined:'2026-06'}],
       books:[],threads:[],clubRetos:[],forumPosts:[],announcements:[],
-    });
+    };
+    CLUBS.push(club);
+    saveSupaClub(club);
     renderClubs();
     toast(`✅ Unido a «${dc.name}»`);
   } else if(dc.privacy==='request'){
@@ -6540,15 +6609,19 @@ function renderClubDetail(id){
   renderClubAnuncios(club);
 }
 
-function deleteClub(id){
+async function deleteClub(id){
   if(!confirm('¿Eliminar este club? Esta acción no se puede deshacer.'))return;
+  const ok=await deleteSupaClub(id);
+  if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
   go('clubs',document.querySelectorAll('.nb')[5]);
   toast('Club eliminado');
 }
 
-function leaveClub(id){
+async function leaveClub(id){
   if(!confirm('¿Salir de este club?'))return;
+  const ok=await deleteSupaClub(id);
+  if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
   go('clubs',document.querySelectorAll('.nb')[5]);
   toast('Has salido del club');
@@ -6674,6 +6747,7 @@ function likePost(clubId,threadId,postIdx){
   const t=club.threads.find(th=>th.id===threadId);
   if(!t||!t.posts[postIdx])return;
   t.posts[postIdx].likes=(t.posts[postIdx].likes||0)+1;
+  saveSupaClub(club);
   renderClubDebates(club);
 }
 
@@ -6689,6 +6763,7 @@ function postReply(clubId,threadId){
   t.posts.push(reply);
   input.value='';
   QUOTE_REPLY_TARGET=null;
+  saveSupaClub(club);
   renderClubDebates(club);
   toast('💬 Respuesta publicada');
 }
@@ -6740,6 +6815,7 @@ function likeForumPost(clubId,idx){
   const p=club.forumPosts[idx];
   p.likedByMe=!p.likedByMe;
   p.likes=(p.likes||0)+(p.likedByMe?1:-1);
+  saveSupaClub(club);
   renderClubForo(club);
 }
 
@@ -6758,6 +6834,7 @@ function addForumComment(clubId,postId){
   if(!text){toast('Escribe un comentario');return;}
   if(!p.comments)p.comments=[];
   p.comments.push({author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',text,date:'ahora mismo'});
+  saveSupaClub(club);
   renderClubForo(club);
 }
 
@@ -6766,6 +6843,7 @@ function deleteForumPost(clubId,postId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.forumPosts=club.forumPosts.filter(p=>p.id!==postId);
+  saveSupaClub(club);
   renderClubForo(club);
   toast('Publicación eliminada');
 }
@@ -6781,6 +6859,7 @@ function saveClubForumPost(){
   const id='fp_'+Date.now();
   if(!club.forumPosts)club.forumPosts=[];
   club.forumPosts.unshift({id,type,author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'ahora mismo',likes:0,likedByMe:false,spoiler,text,source:source||null,comments:[]});
+  saveSupaClub(club);
   closeModal('modal-club-forum-post');
   document.getElementById('fp-text').value='';
   document.getElementById('fp-source').value='';
@@ -6823,6 +6902,7 @@ function changeClubBookStatus(clubId,bookIdx,newStatus){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club||!club.books[bookIdx])return;
   club.books[bookIdx].status=newStatus;
+  saveSupaClub(club);
   renderClubDetail(clubId);
   toast(`Estado actualizado: ${{leyendo:'📖 Leyendo',pendiente:'📋 Pendiente',leido:'✅ Leído'}[newStatus]}`);
 }
@@ -6868,6 +6948,7 @@ function saveClubBook(){
   const existing=club.books.find(b=>b.title===_clubBookPending.title);
   if(existing){toast('Este libro ya está en el club');return;}
   club.books.push({title:_clubBookPending.title,author:_clubBookPending.author,color:_clubBookPending.color||'#1A3A5C',status,addedBy:'Tú'});
+  saveSupaClub(club);
   closeModal('modal-club-add-book');
   _clubBookPending=null;
   renderClubLibros(club);
@@ -6929,6 +7010,7 @@ function changeMemberRole(clubId,initials,newRole){
   if(!club)return;
   const m=club.members.find(m=>m.initials===initials);
   if(m)m.role=newRole;
+  saveSupaClub(club);
   renderClubMiembros(club);
   toast(`Rol actualizado: ${newRole==='mod'?'🛡️ Moderador':'👤 Miembro'}`);
 }
@@ -6938,6 +7020,7 @@ function kickMember(clubId,initials){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.members=club.members.filter(m=>m.initials!==initials);
+  saveSupaClub(club);
   renderClubMiembros(club);
   renderClubDetail(clubId);
   toast('Miembro eliminado del club');
@@ -7005,6 +7088,7 @@ function saveClubReto(){
     id,emoji,name,desc,requirements,goal,deadline,
     participants:club.members.map(m=>({name:m.name,initials:m.initials,bg:m.bg,tc:m.tc,progress:0,goal,done:false})),
   });
+  saveSupaClub(club);
   closeModal('modal-club-reto');
   ['cr-name','cr-desc','cr-requirements'].forEach(i=>document.getElementById(i)&&(document.getElementById(i).value=''));
   document.getElementById('cr-emoji').value='📚';
@@ -7019,6 +7103,7 @@ function deleteClubReto(clubId,retoId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.clubRetos=club.clubRetos.filter(r=>r.id!==retoId);
+  saveSupaClub(club);
   renderClubRetos(club);
   toast('Reto eliminado');
 }
@@ -7054,6 +7139,7 @@ function saveAnnouncement(){
   if(!text){toast('Escribe el anuncio primero');return;}
   if(!club.announcements)club.announcements=[];
   club.announcements.unshift({id:'ann_'+Date.now(),author:'Tú',initials:'TU',bg:'var(--red)',tc:'white',date:'ahora mismo',text});
+  saveSupaClub(club);
   closeModal('modal-club-announcement');
   renderClubAnuncios(club);
   toast('📢 Anuncio publicado');
@@ -7064,6 +7150,7 @@ function deleteAnnouncement(clubId,annId){
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.announcements=club.announcements.filter(a=>a.id!==annId);
+  saveSupaClub(club);
   renderClubAnuncios(club);
   toast('Anuncio eliminado');
 }
@@ -7084,12 +7171,13 @@ function saveNewClub(){
   const desc=document.getElementById('cc-desc').value.trim()||'';
   const type=document.getElementById('cc-type').value;
   const privacy=document.getElementById('cc-privacy').value;
-  const id='club_'+Date.now();
-  CLUBS.push({
-    id,name,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
+  const club={
+    id:uuid(),name,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
     members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'admin',booksRead:0,joined:'2026-06'}],
     books:[],threads:[],clubRetos:[],forumPosts:[],announcements:[],
-  });
+  };
+  CLUBS.push(club);
+  saveSupaClub(club);
   closeModal('modal-create-club');
   ['cc-name','cc-desc','cc-emoji'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
   renderClubs();
@@ -7113,6 +7201,7 @@ function saveNewThread(){
   };
   if(!club.threads)club.threads=[];
   club.threads.unshift(thread);
+  saveSupaClub(club);
   closeModal('modal-create-thread');
   document.getElementById('ct-title').value='';
   document.getElementById('ct-body').value='';
