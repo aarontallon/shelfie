@@ -359,6 +359,14 @@ a{color:inherit}
 .f-quote{margin-top:8px;padding:10px 14px;background:#FBF9F7;border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:13px;font-style:italic;color:#444;line-height:1.65}
 .like-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;font-family:'Inter',sans-serif;transition:all 0.12s}
 .like-btn:hover,.like-btn.on{color:var(--red);background:var(--red-light)}
+.comment-like-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;margin-top:3px;font-family:'Inter',sans-serif}
+.comment-like-btn:hover,.comment-like-btn.on{color:var(--red)}
+.post-reactions-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.post-reaction-chip{background:var(--paper);border:1px solid var(--border);border-radius:14px;cursor:pointer;font-size:12px;padding:2px 9px;font-family:'Inter',sans-serif}
+.post-reaction-chip.on{background:var(--red-light);border-color:var(--red);color:var(--red-dark)}
+.reaction-picker{position:absolute;bottom:100%;left:0;margin-bottom:6px;background:white;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.14);padding:6px 8px;display:flex;gap:4px;z-index:20}
+.reaction-picker-emoji{cursor:pointer;font-size:18px;padding:3px 5px;border-radius:8px;transition:background 0.1s}
+.reaction-picker-emoji:hover,.reaction-picker-emoji.on{background:var(--paper)}
 
 /* ═══ NEW FEED: jerarquía, agrupación, logros ═══ */
 .feed-filters{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
@@ -848,10 +856,10 @@ a{color:inherit}
 .rank-item[data-pos="1"] .rank-num{color:#A8A29E}
 .rank-item[data-pos="2"] .rank-num{color:#CD7C54}
 .rank-handle{color:var(--ink3);cursor:grab;flex-shrink:0;font-size:16px}
-.hm{display:grid;grid-template-columns:repeat(53,1fr);gap:3px;margin:8px 0}
+.hm{display:grid;grid-template-columns:repeat(53,1fr);grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px;margin:8px 0}
 .hm-cell{aspect-ratio:1;border-radius:2px;min-width:0}
 .hm-months{display:grid;grid-template-columns:repeat(53,1fr);gap:3px;margin-bottom:2px}
-.hm-month-lbl{font-size:9px;color:var(--ink3);grid-column:span 4}
+.hm-month-lbl{font-size:9px;color:var(--ink3);white-space:nowrap;overflow:visible}
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .bar-lbl{font-size:12px;color:var(--ink);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar-track{flex:1;height:8px;background:#EDEDED;border-radius:4px;overflow:hidden}
@@ -1980,6 +1988,13 @@ a{color:inherit}
     <div><h1>Clubs de lectura</h1><p>Debate, comparte y lee en comunidad</p></div>
     <button class="btn btn-red" onclick="openModal('modal-create-club')"><i class="ti ti-plus"></i> Crear club</button>
   </div>
+  <div class="f-row" style="max-width:420px">
+    <div class="srch-wrap">
+      <i class="ti ti-search srch-ico"></i>
+      <input class="srch-inp" id="clubs-search-inp" placeholder="Buscar clubs por nombre o @nickname..." oninput="onClubsSearch(this.value)" autocomplete="off">
+      <div class="srch-drop" id="clubs-search-drop" style="display:none"></div>
+    </div>
+  </div>
   <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:20px">
     <button class="retos-tab on" data-tab="mis" onclick="setClubsTab(this,'mis')">Mis clubs</button>
     <button class="retos-tab" data-tab="descubrir" onclick="setClubsTab(this,'descubrir')">Descubrir</button>
@@ -2019,6 +2034,7 @@ a{color:inherit}
     <h2>Crear club de lectura</h2>
     <p class="sub">Define el club, invita lectores por @usuario</p>
     <div class="f-row"><label class="f-label">Nombre del club *</label><input id="cc-name" class="f-input" placeholder="p.ej. Club Ficción BCN"></div>
+    <div class="f-row"><label class="f-label">Nickname único * <span style="color:var(--ink3);font-weight:400">(para que se pueda buscar, p.ej. @ficcionbcn)</span></label><input id="cc-nickname" class="f-input" placeholder="ficcionbcn" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"></div>
     <div class="f-row"><label class="f-label">Descripción</label><textarea id="cc-desc" class="f-input" style="height:70px;resize:none" placeholder="¿De qué trata el club?"></textarea></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;margin-bottom:14px">
       <div><label class="f-label">Tipo</label>
@@ -2561,6 +2577,10 @@ async function deleteSupaClub(id){
 // character, subject) so richer post types survive a reload intact.
 function postRowToObject(row){
   const author=authorFromId(row.user_id)||{id:row.user_id,name:'Un lector',username:'',photo:null,bg:'#EEE',tc:'#555',initials:'??'};
+  const reactionRows=row.post_reactions||[];
+  const reactions={};
+  reactionRows.forEach(r=>{reactions[r.emoji]=(reactions[r.emoji]||0)+1;});
+  const myReactions=SUPA_USER?reactionRows.filter(r=>r.user_id===SUPA_USER.id).map(r=>r.emoji):[];
   return {
     id:row.id,
     authorId:row.user_id,
@@ -2576,8 +2596,12 @@ function postRowToObject(row){
     likedByMe:SUPA_USER?(row.likes||[]).some(l=>l.user_id===SUPA_USER.id):false,
     comments:(row.comments||[]).map(c=>{
       const ca=authorFromId(c.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
-      return{id:c.id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg};
+      const cLikes=c.comment_likes||[];
+      return{id:c.id,userId:c.user_id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg,
+        likes:cLikes.length,likedByMe:SUPA_USER?cLikes.some(l=>l.user_id===SUPA_USER.id):false};
     }),
+    reactions,
+    myReactions,
     ...(row.extra||{}),
   };
 }
@@ -2586,7 +2610,7 @@ function postRowToObject(row){
 async function loadSupaPosts(){
   const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
   const{data,error}=await supa.from('posts')
-    .select('*, comments(*), likes(*)')
+    .select('*, comments(*, comment_likes(*)), likes(*), post_reactions(*)')
     .in('user_id',authorIds)
     .order('created_at',{ascending:false})
     .limit(100);
@@ -2659,6 +2683,34 @@ async function toggleSupaLike(postId,liked){
   } else {
     const{error}=await supa.from('likes').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id);
     if(error){console.error('toggleSupaLike (unlike) failed:',error);return false;}
+  }
+  return true;
+}
+
+// ── Toggle like on a comment (reply) ──
+async function toggleSupaCommentLike(commentId,liked){
+  if(!SUPA_USER)return true;
+  if(liked){
+    const{error}=await supa.from('comment_likes').upsert({comment_id:commentId,user_id:SUPA_USER.id},{onConflict:'comment_id,user_id'});
+    if(error){console.error('toggleSupaCommentLike (like) failed:',error);return false;}
+  } else {
+    const{error}=await supa.from('comment_likes').delete().eq('comment_id',commentId).eq('user_id',SUPA_USER.id);
+    if(error){console.error('toggleSupaCommentLike (unlike) failed:',error);return false;}
+  }
+  return true;
+}
+
+// ── Toggle an emoji reaction on a post — a user can have several different
+// emoji active on the same post at once (Slack-style), each one independently
+// togglable. ──
+async function toggleSupaReaction(postId,emoji,active){
+  if(!SUPA_USER)return true;
+  if(active){
+    const{error}=await supa.from('post_reactions').upsert({post_id:postId,user_id:SUPA_USER.id,emoji},{onConflict:'post_id,user_id,emoji'});
+    if(error){console.error('toggleSupaReaction (add) failed:',error);return false;}
+  } else {
+    const{error}=await supa.from('post_reactions').delete().eq('post_id',postId).eq('user_id',SUPA_USER.id).eq('emoji',emoji);
+    if(error){console.error('toggleSupaReaction (remove) failed:',error);return false;}
   }
   return true;
 }
@@ -2744,6 +2796,95 @@ async function handleIncomingNotification(row){
   if(document.getElementById('modal-notifications').style.display==='flex')renderNotifications();
 }
 
+// ── Realtime: likes/comments/reactions from other people (e.g. a friend liking
+// or commenting from their own device) used to only show up after a reload —
+// there was no subscription at all on these tables, only on `notifications`.
+// Supabase's postgres_changes filter only supports a single column=eq.value
+// predicate, and our feed spans several authors (you + every friend), so
+// instead of trying to filter server-side we subscribe unfiltered and check
+// client-side whether the affected post is one we actually have loaded.
+function subscribeToFeedRealtime(){
+  if(!SUPA_USER)return;
+  supa.channel('feed-'+SUPA_USER.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'posts'},payload=>handleIncomingPost(payload.new))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'posts'},payload=>handleDeletedPost(payload.old))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'comments'},payload=>handleIncomingComment(payload.new))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'comments'},payload=>handleDeletedComment(payload.old))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'likes'},payload=>handleLikeRealtime(payload.new,true))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'likes'},payload=>handleLikeRealtime(payload.old,false))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'comment_likes'},payload=>handleCommentLikeRealtime(payload.new,true))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'comment_likes'},payload=>handleCommentLikeRealtime(payload.old,false))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime(payload.new,true))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime(payload.old,false))
+    .subscribe();
+}
+
+// Every handler below skips events caused by the current user's own actions —
+// those are already applied optimistically at the point of the click, so
+// reprocessing the echo of our own write would double-count it.
+async function handleIncomingPost(row){
+  if(row.user_id===SUPA_USER.id||POSTS_BY_ID[row.id])return;
+  const feedIds=new Set([SUPA_USER.id,...FRIENDS.map(f=>f.id)]);
+  if(!feedIds.has(row.user_id))return;
+  await ensureAuthorsLoaded([row.user_id]);
+  const post=postRowToObject({...row,comments:[],likes:[],post_reactions:[]});
+  POSTS_BY_ID[post.id]=post;
+  USER_POSTS.unshift(post);
+  if(document.getElementById('p-feed')?.classList.contains('on'))renderUserPosts();
+}
+
+function handleDeletedPost(row){
+  if(!POSTS_BY_ID[row.id])return;
+  delete POSTS_BY_ID[row.id];
+  USER_POSTS=USER_POSTS.filter(p=>p.id!==row.id);
+  document.querySelectorAll(`[data-id="${row.id}"]`).forEach(el=>el.remove());
+}
+
+function handleLikeRealtime(row,added){
+  if(row.user_id===SUPA_USER.id)return;
+  const post=POSTS_BY_ID[row.post_id];
+  if(!post)return;
+  post.likes=Math.max(0,(post.likes||0)+(added?1:-1));
+  refreshPostCard(post.id);
+}
+
+async function handleIncomingComment(row){
+  if(row.user_id===SUPA_USER.id)return;
+  const post=POSTS_BY_ID[row.post_id];
+  if(!post)return;
+  if(!post.comments)post.comments=[];
+  if(post.comments.some(c=>c.id===row.id))return;
+  await ensureAuthorsLoaded([row.user_id]);
+  const ca=authorFromId(row.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
+  post.comments.push({id:row.id,userId:row.user_id,name:ca.name,text:row.text,initials:ca.initials,color:ca.bg,likes:0,likedByMe:false});
+  refreshPostCard(post.id);
+}
+
+function handleDeletedComment(row){
+  for(const post of Object.values(POSTS_BY_ID)){
+    const idx=(post.comments||[]).findIndex(c=>c.id===row.id);
+    if(idx>=0){post.comments.splice(idx,1);refreshPostCard(post.id);return;}
+  }
+}
+
+function handleCommentLikeRealtime(row,added){
+  if(row.user_id===SUPA_USER.id)return;
+  for(const post of Object.values(POSTS_BY_ID)){
+    const c=(post.comments||[]).find(c=>c.id===row.comment_id);
+    if(c){c.likes=Math.max(0,(c.likes||0)+(added?1:-1));refreshPostCard(post.id);return;}
+  }
+}
+
+function handleReactionRealtime(row,added){
+  if(row.user_id===SUPA_USER.id)return;
+  const post=POSTS_BY_ID[row.post_id];
+  if(!post)return;
+  if(!post.reactions)post.reactions={};
+  post.reactions[row.emoji]=Math.max(0,(post.reactions[row.emoji]||0)+(added?1:-1));
+  if(post.reactions[row.emoji]<=0)delete post.reactions[row.emoji];
+  refreshPostCard(post.id);
+}
+
 // ── Internal: enter app after auth ──
 async function _supaEnterApp(){
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
@@ -2751,12 +2892,14 @@ async function _supaEnterApp(){
   // Friends must be loaded before posts — the feed query needs FRIENDS to know
   // whose posts (besides your own) belong in it.
   try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
+  try{await loadFriendsBooksCache();}catch(e){console.error('loadFriendsBooksCache failed:',e);}
   try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
   try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
   try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
   try{await loadSupaRetos();}catch(e){console.error('loadSupaRetos failed:',e);}
   try{await loadSupaClubs();}catch(e){console.error('loadSupaClubs failed:',e);}
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
+  try{subscribeToFeedRealtime();}catch(e){console.error('subscribeToFeedRealtime failed:',e);}
   // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
   // signs out from another tab mid-load) — don't flip into the app for a session
   // that no longer exists.
@@ -2967,6 +3110,9 @@ let CLUBS=[
   },
 ];
 
+// Guest/demo-mode-only catalog (no real backend to query without a session).
+// Real, logged-in Discover now queries the actual `clubs` table and ranks by
+// real join counts — see renderDiscoverClubs().
 const DISCOVER_CLUBS=[
   {id:'dc1',emoji:'🌍',name:'Narrativa árabe contemporánea',desc:'Autores de todo el mundo árabe',memberCount:45,privacy:'request',type:'genero'},
   {id:'dc2',emoji:'🗾',name:'Literatura japonesa',desc:'Desde Kawabata hasta Murata',memberCount:89,privacy:'open',type:'genero'},
@@ -3128,84 +3274,37 @@ const FRIEND_SHELFIE_DATA={
   ],
 };
 
+// Real per-friend book data — which of your ACTUAL friends have a given book, in
+// which status. Loaded once per session (and refreshed after following someone
+// new) from everyone you follow's real user_books rows. FRIEND_SHELFIE_DATA/
+// ALL_READERS above are fake and are now used ONLY in the logged-out guest demo,
+// where there's no real backend to query — they used to show up on a real,
+// logged-in user's book pages too, as if actual people had those books.
+let FRIENDS_BOOKS_CACHE=[];
+async function loadFriendsBooksCache(){
+  if(!SUPA_USER||!FRIENDS.length){FRIENDS_BOOKS_CACHE=[];return;}
+  const{data,error}=await supa.from('user_books').select('user_id,title,status,stars').in('user_id',FRIENDS.map(f=>f.id));
+  if(error){console.error('loadFriendsBooksCache failed:',error);return;}
+  FRIENDS_BOOKS_CACHE=data||[];
+}
+
 function getFriendsWithBook(title){
   const key=(title||'').toLowerCase().trim();
+  if(!key)return[];
+  if(SUPA_USER){
+    return FRIENDS_BOOKS_CACHE.filter(b=>(b.title||'').toLowerCase().trim()===key).map(b=>{
+      const reader=FRIENDS.find(f=>f.id===b.user_id);
+      return reader?{status:b.status,stars:b.stars,reader}:null;
+    }).filter(Boolean);
+  }
   const entries=FRIEND_SHELFIE_DATA[key]||[];
   return entries.map(e=>({...e,reader:ALL_READERS.find(r=>r.username===e.username)})).filter(e=>e.reader);
 }
 
-// Global book metadata: synopsis, simulated community-wide stats, and third-party reviews (not the logged-in user's)
-const BOOK_GLOBAL_DATA={
-  'cien años de soledad':{
-    genres:['Realismo mágico','Novela','Literatura latinoamericana','Ficción histórica'],
-    similarBooks:['El otoño del patriarca','Pedro Páramo','Rayuela','La casa de los espíritus'],
-    synopsis:'La historia de la familia Buendía a lo largo de siete generaciones en el pueblo imaginario de Macondo. Una obra fundacional del realismo mágico que entrelaza lo extraordinario y lo cotidiano para narrar el nacimiento, esplendor y decadencia de una estirpe y de América Latina entera.',
-    communityStats:{leidos:18420,leyendo:612,quiero:9340},
-    ratingBreakdown:{5:62,4:24,3:9,2:3,1:2},
-    avgRating:4.6,
-    totalRatings:31200,
-    reviews:[
-      {username:'marialibros',stars:5,text:'Cada relectura descubro algo nuevo. La estructura circular del tiempo es de una maestría absoluta.'},
-      {username:'kenjireads',stars:4,text:'Exigente con los nombres repetidos entre generaciones, pero la prosa compensa cualquier esfuerzo.'},
-      {username:'anatorres_lee',stars:5,text:'El libro que me hizo entender qué es el realismo mágico de verdad. Imprescindible.'},
-    ],
-  },
-  'rayuela':{
-    genres:['Novela experimental','Literatura argentina','Boom latinoamericano','Metaficción'],
-    similarBooks:['Bestiario','Ficciones','Pedro Páramo','El túnel'],
-    synopsis:'Una novela experimental que puede leerse en dos órdenes distintos: el lineal y el "tablero de dirección" propuesto por Cortázar. Sigue a Horacio Oliveira entre París y Buenos Aires, explorando el amor, el lenguaje y la búsqueda existencial.',
-    communityStats:{leidos:9210,leyendo:340,quiero:5120},
-    ratingBreakdown:{5:48,4:30,3:14,2:5,1:3},
-    avgRating:4.2,
-    totalRatings:14800,
-    reviews:[
-      {username:'anatorres_lee',stars:4,text:'La lectura "alternativa" cambia completamente la experiencia. Cortázar como juego literario puro.'},
-      {username:'kenjireads',stars:5,text:'Demoledor. El capítulo 7 sigue siendo de lo mejor que he leído nunca.'},
-    ],
-  },
-  'pedro páramo':{
-    genres:['Realismo mágico','Novela corta','Literatura mexicana','Gótico latinoamericano'],
-    similarBooks:['Cien años de soledad','El llano en llamas','El túnel','Bestiario'],
-    synopsis:'Juan Preciado llega a Comala buscando a su padre, Pedro Páramo, y descubre un pueblo habitado por fantasmas y voces del pasado. Una de las novelas fundacionales del realismo mágico latinoamericano, breve pero inagotable.',
-    communityStats:{leidos:7340,leyendo:210,quiero:4890},
-    ratingBreakdown:{5:58,4:28,3:10,2:3,1:1},
-    avgRating:4.5,
-    totalRatings:11600,
-    reviews:[
-      {username:'marialibros',stars:5,text:'152 páginas que pesan como una novela de 600. Rulfo no necesitó más para crear un universo entero.'},
-      {username:'laila_reads',stars:5,text:'La ambigüedad entre vivos y muertos está construida con una economía de medios admirable.'},
-    ],
-  },
-  '2666':{
-    genres:['Novela negra','Literatura chilena','Posmodernismo','Crimen'],
-    similarBooks:['Los detectives salvajes','Ficciones','Beloved','Ensayo sobre la ceguera'],
-    synopsis:'Una obra monumental dividida en cinco partes que gira alrededor de los crímenes de Santa Teresa (trasunto de Ciudad Juárez) y del escritor fantasma Benno von Archimboldi. Bolaño en su forma más ambiciosa y oscura.',
-    communityStats:{leidos:5210,leyendo:480,quiero:6720},
-    ratingBreakdown:{5:50,4:28,3:14,2:5,1:3},
-    avgRating:4.3,
-    totalRatings:9800,
-    reviews:[
-      {username:'ramonreads',stars:5,text:'La parte de los crímenes es durísima pero necesaria. Una novela que no se olvida.'},
-    ],
-  },
-  'las mil y una noches':{
-    genres:['Cuentos clásicos','Literatura árabe','Mitología','Folclore'],
-    similarBooks:['Don Quijote de la Mancha','Ficciones','Rayuela'],
-    synopsis:'Colección de cuentos enmarcados narrados por Sherezade para posponer su ejecución, entrelazando historias de genios, viajeros, reyes y ladrones a lo largo de mil y una noches.',
-    communityStats:{leidos:6100,leyendo:190,quiero:3920},
-    ratingBreakdown:{5:55,4:27,3:12,2:4,1:2},
-    avgRating:4.4,
-    totalRatings:8900,
-    reviews:[
-      {username:'laila_reads',stars:5,text:'La estructura de relatos dentro de relatos es hipnótica. Mejor leerlo en una edición íntegra, no abreviada.'},
-    ],
-  },
-};
-
-function getBookGlobalData(title){
-  const key=(title||'').toLowerCase().trim();
-  return BOOK_GLOBAL_DATA[key]||null;
-}
+// (Previously a hardcoded BOOK_GLOBAL_DATA object with fake community stats,
+// rating breakdowns and third-party reviews "written" by static demo accounts
+// for 5 specific titles — shown to real logged-in users as if real. Removed;
+// see loadRealBookCommunityData()/loadRealBookReviews() for the real replacement.)
 
 // Author dataset: bio, works (with their own ratings), and quotes — powers the author page
 const AUTHORS_DATA={
@@ -4843,20 +4942,36 @@ function updateHome(){
     (RETOS.length===0?`<div style="margin-top:10px"><button class="btn btn-sm btn-red" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Nuevo reto</button></div>`:'');
   }
 
-  // ── Community mini feed ──
+  // ── Community mini feed — real recent activity from people you follow.
+  // This used to be 3 hardcoded fake names/books ("María García terminó
+  // Rayuela hace 2h"...) shown to every real logged-in user regardless of
+  // who they actually follow or what those people actually did. ──
   const feedEl=document.getElementById('home-feed');
-  const DEMO_FEED=[
-    {initials:'MG',bg:'#7C3AED',tc:'white',name:'María García',action:'terminó',book:'Rayuela',when:'hace 2h'},
-    {initials:'KT',bg:'#2563EB',tc:'white',name:'Kenji Tanaka',action:'añadió una cita de',book:'Kafka en la orilla',when:'hace 5h'},
-    {initials:'LA',bg:'#D97706',tc:'white',name:'Laila Ahmed',action:'empezó a leer',book:'El nombre del viento',when:'hace 1d'},
-  ];
-  feedEl.innerHTML=DEMO_FEED.map(f=>`<div class="home-feed-mini">
-    <div class="u-av" style="background:${f.bg};color:${f.tc};width:32px;height:32px;font-size:11px;flex-shrink:0">${f.initials}</div>
+  const myId=SUPA_USER?SUPA_USER.id:'local';
+  const recentOthers=USER_POSTS.filter(p=>p.author&&p.author.id&&p.author.id!==myId).slice(0,3);
+  if(!recentOthers.length){
+    feedEl.innerHTML='<div class="text-sm text-muted" style="padding:8px 0">Sigue a otros lectores para ver su actividad aquí.</div>';
+  } else {
+    const actionFor=p=>{
+      if(p.type==='cita')return'añadió una cita de';
+      if(p.type==='hilo')return'escribió sobre';
+      if(p.type==='marginalia')return'anotó';
+      if(p.type==='shelfiepost')return'compartió su shelfie';
+      if(p.isReview)return'reseñó';
+      return'publicó sobre';
+    };
+    feedEl.innerHTML=recentOthers.map(p=>{
+      const av=p.author.photo?`background-image:url(${p.author.photo});background-size:cover`:`background:${p.author.bg||'var(--red)'}`;
+      const bookTitle=p.book?.title||'';
+      return `<div class="home-feed-mini" ${p.author.username?`onclick="go('userprofile',null,'${p.author.username}')" style="cursor:pointer"`:''}>
+    <div class="u-av" style="${av};width:32px;height:32px;font-size:11px;flex-shrink:0">${p.author.photo?'':(p.author.name||'??').slice(0,2).toUpperCase()}</div>
     <div>
-      <div class="home-feed-mini-text"><strong>${escapeHtml(f.name)}</strong> ${f.action} <em>${escapeHtml(f.book)}</em></div>
-      <div class="home-feed-mini-when">${f.when}</div>
+      <div class="home-feed-mini-text"><strong>${escapeHtml(p.author.name||'Alguien')}</strong> ${actionFor(p)}${bookTitle?` <em>${escapeHtml(bookTitle)}</em>`:''}</div>
+      <div class="home-feed-mini-when">${timeAgo(p.createdAt)}</div>
     </div>
-  </div>`).join('');
+  </div>`;
+    }).join('');
+  }
 
   updateStreakDisplay();
 }
@@ -5444,42 +5559,22 @@ function renderBookPage(key){
 
   const myPosts=USER_POSTS.filter(p=>p.book&&p.book.title===book.title);
 
-  // Global community data (synopsis, who-has-it counts, rating breakdown, third-party reviews)
-  const gData=getBookGlobalData(book.title);
-  const synopsisText=cleanSynopsis(book.synopsis)||(gData?.synopsis)||null;
+  const synopsisText=cleanSynopsis(book.synopsis)||null;
   const synopsisHtml=synopsisText?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
       <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(synopsisText)}</p>
     </div>`:'';
 
-  const communityCountsHtml=gData?`
-    <div class="book-community-stats">
-      <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--green)">${gData.communityStats.leidos.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Lo han leído</div></div>
-      <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--blue)">${gData.communityStats.leyendo.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Lo están leyendo</div></div>
-      <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--amber)">${gData.communityStats.quiero.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Quieren leerlo</div></div>
-    </div>`:'';
-
-  const ratingBreakdownHtml=gData?`
-    <div class="book-page-section">
-      <div class="book-page-section-title"><i class="ti ti-star"></i> Valoraciones de la comunidad</div>
-      <div class="book-rating-summary">
-        <div style="text-align:center;flex-shrink:0">
-          <div class="book-rating-summary-n">${gData.avgRating}</div>
-          <div class="book-rating-summary-stars">${'★'.repeat(Math.round(gData.avgRating))}${'☆'.repeat(5-Math.round(gData.avgRating))}</div>
-          <div class="book-rating-summary-count">${gData.totalRatings.toLocaleString('es-ES')} valoraciones</div>
-        </div>
-        <div class="book-rating-summary-bars">
-          ${[5,4,3,2,1].map(s=>`<div class="rating-breakdown-row"><div class="rating-breakdown-stars">${s}★</div><div class="rating-breakdown-track"><div class="rating-breakdown-fill" style="width:${gData.ratingBreakdown[s]}%"></div></div><div class="rating-breakdown-pct">${gData.ratingBreakdown[s]}%</div></div>`).join('')}
-        </div>
-      </div>
-    </div>`:'';
-
-  const thirdPartyReviewsHtml=gData&&gData.reviews.length?gData.reviews.map(r=>{
-    const reader=ALL_READERS.find(a=>a.username===r.username);
-    if(!reader)return'';
-    return `<div class="third-party-review"><div class="f-av" style="background:${reader.bg};color:${reader.tc};width:34px;height:34px;flex-shrink:0">${reader.initials}</div><div class="third-party-review-body"><div class="third-party-review-name">${escapeHtml(reader.name)}</div><div class="third-party-review-stars">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div><div class="third-party-review-text">«${escapeHtml(r.text)}»</div></div></div>`;
-  }).join(''):'<div class="text-sm text-muted">Aún no hay reseñas de la comunidad para este libro.</div>';
+  // Community counts, rating breakdown and third-party reviews used to come from
+  // BOOK_GLOBAL_DATA — a hardcoded object with fake numbers and fake reviews
+  // "written" by ALL_READERS demo accounts, for 5 specific titles, shown to real
+  // logged-in users as if they were real. Replaced below with live queries
+  // against user_books/posts (both publicly readable) — real counts, real
+  // ratings, real reviews, for any book, or nothing at all if there's genuinely
+  // no community data yet.
+  const communityCountsHtml=SUPA_USER?`<div class="book-community-stats" id="book-community-counts"></div>`:'';
+  const ratingBreakdownHtml=SUPA_USER?`<div class="book-page-section"><div class="book-page-section-title"><i class="ti ti-star"></i> Valoraciones de la comunidad</div><div id="book-rating-breakdown"><div class="text-sm text-muted">Cargando…</div></div></div>`:'';
 
   const authorKey=(book.author||'').toLowerCase().trim();
   const authorData=AUTHORS_DATA[authorKey]||null;
@@ -5487,8 +5582,8 @@ function renderBookPage(key){
   // bio data for them — renderAuthorPage resolves any author live via Open Library.
   const authorLinkHtml=book.author?`<div class="book-page-author-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">${escapeHtml(book.author)} <i class="ti ti-arrow-right" style="font-size:13px"></i></div>`:'';
 
-  const genreTagsHtml=gData&&gData.genres&&gData.genres.length
-    ?`<div class="book-genre-tags">${gData.genres.map(g=>`<span class="book-genre-tag">${escapeHtml(g)}</span>`).join('')}</div>`:'';
+  const genreTagsHtml=(book.genres&&book.genres.length)
+    ?`<div class="book-genre-tags">${book.genres.map(g=>`<span class="book-genre-tag">${escapeHtml(g)}</span>`).join('')}</div>`:'';
 
   const authorSnippetHtml=book.author?`
     <div class="book-page-section">
@@ -5501,21 +5596,6 @@ function renderBookPage(key){
           ${authorData?.bio?`<div class="book-author-snippet-bio">${escapeHtml(authorData.bio.substring(0,200))}…</div>`:''}
           <span class="book-author-snippet-link" onclick="go('authorpage',null,'${escapeHtml(book.author).replace(/'/g,"\\'")}')">Ver todas sus obras <i class="ti ti-arrow-right" style="font-size:11px"></i></span>
         </div>
-      </div>
-    </div>`:'';
-
-  const similarBooksHtml=gData&&gData.similarBooks&&gData.similarBooks.length?`
-    <div class="book-page-section">
-      <div class="book-page-section-title"><i class="ti ti-books"></i> También te puede gustar</div>
-      <div class="similar-books-row">
-        ${gData.similarBooks.map(t=>{
-          const sb=allBooks().find(b=>b.title===t);
-          const coverStyle=sb&&sb.cover?`background-image:url(${sb.cover});background-size:cover;background-position:center`:(sb?`background:${sb.color}`:'background:#E8E8E8');
-          return `<div class="similar-book-card" onclick="${sb?`go('bookdetail',null,'${bkKey(sb)}')`:`openSearchModal('${escapeHtml(t).replace(/'/g,"\\'")}')`}">
-            <div class="similar-book-cover" style="${coverStyle}">${(sb&&sb.cover)?'':escapeHtml(t.substring(0,30))}</div>
-            <div class="similar-book-title">${escapeHtml(t)}</div>
-          </div>`;
-        }).join('')}
       </div>
     </div>`:'';
 
@@ -5539,7 +5619,6 @@ function renderBookPage(key){
     ${communityCountsHtml}
     ${ratingBreakdownHtml}
     ${authorSnippetHtml}
-    ${similarBooksHtml}
     ${historyHtml}
 
     <div class="book-page-section">
@@ -5556,10 +5635,79 @@ function renderBookPage(key){
         <div class="friends-book-block" style="margin-top:0">${friendsHtml}</div>
       </div>
       <div class="book-activity-panel" id="book-activity-resenas">
-        <div class="card" style="margin-bottom:0">${thirdPartyReviewsHtml}</div>
+        <div class="text-sm text-muted">Cargando…</div>
       </div>
     </div>
   `;
+  if(SUPA_USER){
+    loadRealBookCommunityData(book.title,selfKey);
+    loadRealBookReviews(book.title,selfKey);
+  }
+}
+
+// Real community counts (how many people across the whole app have this book as
+// leídos/leyendo/quiero) and a real rating breakdown, from actual user_books rows
+// (publicly readable) — not the old BOOK_GLOBAL_DATA fake numbers.
+async function loadRealBookCommunityData(title,guardKey){
+  try{
+    const{data,error}=await supa.from('user_books').select('status,stars').ilike('title',title);
+    if(error||!data)return;
+    if(CURRENT_ENTITY.bookdetail!==guardKey)return; // navigated away while this was in flight
+    const counts={leidos:0,leyendo:0,quiero:0};
+    const ratings=[];
+    data.forEach(r=>{
+      if(counts[r.status]!==undefined)counts[r.status]++;
+      if(r.status==='leidos'&&r.stars>0)ratings.push(r.stars);
+    });
+    const countsEl=document.getElementById('book-community-counts');
+    if(countsEl){
+      countsEl.innerHTML=`
+        <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--green)">${counts.leidos.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Lo han leído</div></div>
+        <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--blue)">${counts.leyendo.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Lo están leyendo</div></div>
+        <div class="book-community-stat"><div class="book-community-stat-n" style="color:var(--amber)">${counts.quiero.toLocaleString('es-ES')}</div><div class="book-community-stat-l">Quieren leerlo</div></div>`;
+    }
+    const ratingEl=document.getElementById('book-rating-breakdown');
+    if(ratingEl){
+      if(!ratings.length){
+        ratingEl.innerHTML='<div class="text-sm text-muted">Aún no hay valoraciones de la comunidad para este libro.</div>';
+      } else {
+        const avg=ratings.reduce((a,b)=>a+b,0)/ratings.length;
+        const dist={5:0,4:0,3:0,2:0,1:0};
+        ratings.forEach(s=>{if(dist[s]!==undefined)dist[s]++;});
+        ratingEl.innerHTML=`
+          <div class="book-rating-summary">
+            <div style="text-align:center;flex-shrink:0">
+              <div class="book-rating-summary-n">${avg.toFixed(1)}</div>
+              <div class="book-rating-summary-stars">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5-Math.round(avg))}</div>
+              <div class="book-rating-summary-count">${ratings.length.toLocaleString('es-ES')} valoraciones</div>
+            </div>
+            <div class="book-rating-summary-bars">
+              ${[5,4,3,2,1].map(s=>{const pct=Math.round((dist[s]/ratings.length)*100);return `<div class="rating-breakdown-row"><div class="rating-breakdown-stars">${s}★</div><div class="rating-breakdown-track"><div class="rating-breakdown-fill" style="width:${pct}%"></div></div><div class="rating-breakdown-pct">${pct}%</div></div>`;}).join('')}
+            </div>
+          </div>`;
+      }
+    }
+  }catch(e){console.error('loadRealBookCommunityData failed:',e);}
+}
+
+// Real reviews (public posts marked isReview, about this title) from ANYONE using
+// the app, not just friends — posts are publicly readable — replacing the old
+// fake reviews "written" by static ALL_READERS demo accounts.
+async function loadRealBookReviews(title,guardKey){
+  try{
+    const{data,error}=await supa.from('posts').select('*').eq('book_title',title).order('created_at',{ascending:false}).limit(20);
+    if(error||!data)return;
+    if(CURRENT_ENTITY.bookdetail!==guardKey)return;
+    const reviews=data.filter(r=>r.extra?.isReview&&r.user_id!==SUPA_USER.id);
+    const el=document.getElementById('book-activity-resenas');
+    if(!el)return;
+    if(!reviews.length){el.innerHTML='<div class="text-sm text-muted">Aún no hay reseñas de la comunidad para este libro.</div>';return;}
+    await ensureAuthorsLoaded(reviews.map(r=>r.user_id));
+    el.innerHTML=`<div class="card" style="margin-bottom:0">${reviews.map(r=>{
+      const author=authorFromId(r.user_id)||{name:'Un lector',initials:'??',bg:'#EEE',tc:'#555'};
+      return `<div class="third-party-review"><div class="f-av" style="background:${author.bg};color:${author.tc};width:34px;height:34px;flex-shrink:0">${author.initials}</div><div class="third-party-review-body"><div class="third-party-review-name">${escapeHtml(author.name)}</div>${r.rating?`<div class="third-party-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>`:''}<div class="third-party-review-text">«${escapeHtml(r.text||'')}»</div></div></div>`;
+    }).join('')}</div>`;
+  }catch(e){console.error('loadRealBookReviews failed:',e);}
 }
 
 // Ficha for a work you don't own a copy of yet — reached by clicking a friend's
@@ -5601,8 +5749,6 @@ async function renderBookPageGeneric(key){
   if(!document.getElementById('p-book-detail').classList.contains('on')||CURRENT_ENTITY.bookdetail!==key)return;
 
   const color=COLORS[(title.charCodeAt(0)||0)%COLORS.length];
-  const gData=getBookGlobalData(title);
-  if(!synopsis)synopsis=gData?.synopsis||null;
   const synopsisHtml=synopsis?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
@@ -5650,13 +5796,19 @@ async function renderBookPageGeneric(key){
     </div>
 
     ${synopsisHtml}
+    ${SUPA_USER?'<div class="book-community-stats" id="book-community-counts"></div><div class="book-page-section"><div class="book-page-section-title"><i class="ti ti-star"></i> Valoraciones de la comunidad</div><div id="book-rating-breakdown"><div class="text-sm text-muted">Cargando…</div></div></div>':''}
     ${authorSnippetHtml}
 
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-users"></i> Amigos con este libro</div>
       <div class="friends-book-block" style="margin-top:0">${friendsHtml}</div>
     </div>
+    ${SUPA_USER?`<div class="book-page-section"><div class="book-page-section-title"><i class="ti ti-message-circle"></i> Reseñas</div><div id="book-activity-resenas"><div class="text-sm text-muted">Cargando…</div></div></div>`:''}
   `;
+  if(SUPA_USER){
+    loadRealBookCommunityData(title,key);
+    loadRealBookReviews(title,key);
+  }
 }
 
 function setBookActivityTab(btn,tab){
@@ -6241,7 +6393,13 @@ function renderStats(){
   document.getElementById('st-streak-summary').textContent=`Racha actual: ${streak} días · Mejor racha: ${bestStreak} días`;
 
   // ── Heatmap: días de lectura reales ──
-  const hmYear=filterYear||2026;
+  // Each week is a COLUMN (7 days stacked top-to-bottom, Monday→Sunday), like a
+  // GitHub contribution graph. This used to rely on the browser's default
+  // grid-auto-flow (row), so cells filled left-to-right across ~50 columns
+  // before wrapping — the "week" columns never lined up with real calendar
+  // weeks or with the month labels above them, which made it impossible to
+  // tell which day any given cell represented.
+  const hmYear=filterYear||new Date().getFullYear();
   const hm=document.getElementById('heatmap');
   hm.innerHTML='';
   const hmLabels=document.getElementById('hm-month-labels');
@@ -6251,14 +6409,15 @@ function renderStats(){
   const hmEnd=filterYear&&filterYear<new Date().getFullYear()?new Date(hmYear,11,31):new Date();
   const todayDate=new Date();
   const totalDays=Math.ceil((hmEnd-start)/86400000)+1;
-  const totalWeeks=Math.ceil(totalDays/7);
+  const startPad=(start.getDay()+6)%7; // blank cells before Jan 1 so it lands on its real weekday row (Monday=0)
+  const totalWeeks=Math.ceil((totalDays+startPad)/7);
   hm.style.gridTemplateColumns=`repeat(${totalWeeks},1fr)`;
   hmLabels.style.gridTemplateColumns=`repeat(${totalWeeks},1fr)`;
-  // month labels
+  // month labels — one per week-column, showing the name only where the month changes
   const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   let lastMonth=-1;
   for(let w=0;w<totalWeeks;w++){
-    const d=new Date(hmYear,0,1+w*7);
+    const d=new Date(hmYear,0,1+Math.max(0,w*7-startPad));
     const m=d.getMonth();
     const lbl=document.createElement('div');
     lbl.className='hm-month-lbl';
@@ -6266,7 +6425,13 @@ function renderStats(){
     hmLabels.appendChild(lbl);
     lastMonth=m;
   }
-  // cells: one per day, arranged in weeks (columns)
+  for(let p=0;p<startPad;p++){
+    const c=document.createElement('div');
+    c.className='hm-cell';
+    c.style.background='transparent';
+    hm.appendChild(c);
+  }
+  // cells: one per day, filling down each week-column before moving to the next
   for(let i=0;i<totalDays;i++){
     const d=new Date(hmYear,0,1+i);
     const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -6793,6 +6958,7 @@ async function addFriend(username,btn){
   FRIENDS.push({...r});
   if(btn){btn.textContent='Siguiendo ✓';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
   updateProfileStats();renderFriends();
+  loadFriendsBooksCache().catch(e=>console.error('loadFriendsBooksCache failed:',e));
   toast(`✓ Ahora sigues a ${r.name}`);
 }
 
@@ -6898,27 +7064,60 @@ function renderMyClubs(){
   }).join('');
 }
 
-function renderDiscoverClubs(){
+// Real clubs currently shown in Discover/search, keyed by id — populated by
+// renderDiscoverClubs()/onClubsSearch() so their onclick handlers (which only
+// have the id to go on) can find the full row again.
+let REAL_DISCOVER_CLUBS={};
+
+async function renderDiscoverClubs(){
   const el=document.getElementById('discover-clubs-list');
   if(!el)return;
-  // Joined clubs get their own real id (uuid, so it can be saved to Supabase) rather
-  // than reusing the catalog's id — sourceId is what still ties them back to the
-  // DISCOVER_CLUBS entry so it can be hidden here once you've joined it.
-  const joinedIds=new Set(CLUBS.map(c=>c.sourceId||c.id));
-  const list=DISCOVER_CLUBS.filter(c=>!joinedIds.has(c.id));
-  el.innerHTML=list.map(c=>{
-    const privLabel=c.privacy==='open'?'Abierto':c.privacy==='request'?'Pedir acceso':'Solo invitación';
-    const privColor=c.privacy==='open'?'var(--green)':c.privacy==='request'?'var(--amber)':'var(--ink3)';
-    return `<div class="discover-club-card">
-      <div class="discover-club-avatar" style="background:#F2F2F2">${c.emoji}</div>
-      <div class="discover-club-info">
-        <div class="discover-club-name">${escapeHtml(c.name)}</div>
-        <div class="discover-club-meta">${c.memberCount} miembros · <span style="color:${privColor}">${privLabel}</span></div>
-        <div style="font-size:12px;color:var(--ink3);margin-top:2px">${escapeHtml(c.desc)}</div>
-      </div>
-      <button class="btn btn-sm btn-white" onclick="joinDiscoverClub(event,'${c.id}')">Unirse</button>
-    </div>`;
-  }).join('')||'<p style="color:var(--ink3);font-size:13px;text-align:center;padding:24px">No hay más clubs disponibles</p>';
+  if(!SUPA_USER){
+    // Guest/demo mode — no real backend to query, fall back to the static catalog.
+    const joinedIds=new Set(CLUBS.map(c=>c.sourceId||c.id));
+    const list=DISCOVER_CLUBS.filter(c=>!joinedIds.has(c.id));
+    el.innerHTML=list.map(c=>discoverClubCardHtml(c)).join('')||'<p style="color:var(--ink3);font-size:13px;text-align:center;padding:24px">No hay más clubs disponibles</p>';
+    return;
+  }
+  el.innerHTML='<div class="s-loading" style="padding:24px 0"><i class="ti ti-loader-2 spin"></i> Buscando clubs populares...</div>';
+  try{
+    // Every "join" of a real club creates its own row (sourceId pointing back at
+    // the original) rather than a shared membership table — see the note above
+    // the `clubs` table in supabase_schema.sql. So real popularity = how many
+    // rows in the whole table point at (or are) a given original club.
+    const{data,error}=await supa.from('clubs').select('id,user_id,data');
+    if(error)throw error;
+    const rows=data||[];
+    const originals=rows.filter(r=>!r.data?.sourceId);
+    const copyCounts={};
+    rows.forEach(r=>{const src=r.data?.sourceId;if(src)copyCounts[src]=(copyCounts[src]||0)+1;});
+    const joinedOriginalIds=new Set(CLUBS.map(c=>c.sourceId||c.id));
+    const ranked=originals
+      .filter(o=>o.user_id!==SUPA_USER.id&&!joinedOriginalIds.has(o.id))
+      .map(o=>({...o.data,id:o.id,memberCount:1+(copyCounts[o.id]||0)}))
+      .sort((a,b)=>b.memberCount-a.memberCount)
+      .slice(0,15);
+    REAL_DISCOVER_CLUBS={};
+    ranked.forEach(c=>{REAL_DISCOVER_CLUBS[c.id]=c;});
+    el.innerHTML=ranked.length?ranked.map(c=>discoverClubCardHtml(c)).join(''):'<p style="color:var(--ink3);font-size:13px;text-align:center;padding:24px">Aún no hay clubs de otros lectores para descubrir. ¡Crea el primero!</p>';
+  }catch(e){
+    console.error('renderDiscoverClubs failed:',e);
+    el.innerHTML='<p style="color:var(--ink3);font-size:13px;text-align:center;padding:24px">No se pudieron cargar los clubs. Comprueba tu conexión.</p>';
+  }
+}
+
+function discoverClubCardHtml(c){
+  const privLabel=c.privacy==='open'?'Abierto':c.privacy==='request'?'Pedir acceso':'Solo invitación';
+  const privColor=c.privacy==='open'?'var(--green)':c.privacy==='request'?'var(--amber)':'var(--ink3)';
+  return `<div class="discover-club-card">
+    <div class="discover-club-avatar" style="background:#F2F2F2">${c.emoji||'📚'}</div>
+    <div class="discover-club-info">
+      <div class="discover-club-name">${escapeHtml(c.name)}${c.nickname?` <span style="color:var(--ink3);font-weight:400;font-size:12px">@${escapeHtml(c.nickname)}</span>`:''}</div>
+      <div class="discover-club-meta">${c.memberCount||1} miembro${(c.memberCount||1)!==1?'s':''} · <span style="color:${privColor}">${privLabel}</span></div>
+      <div style="font-size:12px;color:var(--ink3);margin-top:2px">${escapeHtml(c.desc||'')}</div>
+    </div>
+    <button class="btn btn-sm btn-white" onclick="joinDiscoverClub(event,'${c.id}')">Unirse</button>
+  </div>`;
 }
 
 function setClubsTab(btn,tab){
@@ -6930,9 +7129,12 @@ function setClubsTab(btn,tab){
 
 function joinDiscoverClub(e,id){
   e.stopPropagation();
-  const dc=DISCOVER_CLUBS.find(c=>c.id===id);
+  const dc=(SUPA_USER?REAL_DISCOVER_CLUBS[id]:null)||DISCOVER_CLUBS.find(c=>c.id===id);
   if(!dc)return;
   if(dc.privacy==='open'){
+    // NOT carrying dc.nickname here on purpose — nicknames must stay unique across
+    // the whole clubs table, and this copy isn't a separately-discoverable club,
+    // it's your personal membership record for the original (tracked via sourceId).
     const club={
       id:uuid(),sourceId:dc.id,name:dc.name,emoji:dc.emoji,desc:dc.desc,type:dc.type,privacy:dc.privacy,
       myRole:'member',nextMeeting:null,
@@ -6948,6 +7150,50 @@ function joinDiscoverClub(e,id){
     e.currentTarget.textContent='Solicitado';e.currentTarget.disabled=true;
   } else {
     toast('🔒 Este club es solo por invitación. Pide al admin que te añada con @tuusuario.');
+  }
+}
+
+// ── Real search across every club that exists, not just your own ──
+let _clubSearchToken=0;
+async function onClubsSearch(q){
+  const drop=document.getElementById('clubs-search-drop');
+  const query=q.trim();
+  if(!query){drop.style.display='none';return;}
+  if(!SUPA_USER){
+    const ql=query.toLowerCase();
+    const results=DISCOVER_CLUBS.filter(c=>c.name.toLowerCase().includes(ql));
+    drop.style.display='block';
+    drop.innerHTML=results.length?results.map(c=>`<div class="s-item" onclick="joinDiscoverClub(event,'${c.id}')"><div class="s-cover" style="background:#F2F2F2;display:flex;align-items:center;justify-content:center;font-size:18px">${c.emoji}</div><div class="s-info"><div class="s-title">${escapeHtml(c.name)}</div><div class="s-author">${c.memberCount} miembros</div></div></div>`).join(''):'<div class="s-loading">Sin resultados</div>';
+    return;
+  }
+  const token=++_clubSearchToken;
+  drop.style.display='block';
+  drop.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando...</div>';
+  try{
+    const safe=query.replace(/[%,]/g,'');
+    const{data,error}=await supa.from('clubs').select('id,user_id,data')
+      .or(`data->>name.ilike.%${safe}%,data->>nickname.ilike.%${safe}%`)
+      .limit(15);
+    if(token!==_clubSearchToken)return;
+    if(error)throw error;
+    const mine=new Set(CLUBS.map(c=>c.sourceId||c.id));
+    // Only originals — otherwise every join/copy of the same real club would
+    // show up as its own separate search result for the same query.
+    const results=(data||[]).filter(r=>r.data?.name&&!r.data?.sourceId);
+    results.forEach(r=>{REAL_DISCOVER_CLUBS[r.id]=r.data;});
+    if(!results.length){drop.innerHTML='<div class="s-loading">Sin resultados</div>';return;}
+    drop.innerHTML=results.map(r=>{
+      const c=r.data;
+      const alreadyIn=mine.has(r.id);
+      const myClub=alreadyIn?CLUBS.find(cl=>(cl.sourceId||cl.id)===r.id):null;
+      const action=alreadyIn
+        ?`<button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();go('clubdetail',null,'${myClub.id}');document.getElementById('clubs-search-drop').style.display='none'">Ver</button>`
+        :`<button class="btn btn-sm btn-white" onclick="joinDiscoverClub(event,'${r.id}')">Unirse</button>`;
+      return `<div class="s-item"><div class="s-cover" style="background:#F2F2F2;display:flex;align-items:center;justify-content:center;font-size:18px">${c.emoji||'📚'}</div><div class="s-info"><div class="s-title">${escapeHtml(c.name)}${c.nickname?` <span style="color:var(--ink3);font-weight:400">@${escapeHtml(c.nickname)}</span>`:''}</div><div class="s-author">${escapeHtml(c.desc||'')}</div></div>${action}</div>`;
+    }).join('');
+  }catch(e){
+    console.error('onClubsSearch failed:',e);
+    if(token===_clubSearchToken)drop.innerHTML='<div class="s-loading">No se pudo buscar. Comprueba tu conexión.</div>';
   }
 }
 
@@ -7559,24 +7805,40 @@ function sendClubInvite(){
   document.getElementById('inv-username').value='';
 }
 
-function saveNewClub(){
+async function isClubNicknameTaken(nickname){
+  if(!SUPA_USER)return false;
+  try{
+    const{data,error}=await supa.from('clubs').select('id').eq('data->>nickname',nickname).limit(1);
+    if(error){console.error('isClubNicknameTaken failed:',error);return false;}
+    return(data||[]).length>0;
+  }catch(e){console.error('isClubNicknameTaken failed:',e);return false;}
+}
+
+async function saveNewClub(){
   const name=document.getElementById('cc-name').value.trim();
   if(!name){toast('Escribe un nombre para el club');return;}
+  const nickname=document.getElementById('cc-nickname').value.trim().toLowerCase();
+  if(!nickname||nickname.length<3){toast('Escribe un nickname de al menos 3 caracteres (solo letras, números y _)');return;}
+  const saveBtn=document.querySelector('#modal-create-club .btn-red');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Comprobando...';}
+  const taken=await isClubNicknameTaken(nickname);
+  if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="ti ti-check"></i> Crear club';}
+  if(taken){toast(`❌ El nickname @${nickname} ya está en uso. Elige otro.`);return;}
   const emoji=document.getElementById('cc-emoji').value.trim()||'📚';
   const desc=document.getElementById('cc-desc').value.trim()||'';
   const type=document.getElementById('cc-type').value;
   const privacy=document.getElementById('cc-privacy').value;
   const club={
-    id:uuid(),name,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
+    id:uuid(),name,nickname,emoji,desc,type,privacy,myRole:'admin',nextMeeting:null,
     members:[{name:'Tú',initials:'TU',bg:'var(--red)',tc:'white',role:'admin',booksRead:0,joined:'2026-06'}],
     books:[],threads:[],clubRetos:[],forumPosts:[],announcements:[],
   };
   CLUBS.push(club);
   saveSupaClub(club);
   closeModal('modal-create-club');
-  ['cc-name','cc-desc','cc-emoji'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
+  ['cc-name','cc-nickname','cc-desc','cc-emoji'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
   renderClubs();
-  toast(`✅ Club «${name}» creado. Invita miembros con @usuario.`);
+  toast(`✅ Club «${name}» creado (@${nickname}). Invita miembros con @usuario.`);
 }
 
 function saveNewThread(){
@@ -8476,8 +8738,18 @@ function renderOnePost(p){
   const commentsHtml=(p.comments&&p.comments.length)?`<div class="upost-comments">${p.comments.map(c=>`
       <div class="upost-comment">
         <div class="upost-comment-av" style="background:${c.color||'var(--red)'}">${c.initials||'??'}</div>
-        <div class="upost-comment-body"><div class="upost-comment-name">${escapeHtml(c.name)}</div><div class="upost-comment-text">${escapeHtml(c.text)}</div></div>
+        <div class="upost-comment-body">
+          <div class="upost-comment-name">${escapeHtml(c.name)}</div>
+          <div class="upost-comment-text">${escapeHtml(c.text)}</div>
+          ${c.id?`<button class="comment-like-btn ${c.likedByMe?'on':''}" onclick="toggleCommentLike('${p.id}','${c.id}',this)"><i class="ti ti-heart" style="font-size:11px"></i> <span>${c.likes||''}</span></button>`:''}
+        </div>
       </div>`).join('')}</div>`:'';
+
+  const reactionEntries=Object.entries(p.reactions||{}).filter(([,n])=>n>0);
+  const myReactionsSet=new Set(p.myReactions||[]);
+  const reactionsHtml=reactionEntries.length?`<div class="post-reactions-row">${reactionEntries.map(([emoji,n])=>
+    `<button class="post-reaction-chip ${myReactionsSet.has(emoji)?'on':''}" onclick="toggleReaction('${p.id}','${emoji}')">${emoji} ${n}</button>`
+  ).join('')}</div>`:'';
 
   // For cita/marginalia the body has its own padding/background, so it sits in a wrapper without extra card padding.
   // For tweet/hilo the body needs the standard horizontal padding since the card itself provides it.
@@ -8506,9 +8778,11 @@ function renderOnePost(p){
         <div class="upost-time">${timeAgo(p.createdAt)}</div>
       </div>
       <div style="${needsOwnPadding?'margin-top:12px':''}">${bodyBlock}</div>
-      <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''}">
+      ${reactionsHtml}
+      <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''};position:relative">
         <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><i class="ti ti-heart"></i> <span>${likeCount}</span></button>
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
+        <button class="fc-action-btn" onclick="event.stopPropagation();toggleReactionPicker('${p.id}',this)"><i class="ti ti-mood-plus"></i> Reaccionar</button>
         ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
         <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:''}
       </div>
@@ -8582,7 +8856,7 @@ async function sendComment(id){
   if(!post)return;
   _commentInFlight.add(id);
   if(!post.comments)post.comments=[];
-  const optimisticComment={name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)'};
+  const optimisticComment={name:PROFILE.name||'Tú',text,initials:(PROFILE.name||'??').slice(0,2).toUpperCase(),color:'var(--red)',likes:0,likedByMe:false};
   post.comments.push(optimisticComment);
   const saved=await saveSupaComment(id,text);
   if(!saved){
@@ -8595,11 +8869,84 @@ async function sendComment(id){
     _commentInFlight.delete(id);
     return;
   }
+  // Without the real row id, this comment could never be liked (toggleCommentLike
+  // needs a comment_id to write to comment_likes) until after a reload re-fetched it.
+  optimisticComment.id=saved.id;
+  optimisticComment.userId=SUPA_USER?SUPA_USER.id:null;
   input.value='';
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
   _commentInFlight.delete(id);
+}
+
+const _commentLikeInFlight=new Set();
+async function toggleCommentLike(postId,commentId,btn){
+  if(_commentLikeInFlight.has(commentId))return;
+  _commentLikeInFlight.add(commentId);
+  const post=POSTS_BY_ID[postId];
+  const comment=post&&(post.comments||[]).find(c=>c.id===commentId);
+  if(!comment){_commentLikeInFlight.delete(commentId);return;}
+  comment.likedByMe=!comment.likedByMe;
+  comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
+  btn.classList.toggle('on',comment.likedByMe);
+  btn.querySelector('span').textContent=comment.likes||'';
+  const ok=await toggleSupaCommentLike(commentId,comment.likedByMe);
+  if(!ok){
+    comment.likedByMe=!comment.likedByMe;
+    comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
+    btn.classList.toggle('on',comment.likedByMe);
+    btn.querySelector('span').textContent=comment.likes||'';
+    toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }
+  _commentLikeInFlight.delete(commentId);
+}
+
+// ── Emoji reactions on posts ──
+const REACTION_EMOJIS=['👍','❤️','😂','😮','😢','🎉'];
+const _reactionInFlight=new Set();
+function toggleReactionPicker(id,btn){
+  document.querySelectorAll('.reaction-picker').forEach(p=>{if(p.dataset.for!==id)p.remove();});
+  const existing=document.querySelector(`.reaction-picker[data-for="${id}"]`);
+  if(existing){existing.remove();return;}
+  const picker=document.createElement('div');
+  picker.className='reaction-picker';
+  picker.dataset.for=id;
+  const post=POSTS_BY_ID[id];
+  const mine=new Set(post?.myReactions||[]);
+  picker.innerHTML=REACTION_EMOJIS.map(e=>`<span class="reaction-picker-emoji ${mine.has(e)?'on':''}" onclick="event.stopPropagation();toggleReaction('${id}','${e}');this.closest('.reaction-picker').remove()">${e}</span>`).join('');
+  btn.parentElement.appendChild(picker);
+  const closeOnOutside=ev=>{if(!picker.contains(ev.target)&&ev.target!==btn){picker.remove();document.removeEventListener('click',closeOnOutside);}};
+  setTimeout(()=>document.addEventListener('click',closeOnOutside),0);
+}
+
+async function toggleReaction(id,emoji){
+  const flightKey=id+emoji;
+  if(_reactionInFlight.has(flightKey))return;
+  _reactionInFlight.add(flightKey);
+  const post=POSTS_BY_ID[id];
+  if(!post){_reactionInFlight.delete(flightKey);return;}
+  if(!post.reactions)post.reactions={};
+  if(!post.myReactions)post.myReactions=[];
+  const hadIt=post.myReactions.includes(emoji);
+  if(hadIt){
+    post.myReactions=post.myReactions.filter(e=>e!==emoji);
+    post.reactions[emoji]=Math.max(0,(post.reactions[emoji]||1)-1);
+    if(post.reactions[emoji]<=0)delete post.reactions[emoji];
+  } else {
+    post.myReactions.push(emoji);
+    post.reactions[emoji]=(post.reactions[emoji]||0)+1;
+  }
+  refreshPostCard(id);
+  const ok=await toggleSupaReaction(id,emoji,!hadIt);
+  if(!ok){
+    // revert
+    if(hadIt){post.myReactions.push(emoji);post.reactions[emoji]=(post.reactions[emoji]||0)+1;}
+    else{post.myReactions=post.myReactions.filter(e=>e!==emoji);post.reactions[emoji]=Math.max(0,(post.reactions[emoji]||1)-1);if(post.reactions[emoji]<=0)delete post.reactions[emoji];}
+    refreshPostCard(id);
+    toast('❌ No se pudo guardar la reacción. Inténtalo de nuevo.');
+  }
+  _reactionInFlight.delete(flightKey);
 }
 
 async function deleteUserPost(id){

@@ -272,3 +272,69 @@ drop policy if exists "clubs_update" on public.clubs;
 create policy "clubs_update" on public.clubs for update using (auth.uid()=user_id);
 drop policy if exists "clubs_delete" on public.clubs;
 create policy "clubs_delete" on public.clubs for delete using (auth.uid()=user_id);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: likes en comentarios + reacciones con emoji en publicaciones
+-- + tiempo real para comentarios/likes/reacciones (antes solo se veían al recargar)
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.comment_likes (
+  comment_id uuid references public.comments(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  primary key (comment_id, user_id)
+);
+
+create table if not exists public.post_reactions (
+  post_id uuid references public.posts(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  emoji text not null,
+  created_at timestamptz default now(),
+  primary key (post_id, user_id, emoji)
+);
+
+alter table public.comment_likes enable row level security;
+alter table public.post_reactions enable row level security;
+
+drop policy if exists "comment_likes_select" on public.comment_likes;
+create policy "comment_likes_select" on public.comment_likes for select using (true);
+drop policy if exists "comment_likes_insert" on public.comment_likes;
+create policy "comment_likes_insert" on public.comment_likes for insert with check (auth.uid()=user_id);
+drop policy if exists "comment_likes_delete" on public.comment_likes;
+create policy "comment_likes_delete" on public.comment_likes for delete using (auth.uid()=user_id);
+
+drop policy if exists "post_reactions_select" on public.post_reactions;
+create policy "post_reactions_select" on public.post_reactions for select using (true);
+drop policy if exists "post_reactions_insert" on public.post_reactions;
+create policy "post_reactions_insert" on public.post_reactions for insert with check (auth.uid()=user_id);
+drop policy if exists "post_reactions_delete" on public.post_reactions;
+create policy "post_reactions_delete" on public.post_reactions for delete using (auth.uid()=user_id);
+
+-- Realtime: para que likes/comentarios/reacciones de otras personas aparezcan
+-- al instante sin recargar la página.
+alter publication supabase_realtime add table public.posts;
+alter publication supabase_realtime add table public.comments;
+alter publication supabase_realtime add table public.likes;
+alter publication supabase_realtime add table public.comment_likes;
+alter publication supabase_realtime add table public.post_reactions;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: clubs buscables/descubribles + nickname único
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- clubs_select era "solo el dueño" — imposible de buscar o de mostrar en
+-- Descubrir a nadie más. Cada club sigue siendo una fila por usuario (ver el
+-- comentario más arriba sobre por qué), pero ahora cualquiera puede LEER
+-- cualquier club — igual que ya pasa con posts/user_books — para poder
+-- buscarlo por nombre/nickname y ver cuántas copias reales existen (= cuánta
+-- gente se ha unido). Insert/update/delete se quedan como estaban: solo el
+-- dueño de esa fila.
+drop policy if exists "clubs_select" on public.clubs;
+create policy "clubs_select" on public.clubs for select using (true);
+
+-- Nickname único a nivel de base de datos, no solo comprobado en la app — dos
+-- personas creando el mismo nickname a la vez no deberían poder colarse las
+-- dos. El nickname vive dentro del jsonb `data`, así que es un índice único
+-- sobre esa expresión en vez de una columna propia.
+create unique index if not exists clubs_nickname_unique on public.clubs (lower(data->>'nickname')) where data->>'nickname' is not null;
