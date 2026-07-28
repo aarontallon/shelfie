@@ -285,16 +285,20 @@ create table if not exists public.comment_likes (
   primary key (comment_id, user_id)
 );
 
--- post_id is `text`, not `uuid`, on purpose — posts.id itself is `text` in this
--- project (an earlier iteration of this schema, before ids were standardized on
--- uuid; likes.post_id/comments.post_id are `text` for the same reason), so a
--- `uuid` foreign key here fails at creation time with "incompatible types".
-create table if not exists public.post_reactions (
+-- One reaction per person per post (LinkedIn-style — picking a different emoji
+-- REPLACES your previous one, it doesn't add a second reaction), so the primary
+-- key is (post_id, user_id), not (post_id, user_id, emoji). post_id is `text`,
+-- not `uuid`, on purpose — posts.id itself is `text` in this project (an
+-- earlier iteration of this schema, before ids were standardized on uuid;
+-- likes.post_id/comments.post_id are `text` for the same reason), so a `uuid`
+-- foreign key here fails at creation time with "incompatible types".
+drop table if exists public.post_reactions;
+create table public.post_reactions (
   post_id text references public.posts(id) on delete cascade,
   user_id uuid references public.profiles(id) on delete cascade,
   emoji text not null,
   created_at timestamptz default now(),
-  primary key (post_id, user_id, emoji)
+  primary key (post_id, user_id)
 );
 
 alter table public.comment_likes enable row level security;
@@ -311,16 +315,30 @@ drop policy if exists "post_reactions_select" on public.post_reactions;
 create policy "post_reactions_select" on public.post_reactions for select using (true);
 drop policy if exists "post_reactions_insert" on public.post_reactions;
 create policy "post_reactions_insert" on public.post_reactions for insert with check (auth.uid()=user_id);
+drop policy if exists "post_reactions_update" on public.post_reactions;
+create policy "post_reactions_update" on public.post_reactions for update using (auth.uid()=user_id);
 drop policy if exists "post_reactions_delete" on public.post_reactions;
 create policy "post_reactions_delete" on public.post_reactions for delete using (auth.uid()=user_id);
 
 -- Realtime: para que likes/comentarios/reacciones de otras personas aparezcan
--- al instante sin recargar la página.
-alter publication supabase_realtime add table public.posts;
-alter publication supabase_realtime add table public.comments;
-alter publication supabase_realtime add table public.likes;
-alter publication supabase_realtime add table public.comment_likes;
-alter publication supabase_realtime add table public.post_reactions;
+-- al instante sin recargar la página. Envuelto en bloques que ignoran el aviso
+-- de "ya es miembro de la publicación" para poder volver a ejecutar esto sin
+-- fallar si alguna de estas ya se había añadido en un intento anterior.
+do $$ begin
+  alter publication supabase_realtime add table public.posts;
+exception when others then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.comments;
+exception when others then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.likes;
+exception when others then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.comment_likes;
+exception when others then null; end $$;
+do $$ begin
+  alter publication supabase_realtime add table public.post_reactions;
+exception when others then null; end $$;
 
 -- ════════════════════════════════════════════════
 -- ACTUALIZACIÓN: clubs buscables/descubribles + nickname único
