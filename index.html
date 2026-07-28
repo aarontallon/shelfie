@@ -2434,6 +2434,8 @@ async function loadSupaBooks(){
   });
 }
 
+function _delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
 // ── Save book to DB ──
 async function saveSupaBook(book,attempt){
   if(!SUPA_USER)return;
@@ -2467,9 +2469,11 @@ async function saveSupaBook(book,attempt){
   const{error}=await supa.from('user_books').upsert(row,{onConflict:'id'});
   if(error){
     console.error(`saveSupaBook failed (intento ${attempt}):`,error);
-    if(attempt<3){setTimeout(()=>saveSupaBook(book,attempt+1),1000*attempt);}
-    else{toast(`❌ No se pudo guardar «${book.title}». Comprueba tu conexión — vuelve a intentarlo, no se ha guardado.`);}
+    if(attempt<3){await _delay(1000*attempt);return saveSupaBook(book,attempt+1);}
+    toast(`❌ No se pudo guardar «${book.title}». Comprueba tu conexión — vuelve a intentarlo, no se ha guardado.`);
+    return false;
   }
+  return true;
 }
 
 // ── Delete book from DB ──
@@ -5518,26 +5522,29 @@ function onRankSearch(q){
   });
 }
 
-function addBookToRanking(id){
+async function addBookToRanking(id){
   const book=DB.leidos.find(b=>b.id===id);
   if(!book)return;
   if(getFavoriteBooks().length>=MAX_FAVORITES){toast(`⚠️ Ya tienes ${MAX_FAVORITES} favoritos. Quita alguno primero.`);return;}
   book.isFavorite=true;
   book.rankPos=getFavoriteBooks().length; // place at the end of current order
-  saveSupaBook(book);
   document.getElementById('rank-srch-inp').value='';
   document.getElementById('rank-srch-drop').style.display='none';
   renderRanking();
+  const ok=await saveSupaBook(book);
+  if(!ok){book.isFavorite=false;delete book.rankPos;renderRanking();return;}
   toast(`✅ «${book.title}» añadido a tus favoritos`);
 }
 
-function removeFromFavorites(id){
+async function removeFromFavorites(id){
   const book=DB.leidos.find(b=>b.id===id);
   if(!book)return;
+  const prevRankPos=book.rankPos;
   book.isFavorite=false;
   delete book.rankPos;
-  saveSupaBook(book);
   renderRanking();
+  const ok=await saveSupaBook(book);
+  if(!ok){book.isFavorite=true;book.rankPos=prevRankPos;renderRanking();return;}
   toast(`«${book.title}» quitado de favoritos`);
 }
 
@@ -5619,27 +5626,30 @@ function onProfileFavSearch(q){
   });
 }
 
-function pfAddFav(id){
+async function pfAddFav(id){
   const book=DB.leidos.find(b=>b.id===id);
   if(!book||getFavoriteBooks().length>=MAX_FAVORITES)return;
   book.isFavorite=true;
   book.rankPos=getFavoriteBooks().length-1;
-  saveSupaBook(book);
   const srch=document.getElementById('pf-srch');
   const drop=document.getElementById('pf-srch-drop');
   if(srch)srch.value='';
   if(drop)drop.style.display='none';
   renderProfileFavSection();
+  const ok=await saveSupaBook(book);
+  if(!ok){book.isFavorite=false;delete book.rankPos;renderProfileFavSection();return;}
   toast(`✅ «${book.title}» añadido a tus favoritos`);
 }
 
-function pfRemoveFav(id){
+async function pfRemoveFav(id){
   const book=DB.leidos.find(b=>b.id===id);
   if(!book)return;
+  const prevRankPos=book.rankPos;
   book.isFavorite=false;
   delete book.rankPos;
-  saveSupaBook(book);
   renderProfileFavSection();
+  const ok=await saveSupaBook(book);
+  if(!ok){book.isFavorite=true;book.rankPos=prevRankPos;renderProfileFavSection();return;}
   toast(`«${book.title}» quitado de favoritos`);
 }
 
@@ -5651,9 +5661,12 @@ function pfDrop(e,targetIdx){
   const favs=getFavoriteBooks();
   const moved=favs.splice(pfDragSrcIdx,1)[0];
   favs.splice(targetIdx,0,moved);
-  favs.forEach((b,i)=>{b.rankPos=i;saveSupaBook(b);});
+  favs.forEach((b,i)=>{b.rankPos=i;});
   pfDragSrcIdx=null;
   renderProfileFavSection();
+  Promise.all(favs.map(b=>saveSupaBook(b))).then(results=>{
+    if(results.some(ok=>!ok))toast('⚠️ El nuevo orden no se guardó del todo — recarga para comprobarlo.');
+  });
   toast('✓ Orden actualizado');
 }
 
