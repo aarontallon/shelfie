@@ -5850,7 +5850,7 @@ async function setShelfPublicView(view){
   if(document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
   if(!SUPA_USER)return;
   const{error}=await supa.from('profiles').update({shelf_public_view:view}).eq('id',SUPA_USER.id);
-  if(error)console.error('setShelfPublicView failed:',error);
+  if(error){console.error('setShelfPublicView failed:',error);toast('❌ No se pudo guardar la vista. Comprueba tu conexión.');}
 }
 
 function toggleYearGoal(id){
