@@ -375,6 +375,20 @@ alter table public.user_books add column if not exists shelf_level integer;
 alter table public.user_books add column if not exists shelf_col integer;
 
 -- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: distingue una colocación arrastrada a mano de una colocación
+-- automática (la que hace el propio render para rellenar huecos por ancho real).
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Antes shelf_level/shelf_col se guardaban igual estuviera el libro arrastrado
+-- a mano o solo colocado automáticamente al renderizar — eso "congelaba" la
+-- colocación automática de la primera vez (con el ancho que hubiera entonces)
+-- para siempre, dejando huecos a medio llenar y añadiendo baldas nuevas de más.
+-- Ahora solo un arrastre real marca shelf_pinned=true; sin eso, cada libro se
+-- recoloca fresco en cada render según el ancho real disponible.
+alter table public.user_books add column if not exists shelf_pinned boolean default false;
+
+-- ════════════════════════════════════════════════
 -- ACTUALIZACIÓN: orden público del shelfie, elegido por su dueño
 -- Segura de volver a ejecutar.
 -- ════════════════════════════════════════════════

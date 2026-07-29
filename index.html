@@ -2909,6 +2909,7 @@ async function loadSupaBooks(){
       rankPos:row.rank_pos??null,
       shelfLevel:row.shelf_level??null,
       shelfCol:row.shelf_col??null,
+      shelfPinned:row.shelf_pinned||false,
       publisher:row.publisher||null,
       isbn:row.isbn||null,
       editionYear:row.edition_year||null,
@@ -2947,6 +2948,7 @@ async function saveSupaBook(book,attempt){
     rank_pos:book.rankPos??null,
     shelf_level:Number.isInteger(book.shelfLevel)?book.shelfLevel:null,
     shelf_col:Number.isInteger(book.shelfCol)?book.shelfCol:null,
+    shelf_pinned:!!book.shelfPinned,
     publisher:book.publisher||null,
     isbn:book.isbn||null,
     edition_year:book.editionYear||null,
@@ -6125,12 +6127,20 @@ function computeShelfCompartmentWidth(containerId){
 // active: the criterion always wins over wherever a book was last dragged, so a book
 // pinned to hueco 3 still moves to hueco 1 if that's where it falls alphabetically.
 // Pins (and drag-and-drop) only mean something under "Mi orden".
+//
+// Only b.shelfPinned===true (set exclusively by an actual drag, in shelfCellDropOnSpine/
+// shelfCellDropOnEmpty) makes a (level,col) sticky across renders. Auto-placed books keep
+// getting a *fresh* (level,col) worked out every render from the real current compartment
+// width — otherwise a book's slot from an early render (e.g. right when it first crossed
+// into compartment mode, under whatever width happened to be live then) would freeze in
+// place forever, leaving huecos looking part-empty while new rows kept getting added
+// instead of the un-pinned books simply repacking into the room that's actually there.
 function assignShelfCompartments(books,compartmentWidthPx,respectPins){
   const levels=[];
   const ensureLevel=li=>{while(levels.length<=li)levels.push([[],[],[]]);};
   const isPinned=new Set();
-  const hasValidSlot=b=>respectPins&&Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
-  // Pass 1: seed already-assigned books into their existing slot, in array order — but
+  const hasValidSlot=b=>respectPins&&b.shelfPinned&&Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
+  // Pass 1: seed explicitly-dragged books into their pinned slot, in array order — but
   // only if it still actually fits. A pin made under a different container width (the
   // window got resized, or you're on a different device) shouldn't silently overflow the
   // cell and throw off everything after it; that book instead falls through to pass 2.
@@ -6144,9 +6154,11 @@ function assignShelfCompartments(books,compartmentWidthPx,respectPins){
     cellBooks.push(b);
     isPinned.add(b);
   });
-  // Pass 2: auto-place any book without a valid assignment yet (or every book, when not
-  // respecting pins), into the first slot (reading order) with real-width room. Books
-  // evicted from pass 1 (stale pin, no longer fits) land here too, not just unpinned ones.
+  // Pass 2: auto-place every other book (never dragged, or evicted from a stale pin),
+  // into the first slot (reading order) with real-width room. This is recomputed fresh
+  // every render — the (level,col) written back below is only for the current render's
+  // drop-target lookups (dropping onto one of these books adopts its live slot); it's
+  // never persisted as a pin, so the next render freely repacks it again.
   books.forEach(b=>{
     if(isPinned.has(b))return;
     const w=spineDims(b).widthPx+SHELF_CELL_GAP;
@@ -6157,7 +6169,7 @@ function assignShelfCompartments(books,compartmentWidthPx,respectPins){
       const usedWidth=cellBooks.reduce((s,x)=>s+spineDims(x).widthPx+SHELF_CELL_GAP,0);
       if(!cellBooks.length||usedWidth+w<=compartmentWidthPx){
         cellBooks.push(b);
-        if(respectPins){b.shelfLevel=li;b.shelfCol=ci;}
+        b.shelfLevel=li;b.shelfCol=ci;
         break;
       }
       ci++;
@@ -6204,6 +6216,7 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
   }
   if(Number.isInteger(target.shelfLevel)&&Number.isInteger(target.shelfCol)){
     book.shelfLevel=target.shelfLevel;book.shelfCol=target.shelfCol;
+    book.shelfPinned=true;
     saveSupaBook(book);
   }
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
@@ -6233,6 +6246,7 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
     return;
   }
   book.shelfLevel=levelIdx;book.shelfCol=colIdx;
+  book.shelfPinned=true;
   saveSupaBook(book);
   // Move it to just after this cell's current last book in array order too, so grid/list
   // views and re-renders keep a sensible reading order.
