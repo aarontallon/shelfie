@@ -682,7 +682,7 @@ a{color:inherit}
 .marg-notes-side{background:white;padding:20px 22px}
 .marg-notes-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--red);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:5px}
 .marg-notes-text{font-size:13.5px;color:var(--ink2);line-height:1.65;font-family:'Inter',sans-serif;white-space:pre-wrap}
-.marginalia-meta{padding:14px 22px 0}
+.marginalia-meta{padding:14px 0 0}
 @media (max-width:640px){.marginalia-book{grid-template-columns:1fr}.marg-page-side{border-right:none;border-bottom:1px dashed var(--border)}}
 
 /* BIG character block — the post's main subject when subject='personaje'. Takes priority over the book. */
@@ -9658,8 +9658,6 @@ function renderOnePost(p){
        </div>`
     : narrativeContent;
 
-  const bodyBlock=metaContent+narrativeBlock;
-
   return `
     <div class="${cardClass}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
       <div class="upost-head" style="${needsOwnPadding?'padding:16px 18px 0':''}">
@@ -9667,7 +9665,8 @@ function renderOnePost(p){
         <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
         <div class="upost-time">${timeAgo(p.createdAt)}</div>
       </div>
-      <div style="${needsOwnPadding?'margin-top:12px':''}">${bodyBlock}</div>
+      <div style="${needsOwnPadding?'padding:0 18px;margin-top:12px':''}">${metaContent}</div>
+      ${narrativeBlock}
       ${reactionsHtml}
       <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''};position:relative">
         <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><i class="ti ti-heart"></i> <span>${likeCount}</span></button>
