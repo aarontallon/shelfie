@@ -368,7 +368,7 @@ a{color:inherit}
    aren't enough books to fill it yet */
 .shelf-levels{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
 .shelf-level{position:relative;margin-bottom:0}
-.shelf-cells-row{display:flex;gap:16px}
+.shelf-cells-row{display:flex;gap:8px}
 .shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:20px}
 /* Black divider walls between compartments, positioned exactly on the real flex
@@ -5899,7 +5899,7 @@ const SHELF_CELL_GAP=3;
 function computeShelfCompartmentWidth(containerId){
   const el=document.getElementById(containerId);
   const total=(el&&el.clientWidth)||900;
-  const outerGap=16; // gap between the 3 cells (.shelf-cells-row)
+  const outerGap=8; // gap between the 3 cells (.shelf-cells-row)
   const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
   return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
 }
@@ -6013,7 +6013,7 @@ function shelfViewHtml(books,statusArr,editable,containerId){
   const levels=packBooksIntoShelfLevels(books,compartmentWidthPx);
   // Wall positions sit exactly on the real flex boundary between cells (accounting for
   // the 16px gap), so they never drift off the actual edge regardless of card width.
-  const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 2.667px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 2.667px)"></div>`;
+  const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 1.333px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 1.333px)"></div>`;
   return `<div class="shelf-levels">${levels.map((level,li)=>`
     <div class="shelf-level">
       <div class="shelf-cells-row">
