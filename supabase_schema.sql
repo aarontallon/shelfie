@@ -392,3 +392,13 @@ alter table public.profiles add column if not exists shelf_public_sort text;
 -- Función experimental pedida como "provisional" — si no cuaja, esta columna
 -- se puede dejar sin usar sin más (no rompe nada quitarla del cliente).
 alter table public.profiles add column if not exists shelf_theme text;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: vista pública del shelfie (estantería/cuadrícula/lista)
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Misma idea que shelf_public_sort: el dueño del perfil elige qué vista se
+-- muestra en "Mi shelfie" y "Tu shelfie", y es la que ve cualquier visitante.
+-- Un solo valor persistido, cambiable desde cualquiera de los dos toggles.
+alter table public.profiles add column if not exists shelf_public_view text;
