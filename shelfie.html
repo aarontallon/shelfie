@@ -5924,6 +5924,15 @@ function shelfieSectionContentHtml(books,view){
   if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
   if(view==='shelf'){
     const rowSize=12;
+    // Statuses that rarely hold more than a handful of books (leyendo, dnf) looked like a
+    // near-empty shelf stretching across the whole card. When everything fits in one row,
+    // shrink the row (and its plank) to the books' own width instead of the full card width.
+    if(books.length<=rowSize){
+      return `<div class="shelf-row-wrap" style="display:inline-block;max-width:100%">
+        <div class="shelf-books-row" style="width:fit-content;max-width:100%">${books.map(b=>profileSpineHtml(b)).join('')}</div>
+        <div class="shelf-plank"></div>
+      </div>`;
+    }
     const rows=[];
     for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
     return `<div class="shelf-unit">${rows.map(rowBooks=>`
