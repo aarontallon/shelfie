@@ -86,11 +86,12 @@ a{color:inherit}
 .landing-demo-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .landing-demo-tab{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:20px;border:none;cursor:pointer;background:#F2F2F2;color:#999;transition:all .15s}
 .landing-demo-tab.on{background:var(--ink);color:white}
-.landing-demo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;min-height:190px}
-.landing-demo-cover{aspect-ratio:2/3;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,0.15);transition:transform .12s}
-.landing-demo-cover:active{cursor:grabbing}
-.landing-demo-cover.drag-over{outline:2.5px dashed rgba(0,0,0,0.3);outline-offset:2px}
-.landing-demo-cover span{font-family:'Playfair Display',serif;font-size:10.5px;color:rgba(255,255,255,0.92);line-height:1.25}
+.landing-demo-shelf{display:flex;align-items:flex-end;gap:4px;background:#FAFAFA;border-radius:10px 10px 0 0;padding:18px 10px 0;min-height:172px;overflow-x:auto}
+.landing-demo-spine{border-radius:3px 3px 0 0;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;cursor:grab;box-shadow:2px 0 6px rgba(0,0,0,0.22),inset -2px 0 4px rgba(0,0,0,0.16);transition:transform .12s}
+.landing-demo-spine:active{cursor:grabbing}
+.landing-demo-spine.drag-over{outline:2.5px dashed rgba(0,0,0,0.3);outline-offset:2px}
+.landing-demo-spine span{writing-mode:vertical-rl;text-orientation:mixed;font-family:'Inter',sans-serif;font-weight:700;font-size:9.5px;color:rgba(255,255,255,0.92);text-shadow:0 1px 2px rgba(0,0,0,0.5);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.3px}
+.landing-demo-plank{height:9px;background:#1A1A1A;border-radius:0 0 3px 3px;margin:0 -1px}
 .landing-demo-hint{font-size:11.5px;color:#999;margin-top:14px;display:flex;align-items:center;gap:6px}
 .landing-split-text .landing-section-title{margin-top:6px}
 
@@ -1253,7 +1254,8 @@ a{color:inherit}
     <div class="landing-split-visual">
       <div class="landing-demo-card">
         <div class="landing-demo-tabs" id="landing-demo-tabs"></div>
-        <div class="landing-demo-grid" id="landing-demo-grid"></div>
+        <div class="landing-demo-shelf" id="landing-demo-grid"></div>
+        <div class="landing-demo-plank"></div>
         <div class="landing-demo-hint"><i class="ti ti-arrows-move"></i> Arrastra los libros para reordenar tu shelfie</div>
       </div>
     </div>
@@ -1266,29 +1268,35 @@ a{color:inherit}
 
   <section class="landing-section landing-split landing-split-rev">
     <div class="landing-split-visual">
-      <svg viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="340" height="340" rx="18" fill="#FFFFFF"/>
-        <rect x="0.5" y="0.5" width="339" height="339" rx="18" fill="none" stroke="#EEE"/>
+      <svg viewBox="0 0 340 460" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="460" rx="18" fill="#FFFFFF"/>
+        <rect x="0.5" y="0.5" width="339" height="459" rx="18" fill="none" stroke="#EEE"/>
         <circle cx="46" cy="46" r="22" fill="#7C3AED"/>
         <text x="46" y="52" font-family="Inter,sans-serif" font-size="15" font-weight="700" fill="white" text-anchor="middle">M</text>
         <text x="78" y="42" font-family="Inter,sans-serif" font-size="13.5" font-weight="700" fill="#1A1A1A">Marta Ibáñez</text>
         <text x="78" y="58" font-family="Inter,sans-serif" font-size="11.5" fill="#999">terminó de leer · hace 2h</text>
         <rect x="20" y="86" width="300" height="1" fill="#F0F0F0"/>
-        <rect x="20" y="102" width="58" height="84" rx="5" fill="#0F766E"/>
-        <text x="49" y="150" font-family="'Playfair Display',serif" font-size="10" fill="rgba(255,255,255,0.9)" text-anchor="middle">Beloved</text>
-        <text x="90" y="118" font-family="'Playfair Display',serif" font-size="15" font-weight="700" fill="#1A1A1A">Beloved</text>
-        <text x="90" y="136" font-family="Inter,sans-serif" font-size="12" fill="#999">Toni Morrison</text>
-        <text x="90" y="156" font-family="Inter,sans-serif" font-size="14" fill="#D97706">★★★★★</text>
-        <rect x="20" y="202" width="300" height="52" rx="10" fill="#FBF9F7"/>
-        <text x="34" y="224" font-family="Inter,sans-serif" font-size="12" fill="#555">"Una novela que cambia la forma en la que</text>
-        <text x="34" y="240" font-family="Inter,sans-serif" font-size="12" fill="#555">lees todo lo que viene después."</text>
-        <rect x="20" y="272" width="300" height="1" fill="#F0F0F0"/>
-        <path d="M28 300 C28 294 20 294 20 300 C20 306 28 311 28 311 C28 311 36 306 36 300 C36 294 28 294 28 300Z" fill="#DC2626"/>
-        <text x="44" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">12</text>
-        <circle cx="90" cy="300" r="8" fill="none" stroke="#666" stroke-width="1.4"/>
-        <text x="106" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">4</text>
-        <text x="150" y="304" font-family="Inter,sans-serif" font-size="14">👍 😮 ❤️</text>
-        <text x="248" y="304" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#999">8</text>
+        <rect x="20" y="104" width="74" height="112" rx="6" fill="#0F766E"/>
+        <text x="57" y="170" font-family="'Playfair Display',serif" font-size="11" fill="rgba(255,255,255,0.9)" text-anchor="middle">Beloved</text>
+        <text x="104" y="126" font-family="'Playfair Display',serif" font-size="17" font-weight="700" fill="#1A1A1A">Beloved</text>
+        <text x="104" y="147" font-family="Inter,sans-serif" font-size="13" fill="#999">Toni Morrison</text>
+        <text x="104" y="171" font-family="Inter,sans-serif" font-size="15" fill="#D97706">★★★★★</text>
+        <rect x="20" y="230" width="300" height="68" rx="12" fill="#FBF9F7"/>
+        <text x="34" y="254" font-family="Inter,sans-serif" font-size="12.5" fill="#555">"Una novela que cambia la forma en la que</text>
+        <text x="34" y="272" font-family="Inter,sans-serif" font-size="12.5" fill="#555">lees todo lo que viene después."</text>
+        <rect x="20" y="316" width="300" height="1" fill="#F0F0F0"/>
+        <path d="M28 344 C28 338 20 338 20 344 C20 350 28 355 28 355 C28 355 36 350 36 344 C36 338 28 338 28 344Z" fill="#DC2626"/>
+        <text x="44" y="348" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">12</text>
+        <circle cx="90" cy="344" r="8" fill="none" stroke="#666" stroke-width="1.4"/>
+        <text x="106" y="348" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#666">4</text>
+        <text x="150" y="348" font-family="Inter,sans-serif" font-size="14">👍 😮 ❤️</text>
+        <text x="248" y="348" font-family="Inter,sans-serif" font-size="12.5" font-weight="600" fill="#999">8</text>
+        <rect x="20" y="372" width="300" height="1" fill="#F0F0F0"/>
+        <circle cx="34" cy="400" r="13" fill="#B45309"/>
+        <text x="34" y="405" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="white" text-anchor="middle">A</text>
+        <text x="56" y="397" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1A1A1A">Ana</text>
+        <text x="84" y="397" font-family="Inter,sans-serif" font-size="12" fill="#666">"Me lo apunto ahora mismo"</text>
+        <text x="56" y="414" font-family="Inter,sans-serif" font-size="10.5" fill="#BBB">Hace 1h</text>
       </svg>
     </div>
     <div class="landing-split-text">
@@ -3843,16 +3851,16 @@ function showAuth(which){
 // drop shelf before creating an account. No backend involved — resets on reload.
 const LANDING_DEMO_SHELF={
   leidos:[
-    {t:'Cien años de soledad',c:'#8B2635'},{t:'Rayuela',c:'#1E3A5F'},{t:'2666',c:'#5B4636'},
-    {t:'Pedro Páramo',c:'#3D6B52'},{t:'Ficciones',c:'#7C3AED'},{t:'El Aleph',c:'#B45309'},
-    {t:'Beloved',c:'#0F766E'},{t:'1984',c:'#2563EB'},
+    {t:'Cien años de soledad',c:'#8B2635',p:471},{t:'Rayuela',c:'#1E3A5F',p:635},{t:'2666',c:'#5B4636',p:1128},
+    {t:'Pedro Páramo',c:'#3D6B52',p:124},{t:'Ficciones',c:'#7C3AED',p:224},{t:'El Aleph',c:'#B45309',p:192},
+    {t:'Beloved',c:'#0F766E',p:321},{t:'1984',c:'#2563EB',p:328},
   ],
   leyendo:[
-    {t:'La casa de los espíritus',c:'#C2410C'},{t:'Ana Karenina',c:'#7C2D12'},
+    {t:'La casa de los espíritus',c:'#C2410C',p:433},{t:'Ana Karenina',c:'#7C2D12',p:864},
   ],
   quiero:[
-    {t:'Los detectives salvajes',c:'#4338CA'},{t:'El nombre del viento',c:'#0369A1'},
-    {t:'La sombra del viento',c:'#78350F'},{t:'Middlemarch',c:'#166534'},
+    {t:'Los detectives salvajes',c:'#4338CA',p:609},{t:'El nombre del viento',c:'#0369A1',p:662},
+    {t:'La sombra del viento',c:'#78350F',p:565},{t:'Middlemarch',c:'#166534',p:904},
   ],
 };
 let _landingDemoTab='leidos';
@@ -3864,16 +3872,19 @@ function renderLandingDemoShelf(){
   if(!tabsEl||!gridEl)return;
   const labels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer'};
   tabsEl.innerHTML=Object.keys(labels).map(k=>`<button class="landing-demo-tab ${k===_landingDemoTab?'on':''}" onclick="setLandingDemoTab('${k}')">${labels[k]} ${LANDING_DEMO_SHELF[k].length}</button>`).join('');
-  gridEl.innerHTML=LANDING_DEMO_SHELF[_landingDemoTab].map((b,i)=>`
-    <div class="landing-demo-cover" style="background:${b.c}" draggable="true"
+  gridEl.innerHTML=LANDING_DEMO_SHELF[_landingDemoTab].map((b,i)=>{
+    const widthPx=Math.max(16,Math.min(46,Math.round(8+b.p/22)));
+    const heightPx=Math.max(120,Math.min(170,120+Math.round(b.p/14)));
+    return `<div class="landing-demo-spine" style="width:${widthPx}px;height:${heightPx}px;background:${b.c}" draggable="true"
       ondragstart="landingDemoDragStart(event,${i})" ondragover="event.preventDefault();this.classList.add('drag-over')"
       ondragleave="this.classList.remove('drag-over')" ondrop="landingDemoDrop(event,${i})" ondragend="landingDemoDragEnd(event)">
       <span>${escapeHtml(b.t)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function setLandingDemoTab(k){_landingDemoTab=k;renderLandingDemoShelf();}
 function landingDemoDragStart(e,i){_landingDemoDragIdx=i;e.currentTarget.style.opacity='0.35';}
-function landingDemoDragEnd(e){e.currentTarget.style.opacity='1';document.querySelectorAll('.landing-demo-cover').forEach(c=>c.classList.remove('drag-over'));}
+function landingDemoDragEnd(e){e.currentTarget.style.opacity='1';document.querySelectorAll('.landing-demo-spine').forEach(c=>c.classList.remove('drag-over'));}
 function landingDemoDrop(e,targetIdx){
   e.preventDefault();
   if(_landingDemoDragIdx===null||_landingDemoDragIdx===targetIdx){_landingDemoDragIdx=null;return;}
