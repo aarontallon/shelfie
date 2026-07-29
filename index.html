@@ -363,6 +363,11 @@ a{color:inherit}
 .shelf-unit{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
 .shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px;flex-wrap:nowrap;overflow-x:auto;border-left:1px solid #E8E8E8;border-right:1px solid #E8E8E8}
 .shelf-plank{height:10px;background:#1A1A1A;border-radius:0 0 2px 2px}
+/* Shelfie cubicles: 3 side-by-side mini-shelves for statuses with enough books to need
+   several rows, so each one reads as fuller instead of one long half-empty stack */
+.shelf-cubicles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.shelf-cubicle{display:flex;flex-direction:column;gap:0}
+@media (max-width:760px){.shelf-cubicles{grid-template-columns:1fr}}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
 .real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
 .real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
@@ -5924,23 +5929,30 @@ function shelfieSectionContentHtml(books,view){
   if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
   if(view==='shelf'){
     const rowSize=12;
-    // Statuses that rarely hold more than a handful of books (leyendo, dnf) looked like a
-    // near-empty shelf stretching across the whole card. When everything fits in one row,
-    // shrink the row (and its plank) to the books' own width instead of the full card width.
+    // Statuses that rarely hold more than a handful of books (leyendo, dnf) stay as a
+    // single full-width row, same as before. Statuses with enough books to need several
+    // rows (leidos, quiero) are split into 3 side-by-side shelf cubicles instead of one
+    // long stack, so each one reads as a fuller, more proportioned mini-shelf.
     if(books.length<=rowSize){
-      return `<div class="shelf-row-wrap" style="display:inline-block;max-width:100%">
-        <div class="shelf-books-row" style="width:fit-content;max-width:100%">${books.map(b=>profileSpineHtml(b)).join('')}</div>
+      return `<div class="shelf-row-wrap">
+        <div class="shelf-books-row">${books.map(b=>profileSpineHtml(b)).join('')}</div>
         <div class="shelf-plank"></div>
       </div>`;
     }
-    const rows=[];
-    for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
-    return `<div class="shelf-unit">${rows.map(rowBooks=>`
-      <div class="shelf-row-wrap">
-        <div class="shelf-books-row">${rowBooks.map(b=>profileSpineHtml(b)).join('')}</div>
-        <div class="shelf-plank"></div>
-      </div>`).join('')}
-    </div>`;
+    const numCols=3;
+    const perCol=Math.ceil(books.length/numCols);
+    const colRowSize=Math.ceil(rowSize/numCols)*2; // ~8 per row within a narrower cubicle
+    const cols=[];
+    for(let i=0;i<books.length;i+=perCol)cols.push(books.slice(i,i+perCol));
+    return `<div class="shelf-cubicles">${cols.map(colBooks=>{
+      const rows=[];
+      for(let i=0;i<colBooks.length;i+=colRowSize)rows.push(colBooks.slice(i,i+colRowSize));
+      return `<div class="shelf-cubicle">${rows.map(rowBooks=>`
+        <div class="shelf-row-wrap">
+          <div class="shelf-books-row">${rowBooks.map(b=>profileSpineHtml(b)).join('')}</div>
+          <div class="shelf-plank"></div>
+        </div>`).join('')}</div>`;
+    }).join('')}</div>`;
   }
   if(view==='grid'){
     return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)}</div>`:''}</div>`).join('')}</div>`;
