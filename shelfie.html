@@ -1959,8 +1959,8 @@ a{color:inherit}
         <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfView('list')"><i class="ti ti-list"></i></button>
       </div>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
-      <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="renderShelf()">
-        <option value="reciente">Más recientes</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option><option value="manual">Mi orden (el que arrastro)</option>
+      <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="setProfilePublicSort(this.value)">
+        <option value="manual">Mi orden (el que arrastro)</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
       </select>
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
@@ -2715,18 +2715,13 @@ a{color:inherit}
   <div class="card">
     <div class="card-head">
       <div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tu shelfie</div>
-      <div class="flex gap-2" style="align-items:center">
-        <select class="f-input" style="width:auto;padding:6px 10px;font-size:12.5px" id="profile-public-sort" onchange="setProfilePublicSort(this.value)" title="Cómo ven tu shelfie los demás">
-          <option value="reciente">Más recientes</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option><option value="manual">Mi orden (el que arrastro)</option>
-        </select>
-        <div class="view-toggle">
-          <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
-          <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
-          <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
-        </div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
+        <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
+        <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
       </div>
     </div>
-    <p class="text-xs text-muted" style="margin:8px 0 0">Así ven tu shelfie los demás cuando visitan tu perfil.</p>
+    <p class="text-xs text-muted" style="margin:8px 0 0">Así ven tu shelfie los demás — cambia el orden desde "Mi shelfie".</p>
     <div class="shelf-tabs-row" id="profile-shelf-tabs" style="margin:12px 0">
       <button class="shelf-tab on" data-tab="leidos" onclick="profileShelfTabClick(this,'leidos')"><i class="ti ti-check" style="color:var(--green)"></i> Leídos <span id="pst-leidos">(0)</span></button>
       <button class="shelf-tab" data-tab="leyendo" onclick="profileShelfTabClick(this,'leyendo')"><i class="ti ti-book-2" style="color:var(--blue)"></i> Leyendo <span id="pst-leyendo">(0)</span></button>
@@ -2834,7 +2829,7 @@ async function loadSupaProfile(){
   PROFILE.city=data.city||'';
   PROFILE.photo=data.photo||null;
   PROFILE.email=SUPA_USER.email||'';
-  PROFILE.shelfPublicSort=data.shelf_public_sort||'reciente';
+  PROFILE.shelfPublicSort=data.shelf_public_sort||'manual';
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
@@ -3459,7 +3454,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'reciente'};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual'};
 
 let CLUBS=[
   {
@@ -4435,6 +4430,7 @@ async function renderUserProfilePage(username){
 let upProfileShelfTab='leidos';
 let upProfileShelfView='shelf';
 let _upProfileBooks={leidos:[],leyendo:[],quiero:[],dnf:[]};
+let _upProfileSort='manual';
 function setUpProfileShelfView(v){
   upProfileShelfView=v;
   document.getElementById('upv-shelf').classList.toggle('on',v==='shelf');
@@ -4451,7 +4447,7 @@ function upProfileShelfTabClick(el,tab){
 function renderUpProfileShelfieContent(){
   const el=document.getElementById('up-shelf-content');
   if(!el)return;
-  el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView,upProfileShelfTab,false);
+  el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView,upProfileShelfTab,false,_upProfileSort);
 }
 
 function renderUserProfileView(profile,books,posts,following,followers,cached){
@@ -4472,7 +4468,8 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   upProfileShelfView='shelf';
   // Whoever owns this shelfie picked how it's sorted for anyone viewing it — same
   // sortBooksForDisplay() helper as your own profile, just without a picker to change it.
-  const theirSort=profile.shelf_public_sort||'reciente';
+  const theirSort=profile.shelf_public_sort||'manual';
+  _upProfileSort=theirSort;
   _upProfileBooks={
     leidos:sortBooksForDisplay(leidos,theirSort),
     leyendo:sortBooksForDisplay(leyendo,theirSort),
@@ -5774,7 +5771,9 @@ function toggleYearGoal(id){
 
 function renderShelf(){
   updateCounts();
-  const sort=document.getElementById('shelf-sort').value;
+  const sortSel=document.getElementById('shelf-sort');
+  sortSel.value=PROFILE.shelfPublicSort;
+  const sort=PROFILE.shelfPublicSort;
   const query=(document.getElementById('shelf-search')?.value||'').trim().toLowerCase();
   const yearBar=document.getElementById('shelf-anio-bar');
 
@@ -5914,9 +5913,9 @@ function bookActionsMenuItemsHtml(b){
   return items.join('');
 }
 
-// Shared with "Mi shelfie"'s own #shelf-sort dropdown and the profile's public-sort
-// picker — 'reciente' and 'manual' both mean "keep the array as-is" (which reflects
-// however the books were last dragged/reordered).
+// 'manual' means "keep the array as-is" (whatever order the books were last dragged
+// into). Used both for "Mi shelfie"'s own #shelf-sort dropdown and for sorting another
+// user's books to their own saved preference on their profile.
 function sortBooksForDisplay(books,sortMode){
   const arr=[...books];
   if(sortMode==='titulo')arr.sort((a,b)=>a.title.localeCompare(b.title));
@@ -5924,9 +5923,13 @@ function sortBooksForDisplay(books,sortMode){
   else if(sortMode==='valoracion')arr.sort((a,b)=>(b.stars||0)-(a.stars||0));
   return arr;
 }
+// One single sort preference drives everything: whatever you pick on "Mi shelfie"
+// persists across reloads AND is exactly what shows on your profile for anyone who
+// visits it — not two separate settings.
 async function setProfilePublicSort(sortMode){
   PROFILE.shelfPublicSort=sortMode;
-  renderProfileShelfieContent();
+  if(document.getElementById('p-shelf')?.classList.contains('on'))renderShelf();
+  if(document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
   if(!SUPA_USER)return;
   const{error}=await supa.from('profiles').update({shelf_public_sort:sortMode}).eq('id',SUPA_USER.id);
   if(error){console.error('setProfilePublicSort failed:',error);toast('❌ No se pudo guardar el orden. Comprueba tu conexión.');}
@@ -5947,18 +5950,22 @@ function computeShelfCompartmentWidth(containerId){
   const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
   return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
 }
-function assignShelfCompartments(books,compartmentWidthPx){
+// respectPins=false is used whenever a real sort criterion (título/autor/valoración) is
+// active: the criterion always wins over wherever a book was last dragged, so a book
+// pinned to hueco 3 still moves to hueco 1 if that's where it falls alphabetically.
+// Pins (and drag-and-drop) only mean something under "Mi orden".
+function assignShelfCompartments(books,compartmentWidthPx,respectPins){
   const levels=[];
   const ensureLevel=li=>{while(levels.length<=li)levels.push([[],[],[]]);};
-  const hasValidSlot=b=>Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
+  const hasValidSlot=b=>respectPins&&Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
   // Pass 1: seed already-assigned books into their existing slot, in array order.
   books.forEach(b=>{
     if(!hasValidSlot(b))return;
     ensureLevel(b.shelfLevel);
     levels[b.shelfLevel][b.shelfCol].push(b);
   });
-  // Pass 2: auto-place any book without a valid assignment yet, into the first slot
-  // (reading order) with real-width room, and make that placement stick.
+  // Pass 2: auto-place any book without a valid assignment yet (or every book, when not
+  // respecting pins), into the first slot (reading order) with real-width room.
   books.forEach(b=>{
     if(hasValidSlot(b))return;
     const w=spineDims(b).widthPx+SHELF_CELL_GAP;
@@ -5969,7 +5976,7 @@ function assignShelfCompartments(books,compartmentWidthPx){
       const usedWidth=cellBooks.reduce((s,x)=>s+spineDims(x).widthPx+SHELF_CELL_GAP,0);
       if(!cellBooks.length||usedWidth+w<=compartmentWidthPx){
         cellBooks.push(b);
-        b.shelfLevel=li;b.shelfCol=ci;
+        if(respectPins){b.shelfLevel=li;b.shelfCol=ci;}
         break;
       }
       ci++;
@@ -6058,7 +6065,7 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
   shelfRerender(statusArr);
 }
 
-function shelfViewHtml(books,statusArr,editable,containerId){
+function shelfViewHtml(books,statusArr,editable,containerId,sortMode){
   if(!books.length)return editable?'':`<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
   const spineHtml=b=>editable?editableSpineHtml(b,statusArr):profileSpineHtml(b);
   const rowSize=12;
@@ -6072,7 +6079,10 @@ function shelfViewHtml(books,statusArr,editable,containerId){
     </div>`;
   }
   const compartmentWidthPx=computeShelfCompartmentWidth(containerId);
-  const levels=assignShelfCompartments(books,compartmentWidthPx);
+  // Drag-placed compartments only mean something under "Mi orden" — any real sort
+  // criterion always wins over wherever a book was last dragged.
+  const respectPins=sortMode==='manual';
+  const levels=assignShelfCompartments(books,compartmentWidthPx,respectPins);
   // Wall positions sit exactly on the real flex boundary between cells (accounting for
   // the 16px gap), so they never drift off the actual edge regardless of card width.
   const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 1.333px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 1.333px)"></div>`;
@@ -6092,7 +6102,7 @@ function shelfViewHtml(books,statusArr,editable,containerId){
 }
 
 function renderMultiRowShelf(books){
-  return shelfViewHtml(books,currentTab,true,'shelf-content');
+  return shelfViewHtml(books,currentTab,true,'shelf-content',PROFILE.shelfPublicSort);
 }
 
 function initShelfDragAndDrop(){
@@ -6110,8 +6120,8 @@ function profileSpineHtml(b){
 }
 // Shelfie browser embedded in profile pages. Own profile is editable (drag between
 // compartments, same as "Mi shelfie"); other users' profiles are read-only.
-function shelfieSectionContentHtml(books,view,statusArr,editable){
-  if(view==='shelf')return shelfViewHtml(books,statusArr,editable,'profile-shelf-content');
+function shelfieSectionContentHtml(books,view,statusArr,editable,sortMode){
+  if(view==='shelf')return shelfViewHtml(books,statusArr,editable,'profile-shelf-content',sortMode);
   if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
   if(view==='grid'){
     return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)}</div>`:''}</div>`).join('')}</div>`;
@@ -8667,9 +8677,7 @@ function renderProfileShelfieContent(){
   const el=document.getElementById('profile-shelf-content');
   if(!el)return;
   const sorted=sortBooksForDisplay(DB[profileShelfTab]||[],PROFILE.shelfPublicSort);
-  el.innerHTML=shelfieSectionContentHtml(sorted,profileShelfView,profileShelfTab,true);
-  const sortSel=document.getElementById('profile-public-sort');
-  if(sortSel)sortSel.value=PROFILE.shelfPublicSort;
+  el.innerHTML=shelfieSectionContentHtml(sorted,profileShelfView,profileShelfTab,true,PROFILE.shelfPublicSort);
 }
 
 function renderProfile(){
