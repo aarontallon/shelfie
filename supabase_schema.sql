@@ -383,3 +383,12 @@ alter table public.user_books add column if not exists shelf_col integer;
 -- (recientes/título/autor/valoración/su propio orden manual) — un valor por
 -- perfil, no por visitante.
 alter table public.profiles add column if not exists shelf_public_sort text;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: tema visual de la estantería (fondo + baldas) — provisional
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Función experimental pedida como "provisional" — si no cuaja, esta columna
+-- se puede dejar sin usar sin más (no rompe nada quitarla del cliente).
+alter table public.profiles add column if not exists shelf_theme text;

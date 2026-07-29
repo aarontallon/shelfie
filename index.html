@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF}
+:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8}
 body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
 a{color:inherit}
 
@@ -361,20 +361,28 @@ a{color:inherit}
 
 /* Multi-row real bookshelf */
 .shelf-unit{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
-.shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px;flex-wrap:nowrap;overflow-x:auto;border-left:1px solid #E8E8E8;border-right:1px solid #E8E8E8}
-.shelf-plank{height:10px;background:#1A1A1A;border-radius:0 0 2px 2px}
+.shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:var(--shelf-bg);padding:30px 16px 0;min-height:270px;flex-wrap:nowrap;overflow-x:auto;border-left:1px solid var(--shelf-border);border-right:1px solid var(--shelf-border)}
+.shelf-plank{height:10px;background:var(--shelf-plank);border-radius:0 0 2px 2px}
 /* 3-compartment bookcase levels: each level is a real shelf plank divided into 3
    width-based cells, like actual shelving furniture — a cell can sit empty if there
    aren't enough books to fill it yet */
 .shelf-levels{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
 .shelf-level{position:relative;margin-bottom:0}
 .shelf-cells-row{display:flex;gap:8px}
-.shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px}
+.shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:var(--shelf-bg);padding:30px 16px 0;min-height:270px}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:20px}
 /* Black divider walls between compartments, positioned exactly on the real flex
    boundary (accounting for the 16px gap) so they never drift off the actual edge */
-.shelf-wall{position:absolute;top:0;bottom:0;width:5px;background:#1A1A1A;transform:translateX(-50%);pointer-events:none;z-index:2}
-@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid #E8E8E8}.shelf-wall{display:none}}
+.shelf-wall{position:absolute;top:0;bottom:0;width:5px;background:var(--shelf-wall);transform:translateX(-50%);pointer-events:none;z-index:2}
+@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid var(--shelf-border)}.shelf-wall{display:none}}
+/* Estantería: personalización (fondo + baldas) */
+.shelf-theme-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.shelf-theme-swatch{border:2px solid var(--border);border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:8px;background:white;transition:border-color .15s}
+.shelf-theme-swatch:hover{border-color:var(--ink3)}
+.shelf-theme-swatch.on{border-color:var(--red)}
+.shelf-theme-swatch-preview{height:44px;border-radius:6px;display:flex;align-items:flex-end;overflow:hidden}
+.shelf-theme-swatch-plank{height:8px;width:100%}
+.shelf-theme-swatch-label{font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
 .real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
 .real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
@@ -1783,6 +1791,16 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: PERSONALIZAR ESTANTERÍA (provisional) ══════════════════════ -->
+<div class="overlay" id="modal-shelf-theme" style="display:none" onclick="if(event.target===this)closeModal('modal-shelf-theme')">
+<div class="modal" style="max-width:460px">
+  <button class="modal-close" onclick="closeModal('modal-shelf-theme')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-palette"></i> Personaliza tu estantería</h2>
+  <p class="sub" style="margin-bottom:16px">Elige el fondo y las baldas — se aplica también en tu perfil.</p>
+  <div class="shelf-theme-grid" id="shelf-theme-grid"></div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: VOLVER A LEER ══════════════════════ -->
 <div class="overlay" id="modal-reread" style="display:none" onclick="if(event.target===this)closeModal('modal-reread')">
 <div class="modal">
@@ -1982,6 +2000,7 @@ a{color:inherit}
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
         <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfView('list')"><i class="ti ti-list"></i></button>
       </div>
+      <button class="btn btn-white" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
       <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="setProfilePublicSort(this.value)">
         <option value="manual">Mi orden (el que arrastro)</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
@@ -2854,6 +2873,8 @@ async function loadSupaProfile(){
   PROFILE.photo=data.photo||null;
   PROFILE.email=SUPA_USER.email||'';
   PROFILE.shelfPublicSort=data.shelf_public_sort||'manual';
+  PROFILE.shelfTheme=data.shelf_theme||'clasica';
+  applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
@@ -3478,7 +3499,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual'};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica'};
 
 let CLUBS=[
   {
@@ -4494,6 +4515,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   // sortBooksForDisplay() helper as your own profile, just without a picker to change it.
   const theirSort=profile.shelf_public_sort||'manual';
   _upProfileSort=theirSort;
+  applyShelfThemeVars(document.getElementById('p-user-profile'),profile.shelf_theme||'clasica');
   _upProfileBooks={
     leidos:sortBooksForDisplay(leidos,theirSort),
     leyendo:sortBooksForDisplay(leyendo,theirSort),
@@ -5989,6 +6011,53 @@ async function setProfilePublicSort(sortMode){
   if(error){console.error('setProfilePublicSort failed:',error);toast('❌ No se pudo guardar el orden. Comprueba tu conexión.');}
 }
 
+// Estantería: personalización de fondo + baldas — provisional, marcado así a petición
+// tuya por si prefieres quitarlo y dejar el aspecto de siempre. Se guarda en tu perfil
+// y se aplica también a "Tu shelfie" (y a lo que ve cualquiera que visite tu perfil).
+const SHELF_THEMES={
+  clasica:{label:'Clásica',bg:'#FAFAFA',plank:'#1A1A1A',border:'#E8E8E8'},
+  roble:{label:'Roble claro',bg:'#F5EAD8',plank:'#8B5A2B',border:'#E4D3B5'},
+  nogal:{label:'Nogal oscuro',bg:'#3E2C23',plank:'#1F1712',border:'#54392C'},
+  minimal:{label:'Blanco minimalista',bg:'#FFFFFF',plank:'#D1D1D1',border:'#EEEEEE'},
+  elegante:{label:'Negro elegante',bg:'#1E1E1E',plank:'#B8860B',border:'#3A3A3A'},
+  bosque:{label:'Verde bosque',bg:'#EBF4EF',plank:'#3D6B52',border:'#CFE3D9'},
+};
+function applyShelfThemeVars(el,themeKey){
+  if(!el)return;
+  const t=SHELF_THEMES[themeKey]||SHELF_THEMES.clasica;
+  el.style.setProperty('--shelf-bg',t.bg);
+  el.style.setProperty('--shelf-plank',t.plank);
+  el.style.setProperty('--shelf-wall',t.plank);
+  el.style.setProperty('--shelf-border',t.border);
+}
+// Scoped to each page's own container (not :root) so viewing someone else's profile
+// with their theme never leaks into your own "Mi shelfie"/"Tu shelfie" look.
+function applyOwnShelfTheme(){
+  applyShelfThemeVars(document.getElementById('p-shelf'),PROFILE.shelfTheme);
+  applyShelfThemeVars(document.getElementById('p-profile'),PROFILE.shelfTheme);
+}
+function renderShelfThemeMenu(){
+  const grid=document.getElementById('shelf-theme-grid');
+  if(!grid)return;
+  grid.innerHTML=Object.entries(SHELF_THEMES).map(([key,t])=>`
+    <div class="shelf-theme-swatch ${PROFILE.shelfTheme===key?'on':''}" onclick="setShelfTheme('${key}')">
+      <div class="shelf-theme-swatch-preview" style="background:${t.bg}"><div class="shelf-theme-swatch-plank" style="background:${t.plank}"></div></div>
+      <div class="shelf-theme-swatch-label">${PROFILE.shelfTheme===key?'<i class="ti ti-check" style="color:var(--red)"></i>':''} ${t.label}</div>
+    </div>`).join('');
+}
+function openShelfThemeMenu(){
+  renderShelfThemeMenu();
+  openModal('modal-shelf-theme');
+}
+async function setShelfTheme(themeKey){
+  PROFILE.shelfTheme=themeKey;
+  applyOwnShelfTheme();
+  renderShelfThemeMenu();
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('profiles').update({shelf_theme:themeKey}).eq('id',SUPA_USER.id);
+  if(error){console.error('setShelfTheme failed:',error);toast('❌ No se pudo guardar el tema. Comprueba tu conexión.');}
+}
+
 // ═══ Interactive shelf compartments: 3 real width-based cubicles per shelf level ═══
 // Which (level,col) each book sits in is explicit data on the book itself (b.shelfLevel/
 // b.shelfCol), not something re-derived from array order — a book dragged into hueco 3
@@ -6011,17 +6080,27 @@ function computeShelfCompartmentWidth(containerId){
 function assignShelfCompartments(books,compartmentWidthPx,respectPins){
   const levels=[];
   const ensureLevel=li=>{while(levels.length<=li)levels.push([[],[],[]]);};
+  const isPinned=new Set();
   const hasValidSlot=b=>respectPins&&Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
-  // Pass 1: seed already-assigned books into their existing slot, in array order.
+  // Pass 1: seed already-assigned books into their existing slot, in array order — but
+  // only if it still actually fits. A pin made under a different container width (the
+  // window got resized, or you're on a different device) shouldn't silently overflow the
+  // cell and throw off everything after it; that book instead falls through to pass 2.
   books.forEach(b=>{
     if(!hasValidSlot(b))return;
     ensureLevel(b.shelfLevel);
-    levels[b.shelfLevel][b.shelfCol].push(b);
+    const cellBooks=levels[b.shelfLevel][b.shelfCol];
+    const usedWidth=cellBooks.reduce((s,x)=>s+spineDims(x).widthPx+SHELF_CELL_GAP,0);
+    const w=spineDims(b).widthPx+SHELF_CELL_GAP;
+    if(cellBooks.length&&usedWidth+w>compartmentWidthPx)return;
+    cellBooks.push(b);
+    isPinned.add(b);
   });
   // Pass 2: auto-place any book without a valid assignment yet (or every book, when not
-  // respecting pins), into the first slot (reading order) with real-width room.
+  // respecting pins), into the first slot (reading order) with real-width room. Books
+  // evicted from pass 1 (stale pin, no longer fits) land here too, not just unpinned ones.
   books.forEach(b=>{
-    if(hasValidSlot(b))return;
+    if(isPinned.has(b))return;
     const w=spineDims(b).widthPx+SHELF_CELL_GAP;
     let li=0,ci=0;
     while(true){
