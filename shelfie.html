@@ -363,11 +363,15 @@ a{color:inherit}
 .shelf-unit{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
 .shelf-books-row{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px;flex-wrap:nowrap;overflow-x:auto;border-left:1px solid #E8E8E8;border-right:1px solid #E8E8E8}
 .shelf-plank{height:10px;background:#1A1A1A;border-radius:0 0 2px 2px}
-/* Decorative 3-compartment bookcase frame: vertical divider lines over the full stack
-   of rows, like real shelving furniture — purely visual, doesn't split the books up */
-.shelf-frame{position:relative}
-.shelf-frame-divider{position:absolute;top:0;bottom:0;width:5px;background:#1A1A1A;transform:translateX(-50%);pointer-events:none;z-index:1}
-@media (max-width:760px){.shelf-frame-divider{display:none}}
+/* 3-compartment bookcase levels: each level is a real shelf plank divided into 3
+   width-based cells, like actual shelving furniture — a cell can sit empty if there
+   aren't enough books to fill it yet */
+.shelf-levels{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
+.shelf-level{margin-bottom:0}
+.shelf-cells-row{display:flex;gap:16px}
+.shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px;border-left:1px solid #E8E8E8;border-right:1px solid #E8E8E8}
+.shelf-cell-empty{flex:1;align-self:stretch;min-width:20px}
+@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid #E8E8E8}}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
 .real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
 .real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
@@ -4433,7 +4437,7 @@ function upProfileShelfTabClick(el,tab){
 function renderUpProfileShelfieContent(){
   const el=document.getElementById('up-shelf-content');
   if(!el)return;
-  el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView);
+  el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView,upProfileShelfTab,false);
 }
 
 function renderUserProfileView(profile,books,posts,following,followers,cached){
@@ -5854,12 +5858,15 @@ function spineDims(b){
   const fontSize=titleLen>40?9:titleLen>28?10:titleLen>18?12:titleLen>12?13:15;
   return{pages,widthPx,heightPx,fontSize};
 }
-function spineRealHtml(b,idx){
+// Draggable spine for editable shelf views (official "Mi shelfie" + own profile). Drag
+// identity is tracked by book id (not array position), since a book's row/compartment
+// is recomputed from real spine widths on every render.
+function editableSpineHtml(b,statusArr){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
-  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
+  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
-    ondragstart="shelfDragStart(event,${idx})" ondragover="shelfDragOver(event,${idx})" ondrop="shelfDrop(event,${idx})" ondragend="shelfDragEnd(event)"
+    ondragstart="shelfCellDragStart(event,'${b.id}')" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnSpine(event,'${statusArr}','${b.id}')" ondragend="shelfCellDragEnd(event)"
     title="${escapeHtml(b.title)} · ${pages} pp">
     <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
       <button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
@@ -5881,56 +5888,121 @@ function bookActionsMenuItemsHtml(b){
   return items.join('');
 }
 
-let shelfDragIdx=null;
-function shelfDragStart(e,idx){shelfDragIdx=idx;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
-function shelfDragEnd(e){e.currentTarget.classList.remove('dragging');}
-function shelfDragOver(e,idx){e.preventDefault();e.dataTransfer.dropEffect='move';}
-function shelfDrop(e,targetIdx){
-  e.preventDefault();
-  if(shelfDragIdx===null||shelfDragIdx===targetIdx)return;
-  const arr=DB[currentTab];
-  const moved=arr.splice(shelfDragIdx,1)[0];
-  arr.splice(targetIdx,0,moved);
-  shelfDragIdx=null;
-  renderShelf();
+// ═══ Interactive shelf compartments: 3 real width-based cubicles per shelf level ═══
+// A book's row/compartment is never persisted — it's recomputed on every render from
+// the underlying array order + each spine's real width, so dragging a book into a
+// compartment just means "reorder it to sit after that compartment's current books".
+const SHELF_CELL_GAP=3;
+function computeShelfCompartmentWidth(containerId){
+  const el=document.getElementById(containerId);
+  const total=(el&&el.clientWidth)||900;
+  const outerGap=16; // gap between the 3 cells (.shelf-cells-row)
+  const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
+  return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
+}
+function packBooksIntoShelfLevels(books,compartmentWidthPx){
+  const levels=[];
+  let level=[[],[],[]],col=0,widthUsed=0;
+  books.forEach(b=>{
+    const w=spineDims(b).widthPx+SHELF_CELL_GAP;
+    if(level[col].length&&widthUsed+w>compartmentWidthPx){
+      col++;widthUsed=0;
+      if(col>2){levels.push(level);level=[[],[],[]];col=0;}
+    }
+    level[col].push(b);
+    widthUsed+=w;
+  });
+  if(level.some(c=>c.length))levels.push(level);
+  return levels;
+}
+
+let _shelfDragBookId=null;
+function shelfCellDragStart(e,bookId){_shelfDragBookId=bookId;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function shelfCellDragEnd(e){e.currentTarget.classList.remove('dragging');}
+function shelfCellHoverSpine(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function shelfRerender(statusArr){
+  if(typeof currentTab!=='undefined'&&currentTab===statusArr&&document.getElementById('p-shelf')?.classList.contains('on'))renderShelf();
+  if(typeof profileShelfTab!=='undefined'&&profileShelfTab===statusArr&&document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
+}
+// Dropped directly on another spine: reorder to sit right before it — works whether
+// the target is in the same compartment or a different one.
+function shelfCellDropOnSpine(e,statusArr,targetBookId){
+  e.preventDefault();e.stopPropagation();
+  if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
+  const arr=DB[statusArr];
+  const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
+  if(fromIdx===-1){_shelfDragBookId=null;return;}
+  const[moved]=arr.splice(fromIdx,1);
+  const toIdx=arr.findIndex(b=>b.id===targetBookId);
+  arr.splice(toIdx===-1?arr.length:toIdx,0,moved);
+  _shelfDragBookId=null;
+  shelfRerender(statusArr);
+}
+// Dropped on empty space within a compartment (or an entirely empty one): append after
+// whatever's already there, but only if it actually fits — otherwise warn and cancel.
+function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx,compartmentWidthPx){
+  e.preventDefault();e.stopPropagation();
+  if(_shelfDragBookId===null)return;
+  const arr=DB[statusArr];
+  const book=arr.find(b=>b.id===_shelfDragBookId);
+  if(!book){_shelfDragBookId=null;return;}
+  const withoutDragged=arr.filter(b=>b.id!==_shelfDragBookId);
+  const levels=packBooksIntoShelfLevels(withoutDragged,compartmentWidthPx);
+  const targetCell=(levels[levelIdx]||[[],[],[]])[colIdx]||[];
+  const usedWidth=targetCell.reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
+  if(usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>compartmentWidthPx){
+    toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
+    _shelfDragBookId=null;
+    return;
+  }
+  const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
+  arr.splice(fromIdx,1);
+  const lastCellBook=targetCell[targetCell.length-1];
+  const insertAfterIdx=lastCellBook?arr.findIndex(b=>b.id===lastCellBook.id):-1;
+  arr.splice(insertAfterIdx+1,0,book);
+  _shelfDragBookId=null;
+  shelfRerender(statusArr);
+}
+
+function shelfViewHtml(books,statusArr,editable,containerId){
+  if(!books.length)return editable?'':`<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
+  const spineHtml=b=>editable?editableSpineHtml(b,statusArr):profileSpineHtml(b);
+  const rowSize=12;
+  // Statuses that rarely hold more than a handful of books (leyendo, dnf) stay as a
+  // single full-width row. Statuses with enough books to need several rows (leidos,
+  // quiero) get split into 3 real width-based compartments per shelf level.
+  if(books.length<=rowSize){
+    return `<div class="shelf-row-wrap">
+      <div class="shelf-books-row">${books.map(spineHtml).join('')}</div>
+      <div class="shelf-plank"></div>
+    </div>`;
+  }
+  const compartmentWidthPx=computeShelfCompartmentWidth(containerId);
+  const levels=packBooksIntoShelfLevels(books,compartmentWidthPx);
+  return `<div class="shelf-levels">${levels.map((level,li)=>`
+    <div class="shelf-level">
+      <div class="shelf-cells-row">
+        ${level.map((cellBooks,ci)=>`
+          <div class="shelf-cell">
+            ${cellBooks.map(spineHtml).join('')}
+            ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}',${li},${ci},${compartmentWidthPx})"></div>`:''}
+          </div>`).join('')}
+      </div>
+      <div class="shelf-plank"></div>
+    </div>`).join('')}
+  </div>`;
 }
 
 function renderMultiRowShelf(books){
-  if(!books.length)return '';
-  // Group books into rows of about 12 each
-  const rowSize=12;
-  const rows=[];
-  for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
-  const rowsHtml=rows.map((rowBooks,ri)=>`
-    <div class="shelf-row-wrap">
-      <div class="shelf-books-row" id="shelf-row-${ri}">
-        ${rowBooks.map((b,bi)=>spineRealHtml(b,ri*rowSize+bi)).join('')}
-      </div>
-      <div class="shelf-plank"></div>
-    </div>`).join('');
-  // Enough books to need several rows get the same decorative 3-compartment bookcase
-  // frame as the profile page's shelfie section — a real shelving unit can have empty
-  // compartments, so this is purely visual and doesn't redistribute the books themselves.
-  return books.length>rowSize?shelfUnitFrameHtml(rowsHtml):`<div class="shelf-unit">${rowsHtml}</div>`;
+  return shelfViewHtml(books,currentTab,true,'shelf-content');
 }
 
 function initShelfDragAndDrop(){
   // native drag events already attached inline; just ensure dragover works on empty shelf areas
 }
 
-// Decorative 3-compartment bookcase frame: two vertical divider lines spanning the full
-// stack of rows, purely visual — the books are never redistributed to fit them, so a
-// shelf that isn't full yet can show empty compartments, like real shelving furniture.
-function shelfUnitFrameHtml(rowsHtml){
-  return `<div class="shelf-unit shelf-frame">${rowsHtml}
-    <div class="shelf-frame-divider" style="left:33.333%"></div>
-    <div class="shelf-frame-divider" style="left:66.667%"></div>
-  </div>`;
-}
-
-// Read-only shelfie browser embedded in profile pages (own + others'): same three view
-// modes as "Mi shelfie", but no drag-reorder or edit menu — clicking a book just opens
-// its ficha. Used by renderProfile() and renderUserProfileView().
+// Read-only spine for other users' profiles: no drag, no edit menu — clicking a book
+// just opens its ficha.
 function profileSpineHtml(b){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
   return `<div class="real-shelf-spine" style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18);cursor:pointer"
@@ -5938,28 +6010,11 @@ function profileSpineHtml(b){
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
-function shelfieSectionContentHtml(books,view){
+// Shelfie browser embedded in profile pages. Own profile is editable (drag between
+// compartments, same as "Mi shelfie"); other users' profiles are read-only.
+function shelfieSectionContentHtml(books,view,statusArr,editable){
+  if(view==='shelf')return shelfViewHtml(books,statusArr,editable,'profile-shelf-content');
   if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
-  if(view==='shelf'){
-    const rowSize=12;
-    // Statuses that rarely hold more than a handful of books (leyendo, dnf) stay as a
-    // single full-width row. Statuses with enough books to need several rows (leidos,
-    // quiero) get a decorative 3-compartment bookcase frame over the same continuous
-    // stack of rows — like real shelving furniture, some compartments can be empty.
-    if(books.length<=rowSize){
-      return `<div class="shelf-row-wrap">
-        <div class="shelf-books-row">${books.map(b=>profileSpineHtml(b)).join('')}</div>
-        <div class="shelf-plank"></div>
-      </div>`;
-    }
-    const rows=[];
-    for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
-    return shelfUnitFrameHtml(rows.map(rowBooks=>`
-      <div class="shelf-row-wrap">
-        <div class="shelf-books-row">${rowBooks.map(b=>profileSpineHtml(b)).join('')}</div>
-        <div class="shelf-plank"></div>
-      </div>`).join(''));
-  }
   if(view==='grid'){
     return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)}</div>`:''}</div>`).join('')}</div>`;
   }
@@ -8513,7 +8568,7 @@ function profileShelfTabClick(el,tab){
 function renderProfileShelfieContent(){
   const el=document.getElementById('profile-shelf-content');
   if(!el)return;
-  el.innerHTML=shelfieSectionContentHtml(DB[profileShelfTab]||[],profileShelfView);
+  el.innerHTML=shelfieSectionContentHtml(DB[profileShelfTab]||[],profileShelfView,profileShelfTab,true);
 }
 
 function renderProfile(){
