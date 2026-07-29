@@ -1997,9 +1997,9 @@ a{color:inherit}
     </div>
     <div class="tb-right">
       <div class="view-toggle">
-        <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfView('shelf')"><i class="ti ti-books"></i></button>
-        <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
-        <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfView('list')"><i class="ti ti-list"></i></button>
+        <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfPublicView('shelf')" title="Vista estantería"><i class="ti ti-books"></i></button>
+        <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfPublicView('grid')" title="Vista cuadrícula"><i class="ti ti-layout-grid"></i></button>
+        <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfPublicView('list')" title="Vista lista"><i class="ti ti-list"></i></button>
       </div>
       <button class="btn btn-white" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
@@ -2760,12 +2760,12 @@ a{color:inherit}
     <div class="card-head">
       <div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tu shelfie</div>
       <div class="view-toggle">
-        <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
-        <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
-        <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
+        <button class="view-toggle-btn on" id="pv-shelf" onclick="setShelfPublicView('shelf')" title="Vista estantería"><i class="ti ti-books"></i></button>
+        <button class="view-toggle-btn" id="pv-grid" onclick="setShelfPublicView('grid')" title="Vista cuadrícula"><i class="ti ti-layout-grid"></i></button>
+        <button class="view-toggle-btn" id="pv-list" onclick="setShelfPublicView('list')" title="Vista lista"><i class="ti ti-list"></i></button>
       </div>
     </div>
-    <p class="text-xs text-muted" style="margin:8px 0 0">Así ven tu shelfie los demás — cambia el orden desde "Mi shelfie".</p>
+    <p class="text-xs text-muted" style="margin:8px 0 0">Así ven tu shelfie los demás. La vista se guarda elijas aquí o en "Mi shelfie"; el orden se cambia desde "Mi shelfie".</p>
     <div class="shelf-tabs-row" id="profile-shelf-tabs" style="margin:12px 0">
       <button class="shelf-tab on" data-tab="leidos" onclick="profileShelfTabClick(this,'leidos')"><i class="ti ti-check" style="color:var(--green)"></i> Leídos <span id="pst-leidos">(0)</span></button>
       <button class="shelf-tab" data-tab="leyendo" onclick="profileShelfTabClick(this,'leyendo')"><i class="ti ti-book-2" style="color:var(--blue)"></i> Leyendo <span id="pst-leyendo">(0)</span></button>
@@ -2875,6 +2875,7 @@ async function loadSupaProfile(){
   PROFILE.email=SUPA_USER.email||'';
   PROFILE.shelfPublicSort=data.shelf_public_sort||'manual';
   PROFILE.shelfTheme=data.shelf_theme||'clasica';
+  PROFILE.shelfPublicView=data.shelf_public_view||'shelf';
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -3500,7 +3501,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica'};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica',shelfPublicView:'shelf'};
 
 let CLUBS=[
   {
@@ -3645,7 +3646,6 @@ let retoAssigned=[];
 let starVal=0;
 let starManualVal=0;
 let currentTab='leidos';
-let shelfView='shelf'; // 'grid' | 'list' | 'shelf'
 let CURRENT_SHELFIE_YEAR=new Date().getFullYear();
 let YEAR_GOAL_IDS=new Set(); // book IDs marked as "quiero leer este año" — the current year's Shelfie
 let SHELFIE_YEARS_ARCHIVE=[]; // [{year, books:[{id,title,author,status,stars,cover,color}]}] — snapshots of past years' shelfies
@@ -4511,9 +4511,12 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const dnf=books.filter(b=>b.status==='dnf');
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
   upProfileShelfTab='leidos';
-  upProfileShelfView='shelf';
-  // Whoever owns this shelfie picked how it's sorted for anyone viewing it — same
-  // sortBooksForDisplay() helper as your own profile, just without a picker to change it.
+  // Whoever owns this shelfie picked how it's sorted and displayed for anyone viewing
+  // it — same helpers your own profile uses, just without pickers to change them.
+  upProfileShelfView=profile.shelf_public_view||'shelf';
+  document.getElementById('upv-shelf')?.classList.toggle('on',upProfileShelfView==='shelf');
+  document.getElementById('upv-grid')?.classList.toggle('on',upProfileShelfView==='grid');
+  document.getElementById('upv-list')?.classList.toggle('on',upProfileShelfView==='list');
   const theirSort=profile.shelf_public_sort||'manual';
   _upProfileSort=theirSort;
   applyShelfThemeVars(document.getElementById('p-user-profile'),profile.shelf_theme||'clasica');
@@ -5830,12 +5833,24 @@ function confirmReread(){
 // ═══════════════════════════════════════════════
 function shelfTab(el,tab){currentTab=tab;document.querySelectorAll('#shelf-tabs .shelf-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderShelf();}
 
-function setShelfView(view){
-  shelfView=view;
-  document.getElementById('view-toggle-grid').classList.toggle('on',view==='grid');
-  document.getElementById('view-toggle-list').classList.toggle('on',view==='list');
-  document.getElementById('view-toggle-shelf').classList.toggle('on',view==='shelf');
-  renderShelf();
+// Single persisted view choice ("estantería"/cuadrícula/lista) shared by "Mi shelfie"
+// and "Tu shelfie" — changeable from either toggle, always in sync, and what visitors
+// see on your public profile too (same pattern as shelfPublicSort/shelfTheme).
+function syncShelfViewToggles(view){
+  [['view-toggle-shelf','view-toggle-grid','view-toggle-list'],['pv-shelf','pv-grid','pv-list']].forEach(([shelfId,gridId,listId])=>{
+    document.getElementById(shelfId)?.classList.toggle('on',view==='shelf');
+    document.getElementById(gridId)?.classList.toggle('on',view==='grid');
+    document.getElementById(listId)?.classList.toggle('on',view==='list');
+  });
+}
+async function setShelfPublicView(view){
+  PROFILE.shelfPublicView=view;
+  syncShelfViewToggles(view);
+  if(document.getElementById('p-shelf')?.classList.contains('on'))renderShelf();
+  if(document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('profiles').update({shelf_public_view:view}).eq('id',SUPA_USER.id);
+  if(error)console.error('setShelfPublicView failed:',error);
 }
 
 function toggleYearGoal(id){
@@ -5851,6 +5866,7 @@ function renderShelf(){
   const sortSel=document.getElementById('shelf-sort');
   sortSel.value=PROFILE.shelfPublicSort;
   const sort=PROFILE.shelfPublicSort;
+  syncShelfViewToggles(PROFILE.shelfPublicView);
   const query=(document.getElementById('shelf-search')?.value||'').trim().toLowerCase();
   const yearBar=document.getElementById('shelf-anio-bar');
 
@@ -5896,13 +5912,13 @@ function renderShelf(){
 
   const isLeidosLike=(currentTab==='leidos'||currentTab==='anio');
 
-  if(shelfView==='shelf'){
+  if(PROFILE.shelfPublicView==='shelf'){
     cont.innerHTML=renderMultiRowShelf(books);
     initShelfDragAndDrop();
     return;
   }
 
-  if(shelfView==='grid'){
+  if(PROFILE.shelfPublicView==='grid'){
     cont.innerHTML=`<div class="books-grid">${books.map((b,i)=>{
       const rereadBadge=(b.readHistory&&b.readHistory.length>1)?`<div class="reread-badge"><i class="ti ti-refresh" style="font-size:10px"></i> ${b.readHistory.length}x</div>`:'';
       const yearStar=YEAR_GOAL_IDS.has(b.id)?`<i class="ti ti-calendar-event" style="color:var(--purple);font-size:11px" title="En tu Shelfie ${CURRENT_SHELFIE_YEAR}"></i>`:'';
@@ -8812,14 +8828,6 @@ function renderNotifications(){
 }
 
 let profileShelfTab='leidos';
-let profileShelfView='shelf';
-function setProfileShelfView(v){
-  profileShelfView=v;
-  document.getElementById('pv-shelf').classList.toggle('on',v==='shelf');
-  document.getElementById('pv-grid').classList.toggle('on',v==='grid');
-  document.getElementById('pv-list').classList.toggle('on',v==='list');
-  renderProfileShelfieContent();
-}
 function profileShelfTabClick(el,tab){
   profileShelfTab=tab;
   document.querySelectorAll('#profile-shelf-tabs .shelf-tab').forEach(t=>t.classList.remove('on'));
@@ -8829,8 +8837,9 @@ function profileShelfTabClick(el,tab){
 function renderProfileShelfieContent(){
   const el=document.getElementById('profile-shelf-content');
   if(!el)return;
+  syncShelfViewToggles(PROFILE.shelfPublicView);
   const sorted=sortBooksForDisplay(DB[profileShelfTab]||[],PROFILE.shelfPublicSort);
-  el.innerHTML=shelfieSectionContentHtml(sorted,profileShelfView,profileShelfTab,true,PROFILE.shelfPublicSort);
+  el.innerHTML=shelfieSectionContentHtml(sorted,PROFILE.shelfPublicView,profileShelfTab,true,PROFILE.shelfPublicSort);
 }
 
 function renderProfile(){
@@ -8990,7 +8999,7 @@ function shareCurrentShelfTab(){
   else books=[...DB[currentTab]];
   if(!books.length){toast('No hay libros en este apartado para compartir');return;}
   _sharePreviewBooks=books.slice(0,16).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color,pages:b.pages||null}));
-  _sharePreviewViewMode=shelfView;
+  _sharePreviewViewMode=PROFILE.shelfPublicView;
   // Show preview modal
   const tabLabels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer',dnf:'Abandonados',anio:`Shelfie ${CURRENT_SHELFIE_YEAR}`};
   document.getElementById('share-preview-sub').textContent=`${tabLabels[currentTab]||''} · ${_sharePreviewBooks.length} libro${_sharePreviewBooks.length!==1?'s':''}`;
