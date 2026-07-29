@@ -523,10 +523,6 @@ a{color:inherit}
 .reactions-modal-row:last-child{border-bottom:none}
 
 /* ═══ NEW FEED: jerarquía, agrupación, logros ═══ */
-.feed-filters{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
-.feed-filter{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.12s}
-.feed-filter:hover{background:var(--paper)}
-.feed-filter.on{background:var(--ink);color:white;border-color:var(--ink)}
 .feed-group{margin-bottom:8px}
 .feed-group-lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink3);font-weight:600;margin:18px 0 10px;padding-left:2px}
 .feed-group-lbl:first-child{margin-top:0}
@@ -2274,7 +2270,7 @@ a{color:inherit}
         <input type="checkbox" id="composer-spoiler-check">
         <span class="spoiler-toggle-pill"><i class="ti ti-eye-off"></i> Contiene spoiler</span>
       </label>
-      <label class="composer-spoiler-toggle">
+      <label class="composer-spoiler-toggle" id="composer-review-toggle-label">
         <input type="checkbox" id="composer-review-check">
         <span class="review-toggle-pill"><i class="ti ti-star"></i> Marcar como reseña</span>
       </label>
@@ -2289,22 +2285,15 @@ a{color:inherit}
     </div>
   </div>
 
-  <div class="feed-filters" id="feed-filters">
-    <button class="feed-filter on" data-f="todo" onclick="setFeedFilter(this)">Todo</button>
-    <button class="feed-filter" data-f="logros" onclick="setFeedFilter(this)"><i class="ti ti-trophy" style="font-size:13px"></i> Logros</button>
-    <button class="feed-filter" data-f="resenas" onclick="setFeedFilter(this)"><i class="ti ti-quote" style="font-size:13px"></i> Reseñas</button>
-    <button class="feed-filter" data-f="retos" onclick="setFeedFilter(this)"><i class="ti ti-target" style="font-size:13px"></i> Retos</button>
-  </div>
-
   <!-- USER-CREATED POSTS render here, newest first -->
   <div id="user-posts"></div>
 
   <!-- HOY -->
-  <div class="feed-group" data-group="logros">
+  <div class="feed-group">
     <div class="feed-group-lbl">Hoy</div>
 
     <!-- LOGRO GRANDE: terminó libro + reseña alta -->
-    <div class="feed-card feed-card-xl" data-group="logros resenas">
+    <div class="feed-card feed-card-xl">
       <div class="fc-top">
         <div class="f-av" style="background:#EFF6FF;color:#1E3A8A">ML</div>
         <div class="fc-who"><strong>María López</strong> <span class="fc-action">terminó un libro</span></div>
@@ -2327,7 +2316,7 @@ a{color:inherit}
     </div>
 
     <!-- LOGRO: racha / hito (estilo Strava) -->
-    <div class="feed-card feed-card-streak" data-group="logros">
+    <div class="feed-card feed-card-streak">
       <div class="streak-icon"><i class="ti ti-flame"></i></div>
       <div style="flex:1">
         <div class="fc-who"><strong>Ramón García</strong> lleva una racha de <strong style="color:var(--red)">12 días</strong> leyendo</div>
@@ -2338,11 +2327,11 @@ a{color:inherit}
   </div>
 
   <!-- ESTA SEMANA -->
-  <div class="feed-group" data-group="todo">
+  <div class="feed-group">
     <div class="feed-group-lbl">Esta semana</div>
 
     <!-- LOGRO MEDIO: empezó a leer -->
-    <div class="feed-card feed-card-md" data-group="logros">
+    <div class="feed-card feed-card-md">
       <div class="f-av" style="background:var(--green-light);color:#065F46">RG</div>
       <div style="flex:1;min-width:0">
         <div class="fc-who-inline"><strong>Ramón García</strong> empezó a leer <button class="f-book-link" onclick="quickAddDirect('2666','Roberto Bolaño','quiero')">«2666»</button> <span class="text-muted">de Roberto Bolaño</span></div>
@@ -2352,7 +2341,7 @@ a{color:inherit}
     </div>
 
     <!-- RETO: alguien creó un reto público (CTA fuerte) -->
-    <div class="feed-card feed-card-reto" data-group="retos">
+    <div class="feed-card feed-card-reto">
       <div class="fc-top">
         <div class="f-av" style="background:var(--purple-light);color:#5B21B6">LB</div>
         <div class="fc-who"><strong>Laila Benali</strong> <span class="fc-action">creó un reto público</span></div>
@@ -2369,7 +2358,7 @@ a{color:inherit}
     </div>
 
     <!-- LOGRO GRANDE: abandono con cita (también importa, es contenido real) -->
-    <div class="feed-card feed-card-xl" data-group="logros resenas">
+    <div class="feed-card feed-card-xl">
       <div class="fc-top">
         <div class="f-av" style="background:var(--amber-light);color:#78350F">AT</div>
         <div class="fc-who"><strong>Ana Torres</strong> <span class="fc-action">abandonó un libro</span></div>
@@ -2390,7 +2379,7 @@ a{color:inherit}
     </div>
 
     <!-- AGRUPADO: varios "quiero leer" del mismo día, en una fila compacta tipo stories -->
-    <div class="feed-card feed-card-grouped" data-group="todo">
+    <div class="feed-card feed-card-grouped">
       <div class="fc-grouped-head"><strong>Club Ficción BCN</strong> <span class="text-muted">añadió 3 libros a la lista del club</span> <span class="fc-time" style="margin-left:auto">hace 4 días</span></div>
       <div class="fc-grouped-row">
         <div class="fc-grouped-book"><div class="spine" style="background:#5C2E7A;width:40px;height:58px"></div><div class="fc-grouped-title">Rayuela</div></div>
@@ -9097,21 +9086,6 @@ function renderProfile(){
 // ═══════════════════════════════════════════════
 function toggleLike(btnId,nId){const btn=document.getElementById(btnId);const nel=document.getElementById(nId);const on=btn.classList.toggle('on');nel.textContent=parseInt(nel.textContent)+(on?1:-1);}
 
-function setFeedFilter(btn){
-  document.querySelectorAll('.feed-filter').forEach(f=>f.classList.remove('on'));
-  btn.classList.add('on');
-  const f=btn.dataset.f;
-  document.querySelectorAll('#p-feed .feed-card, #p-feed .upost').forEach(el=>{
-    if(f==='todo'){el.style.display='';return;}
-    const groups=(el.dataset.group||'').split(' ');
-    el.style.display=groups.includes(f)?'':'none';
-  });
-  document.querySelectorAll('#p-feed .feed-group').forEach(g=>{
-    const visibleCards=[...g.querySelectorAll('.feed-card')].some(c=>c.style.display!=='none');
-    g.style.display=visibleCards?'':'none';
-  });
-}
-
 // ═══════════════════════════════════════════════
 // COMPOSER — Post / Hilo / Marginalia
 // ═══════════════════════════════════════════════
@@ -9281,6 +9255,13 @@ function setComposerMode(btn){
   document.getElementById('composer-body-cita').style.display=composerMode==='cita'?'block':'none';
   document.getElementById('composer-body-marginalia').style.display=composerMode==='marginalia'?'block':'none';
   document.getElementById('composer-body-shelfiepost').style.display=composerMode==='shelfiepost'?'block':'none';
+  // A shelfie post is a stack of book covers, not something you're reviewing —
+  // "Marcar como reseña" doesn't apply to it.
+  const reviewToggleLabel=document.getElementById('composer-review-toggle-label');
+  if(reviewToggleLabel){
+    reviewToggleLabel.style.display=composerMode==='shelfiepost'?'none':'flex';
+    if(composerMode==='shelfiepost')document.getElementById('composer-review-check').checked=false;
+  }
   document.getElementById('composer-add-thread-btn').style.display=composerMode==='hilo'?'inline-flex':'none';
   document.getElementById('composer-text').placeholder=composerMode==='hilo'?'Empieza tu historia...':'¿Qué estás pensando sobre tu lectura?';
   // If we're leaving "hilo" mode (and not loading an edit), clear the extra paragraphs so they don't leak into other types
@@ -9700,8 +9681,6 @@ function renderOnePost(p){
     </div>
   </div>`:'';
 
-  const dataGroup=(p.type==='marginalia'||p.type==='cita'||p.isReview)?'resenas todo':'todo';
-
   const locParts=[];
   if(p.page)locParts.push('pág. '+escapeHtml(p.page));
   if(p.chapter)locParts.push('cap. '+escapeHtml(p.chapter));
@@ -9838,7 +9817,7 @@ function renderOnePost(p){
   const bodyBlock=metaContent+narrativeBlock;
 
   return `
-    <div class="${cardClass}" data-group="${dataGroup}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
+    <div class="${cardClass}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
       <div class="upost-head" style="${needsOwnPadding?'padding:16px 18px 0':''}">
         <div class="u-av" style="${av};width:36px;height:36px;cursor:${author.username?'pointer':'default'}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${author.photo?'':initials}</div>
         <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
