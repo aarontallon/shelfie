@@ -10,6 +10,10 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8}
+/* Reserva siempre el hueco de la barra de scroll vertical (aunque no haga falta
+   todavía) para que cambiar de vista/pestaña y variar la altura del contenido no
+   desplace unos píxeles el resto de la página al aparecer/desaparecer la barra. */
+html{scrollbar-gutter:stable;overflow-y:scroll}
 body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
 a{color:inherit}
 
@@ -2004,7 +2008,7 @@ a{color:inherit}
       </div>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
       <select class="f-input" style="width:auto;flex-shrink:0;padding:8px 12px" id="shelf-sort" onchange="setProfilePublicSort(this.value)">
-        <option value="manual">Mi orden (el que arrastro)</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
+        <option value="manual">Mi orden</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
       </select>
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
@@ -6118,7 +6122,16 @@ async function setShelfTheme(themeKey){
 const SHELF_CELL_GAP=3;
 function computeShelfCompartmentWidth(containerId){
   const el=document.getElementById(containerId);
-  const total=(el&&el.clientWidth)||900;
+  // el.clientWidth can legitimately read 0 for a moment if this container (or an
+  // ancestor) isn't actually laid out yet — e.g. right as a status crosses into
+  // compartment mode. A flat 900px fallback was itself the bug: on a normal desktop
+  // window that's much narrower than the real content area, so that one render packed
+  // everything far too tightly (extra huecos/filas that weren't really needed), and it
+  // only looked "fixed" once a later, correctly-measured render replaced it. Falling
+  // back to the actual window width (minus a rough sidebar+padding allowance) instead
+  // is right in the vast majority of real cases, so this fallback is very unlikely to
+  // ever be visibly wrong.
+  const total=(el&&el.clientWidth)||Math.max(320,window.innerWidth-320);
   const outerGap=8; // gap between the 3 cells (.shelf-cells-row)
   const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
   return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
