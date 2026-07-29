@@ -373,3 +373,13 @@ create unique index if not exists clubs_nickname_unique on public.clubs (lower(d
 -- Top 10 de favoritos.
 alter table public.user_books add column if not exists shelf_level integer;
 alter table public.user_books add column if not exists shelf_col integer;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: orden público del shelfie, elegido por su dueño
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- El dueño del perfil elige cómo se ordena su shelfie para quien lo visite
+-- (recientes/título/autor/valoración/su propio orden manual) — un valor por
+-- perfil, no por visitante.
+alter table public.profiles add column if not exists shelf_public_sort text;
