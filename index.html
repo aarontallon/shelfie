@@ -367,11 +367,14 @@ a{color:inherit}
    width-based cells, like actual shelving furniture — a cell can sit empty if there
    aren't enough books to fill it yet */
 .shelf-levels{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
-.shelf-level{margin-bottom:0}
+.shelf-level{position:relative;margin-bottom:0}
 .shelf-cells-row{display:flex;gap:16px}
-.shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px;border-left:1px solid #E8E8E8;border-right:1px solid #E8E8E8}
+.shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:20px}
-@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid #E8E8E8}}
+/* Black divider walls between compartments, positioned exactly on the real flex
+   boundary (accounting for the 16px gap) so they never drift off the actual edge */
+.shelf-wall{position:absolute;top:0;bottom:0;width:5px;background:#1A1A1A;transform:translateX(-50%);pointer-events:none;z-index:2}
+@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid #E8E8E8}.shelf-wall{display:none}}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
 .real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
 .real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
@@ -5940,6 +5943,8 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
 }
 // Dropped on empty space within a compartment (or an entirely empty one): append after
 // whatever's already there, but only if it actually fits — otherwise warn and cancel.
+// Earlier compartments in the same level must be filled first, like a real bookcase —
+// you can't skip ahead to hueco 3 while 1 or 2 still have room for this book.
 function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx,compartmentWidthPx){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null)return;
@@ -5948,9 +5953,19 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx,compartmentWidthPx){
   if(!book){_shelfDragBookId=null;return;}
   const withoutDragged=arr.filter(b=>b.id!==_shelfDragBookId);
   const levels=packBooksIntoShelfLevels(withoutDragged,compartmentWidthPx);
-  const targetCell=(levels[levelIdx]||[[],[],[]])[colIdx]||[];
+  const level=levels[levelIdx]||[[],[],[]];
+  const bookWidth=spineDims(book).widthPx+SHELF_CELL_GAP;
+  for(let ci=0;ci<colIdx;ci++){
+    const usedBefore=(level[ci]||[]).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
+    if(usedBefore+bookWidth<=compartmentWidthPx){
+      toast('Llena antes los huecos anteriores — todavía queda sitio ahí');
+      _shelfDragBookId=null;
+      return;
+    }
+  }
+  const targetCell=level[colIdx]||[];
   const usedWidth=targetCell.reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
-  if(usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>compartmentWidthPx){
+  if(usedWidth+bookWidth>compartmentWidthPx){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
     _shelfDragBookId=null;
     return;
@@ -5979,6 +5994,9 @@ function shelfViewHtml(books,statusArr,editable,containerId){
   }
   const compartmentWidthPx=computeShelfCompartmentWidth(containerId);
   const levels=packBooksIntoShelfLevels(books,compartmentWidthPx);
+  // Wall positions sit exactly on the real flex boundary between cells (accounting for
+  // the 16px gap), so they never drift off the actual edge regardless of card width.
+  const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 2.667px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 2.667px)"></div>`;
   return `<div class="shelf-levels">${levels.map((level,li)=>`
     <div class="shelf-level">
       <div class="shelf-cells-row">
@@ -5989,6 +6007,7 @@ function shelfViewHtml(books,statusArr,editable,containerId){
           </div>`).join('')}
       </div>
       <div class="shelf-plank"></div>
+      ${wallsHtml}
     </div>`).join('')}
   </div>`;
 }
