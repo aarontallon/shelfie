@@ -403,6 +403,10 @@ a{color:inherit}
 .real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.95);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.6);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.5px}
 .real-shelf-spine-actions{position:absolute;top:6px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
 .real-shelf-spine:hover .real-shelf-spine-actions{opacity:1}
+/* Rating stamped near the top of the spine (only rendered when the book has stars,
+   i.e. leídos) — that's the empty space above the vertical title, which otherwise
+   only holds the hover-only 3-dot button. */
+.real-shelf-spine-stars{position:absolute;top:24px;left:2px;right:2px;text-align:center;color:var(--amber);font-size:8px;line-height:1;letter-spacing:-1px;white-space:nowrap;overflow:hidden;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,0.45);z-index:1}
 .book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;backdrop-filter:blur(4px)}
 .book3dot-btn:hover{background:rgba(0,0,0,0.8)}
 /* Single global action menu — lives at <body> level so transforms on ancestors don't break position:fixed */
@@ -6010,6 +6014,7 @@ function spineDims(b){
 // is recomputed from real spine widths on every render.
 function editableSpineHtml(b,statusArr){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
+  const starsHtml=b.stars?`<div class="real-shelf-spine-stars">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:'';
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
@@ -6018,6 +6023,7 @@ function editableSpineHtml(b,statusArr){
     <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
       <button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
     </div>
+    ${starsHtml}
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
@@ -6334,8 +6340,10 @@ function initShelfDragAndDrop(){
 // just opens its ficha.
 function profileSpineHtml(b){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
+  const starsHtml=b.stars?`<div class="real-shelf-spine-stars">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:'';
   return `<div class="real-shelf-spine" style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18);cursor:pointer"
     onclick="go('bookdetail',null,'${bkKey(b)}')" title="${escapeHtml(b.title)} · ${pages} pp">
+    ${starsHtml}
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
