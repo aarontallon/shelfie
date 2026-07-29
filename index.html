@@ -1996,6 +1996,7 @@ a{color:inherit}
       <input class="srch-inp" id="shelf-search" placeholder="Buscar por título, autor o etiqueta..." oninput="renderShelf()" autocomplete="off">
     </div>
     <div class="tb-right">
+      <button class="btn btn-white" id="shelf-theme-btn" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <div class="view-toggle">
         <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfPublicView('shelf')" title="Vista estantería"><i class="ti ti-books"></i></button>
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfPublicView('grid')" title="Vista cuadrícula"><i class="ti ti-layout-grid"></i></button>
@@ -2005,7 +2006,6 @@ a{color:inherit}
       <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="setProfilePublicSort(this.value)">
         <option value="manual">Mi orden (el que arrastro)</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
       </select>
-      <button class="btn btn-white" id="shelf-theme-btn" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
   </div>
