@@ -368,7 +368,7 @@ a{color:inherit}
    aren't enough books to fill it yet */
 .shelf-levels{display:flex;flex-direction:column;gap:0;margin-bottom:8px}
 .shelf-level{position:relative;margin-bottom:0}
-.shelf-cells-row{display:flex;gap:16px}
+.shelf-cells-row{display:flex;gap:8px}
 .shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;padding:30px 16px 0;min-height:270px}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:20px}
 /* Black divider walls between compartments, positioned exactly on the real flex
@@ -5899,7 +5899,7 @@ const SHELF_CELL_GAP=3;
 function computeShelfCompartmentWidth(containerId){
   const el=document.getElementById(containerId);
   const total=(el&&el.clientWidth)||900;
-  const outerGap=16; // gap between the 3 cells (.shelf-cells-row)
+  const outerGap=8; // gap between the 3 cells (.shelf-cells-row)
   const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
   return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
 }
@@ -5927,14 +5927,33 @@ function shelfRerender(statusArr){
   if(typeof currentTab!=='undefined'&&currentTab===statusArr&&document.getElementById('p-shelf')?.classList.contains('on'))renderShelf();
   if(typeof profileShelfTab!=='undefined'&&profileShelfTab===statusArr&&document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
 }
+// Sum of real spine widths already in a compartment cell (reading its live DOM content,
+// not a recomputed packing, so it always matches exactly what's on screen). Returns null
+// for the plain single-row case (no .shelf-cell ancestor), meaning "no limit to check".
+function shelfCellUsedWidth(cellEl,arr,excludeId){
+  if(!cellEl)return null;
+  const availableWidth=cellEl.clientWidth-32; // minus the 16px+16px horizontal padding
+  const ids=[...cellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==excludeId);
+  const usedWidth=ids.map(id=>arr.find(b=>b.id===id)).filter(Boolean).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
+  return{availableWidth,usedWidth};
+}
 // Dropped directly on another spine: reorder to sit right before it — works whether
-// the target is in the same compartment or a different one.
+// the target is in the same compartment or a different one. If the target is inside a
+// compartment cell, the same real-width capacity check applies as an empty-space drop.
 function shelfCellDropOnSpine(e,statusArr,targetBookId){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
   const arr=DB[statusArr];
+  const book=arr.find(b=>b.id===_shelfDragBookId);
+  if(!book){_shelfDragBookId=null;return;}
+  const targetCellEl=e.currentTarget.closest('.shelf-cell');
+  const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
+  if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
+    toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
+    _shelfDragBookId=null;
+    return;
+  }
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
-  if(fromIdx===-1){_shelfDragBookId=null;return;}
   const[moved]=arr.splice(fromIdx,1);
   const toIdx=arr.findIndex(b=>b.id===targetBookId);
   arr.splice(toIdx===-1?arr.length:toIdx,0,moved);
@@ -5943,37 +5962,35 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
 }
 // Dropped on empty space within a compartment (or an entirely empty one): append after
 // whatever's already there, but only if it actually fits — otherwise warn and cancel.
-// Earlier compartments in the same level must be filled first, like a real bookcase —
-// you can't skip ahead to hueco 3 while 1 or 2 still have room for this book.
-function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx,compartmentWidthPx){
+// No requirement to fill earlier compartments first — you can place a book in any
+// hueco with room, in any order. Reads the target cell's current content straight from
+// the DOM (not a freshly recomputed packing) so it always matches exactly what's on screen.
+function shelfCellDropOnEmpty(e,statusArr){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null)return;
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
   if(!book){_shelfDragBookId=null;return;}
-  const withoutDragged=arr.filter(b=>b.id!==_shelfDragBookId);
-  const levels=packBooksIntoShelfLevels(withoutDragged,compartmentWidthPx);
-  const level=levels[levelIdx]||[[],[],[]];
-  const bookWidth=spineDims(book).widthPx+SHELF_CELL_GAP;
-  for(let ci=0;ci<colIdx;ci++){
-    const usedBefore=(level[ci]||[]).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
-    if(usedBefore+bookWidth<=compartmentWidthPx){
-      toast('Llena antes los huecos anteriores — todavía queda sitio ahí');
-      _shelfDragBookId=null;
-      return;
-    }
-  }
-  const targetCell=level[colIdx]||[];
-  const usedWidth=targetCell.reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
-  if(usedWidth+bookWidth>compartmentWidthPx){
+  const targetCellEl=e.currentTarget.closest('.shelf-cell');
+  const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
+  if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
     _shelfDragBookId=null;
     return;
   }
+  // Insert right after the last book that appears at or before this cell in reading
+  // order (so dropping into an empty cell lands it in the right spot, not at array start).
+  const allCells=[...targetCellEl.closest('.shelf-levels').querySelectorAll('.shelf-cell')];
+  const targetIdx=allCells.indexOf(targetCellEl);
+  const cellBookIds=cellEl=>[...cellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==_shelfDragBookId);
+  let lastBookId=null;
+  for(let i=targetIdx;i>=0&&!lastBookId;i--){
+    const ids=cellBookIds(allCells[i]);
+    if(ids.length)lastBookId=ids[ids.length-1];
+  }
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
   arr.splice(fromIdx,1);
-  const lastCellBook=targetCell[targetCell.length-1];
-  const insertAfterIdx=lastCellBook?arr.findIndex(b=>b.id===lastCellBook.id):-1;
+  const insertAfterIdx=lastBookId?arr.findIndex(b=>b.id===lastBookId):-1;
   arr.splice(insertAfterIdx+1,0,book);
   _shelfDragBookId=null;
   shelfRerender(statusArr);
@@ -5996,14 +6013,14 @@ function shelfViewHtml(books,statusArr,editable,containerId){
   const levels=packBooksIntoShelfLevels(books,compartmentWidthPx);
   // Wall positions sit exactly on the real flex boundary between cells (accounting for
   // the 16px gap), so they never drift off the actual edge regardless of card width.
-  const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 2.667px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 2.667px)"></div>`;
+  const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 1.333px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 1.333px)"></div>`;
   return `<div class="shelf-levels">${levels.map((level,li)=>`
     <div class="shelf-level">
       <div class="shelf-cells-row">
         ${level.map((cellBooks,ci)=>`
           <div class="shelf-cell">
             ${cellBooks.map(spineHtml).join('')}
-            ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}',${li},${ci},${compartmentWidthPx})"></div>`:''}
+            ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}')"></div>`:''}
           </div>`).join('')}
       </div>
       <div class="shelf-plank"></div>
