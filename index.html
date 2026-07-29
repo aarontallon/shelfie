@@ -1759,6 +1759,30 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: CONFIRMAR (reemplaza confirm() nativo) ══════════════════════ -->
+<div class="overlay" id="modal-confirm" style="display:none" onclick="if(event.target===this)_resolveConfirmModal(false)">
+<div class="modal" style="max-width:380px">
+  <h2 id="confirm-modal-title">¿Estás seguro?</h2>
+  <p class="sub" id="confirm-modal-msg" style="margin-bottom:20px"></p>
+  <div class="flex gap-2">
+    <button class="btn btn-white w-full" onclick="_resolveConfirmModal(false)">Cancelar</button>
+    <button class="btn btn-red w-full" id="confirm-modal-accept-btn" onclick="_resolveConfirmModal(true)">Aceptar</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: MENSAJE DE TEXTO (reemplaza prompt() nativo) ══════════════════════ -->
+<div class="overlay" id="modal-prompt" style="display:none" onclick="if(event.target===this)_resolvePromptModal(null)">
+<div class="modal" style="max-width:400px">
+  <h2 id="prompt-modal-title">Escribe un mensaje</h2>
+  <textarea class="f-input" id="prompt-modal-input" rows="3" style="margin-bottom:16px;resize:vertical;width:100%"></textarea>
+  <div class="flex gap-2">
+    <button class="btn btn-white w-full" onclick="_resolvePromptModal(null)">Cancelar</button>
+    <button class="btn btn-red w-full" onclick="_resolvePromptModal(document.getElementById('prompt-modal-input').value)">Enviar</button>
+  </div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: VOLVER A LEER ══════════════════════ -->
 <div class="overlay" id="modal-reread" style="display:none" onclick="if(event.target===this)closeModal('modal-reread')">
 <div class="modal">
@@ -4267,7 +4291,7 @@ function checkYearRollover(){
 }
 
 async function doLogout(){
-  if(!confirm('¿Cerrar sesión?'))return;
+  if(!await confirmModal('¿Cerrar sesión?'))return;
   await supa.auth.signOut();
   isLoggedIn=false;
   SUPA_USER=null;
@@ -4610,6 +4634,36 @@ function populateComposerRetoSelect(){
 // ═══════════════════════════════════════════════
 function openModal(id){document.getElementById(id).style.display='flex';if(id==='modal-add')resetAddModal();}
 function closeModal(id){document.getElementById(id).style.display='none';}
+
+// In-app replacements for the native confirm()/prompt() dialogs — those show the
+// browser's own chrome (site URL, generic buttons) instead of looking like the app.
+let _confirmModalResolve=null;
+function confirmModal(message,opts){
+  opts=opts||{};
+  document.getElementById('confirm-modal-title').textContent=opts.title||'¿Estás seguro?';
+  document.getElementById('confirm-modal-msg').textContent=message;
+  document.getElementById('confirm-modal-accept-btn').textContent=opts.acceptLabel||'Aceptar';
+  document.getElementById('modal-confirm').style.display='flex';
+  return new Promise(res=>{_confirmModalResolve=res;});
+}
+function _resolveConfirmModal(val){
+  document.getElementById('modal-confirm').style.display='none';
+  if(_confirmModalResolve){_confirmModalResolve(val);_confirmModalResolve=null;}
+}
+let _promptModalResolve=null;
+function promptModal(message,opts){
+  opts=opts||{};
+  document.getElementById('prompt-modal-title').textContent=message;
+  const input=document.getElementById('prompt-modal-input');
+  input.value=opts.defaultValue||'';
+  document.getElementById('modal-prompt').style.display='flex';
+  setTimeout(()=>input.focus(),50);
+  return new Promise(res=>{_promptModalResolve=res;});
+}
+function _resolvePromptModal(val){
+  document.getElementById('modal-prompt').style.display='none';
+  if(_promptModalResolve){_promptModalResolve(val&&val.trim()?val.trim():null);_promptModalResolve=null;}
+}
 
 function resetAddModal(){
   starVal=0;starManualVal=0;pendingBook=null;customCover=null;_pendingStartReading=null;
@@ -6226,7 +6280,7 @@ async function startReadingWithEdition(book,from){
 }
 
 async function removeBook(id,from){
-  if(!confirm('¿Eliminar este libro de tu shelfie?'))return;
+  if(!await confirmModal('¿Eliminar este libro de tu shelfie?'))return;
   // Wait for the actual delete before touching local state — same reasoning as
   // deleteUserPost: removing it optimistically meant a failed delete looked
   // identical to a successful one until you reloaded and found it back.
@@ -7533,7 +7587,7 @@ function editReto(i){
 }
 
 async function deleteReto(i){
-  if(!confirm('¿Eliminar este reto?'))return;
+  if(!await confirmModal('¿Eliminar este reto?'))return;
   const ok=await deleteSupaReto(RETOS[i].id);
   if(!ok)return;
   RETOS.splice(i,1);renderRetos();toast('Reto eliminado');
@@ -7706,7 +7760,7 @@ async function addFriend(username,btn){
 }
 
 async function removeFriend(username){
-  if(!confirm('¿Dejar de seguir?'))return;
+  if(!await confirmModal('¿Dejar de seguir?'))return;
   const f=FRIENDS.find(f=>f.username===username);
   if(SUPA_USER&&f&&f.id){
     try{
@@ -7994,7 +8048,7 @@ function renderClubDetail(id){
 }
 
 async function deleteClub(id){
-  if(!confirm('¿Eliminar este club? Esta acción no se puede deshacer.'))return;
+  if(!await confirmModal('¿Eliminar este club? Esta acción no se puede deshacer.'))return;
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
@@ -8003,7 +8057,7 @@ async function deleteClub(id){
 }
 
 async function leaveClub(id){
-  if(!confirm('¿Salir de este club?'))return;
+  if(!await confirmModal('¿Salir de este club?'))return;
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
@@ -8222,8 +8276,8 @@ function addForumComment(clubId,postId){
   renderClubForo(club);
 }
 
-function deleteForumPost(clubId,postId){
-  if(!confirm('¿Eliminar esta publicación?'))return;
+async function deleteForumPost(clubId,postId){
+  if(!await confirmModal('¿Eliminar esta publicación?'))return;
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.forumPosts=club.forumPosts.filter(p=>p.id!==postId);
@@ -8384,9 +8438,9 @@ function renderClubMiembros(club){
 }
 
 function clapMember(name){toast(`👏 ¡Aplaudiste a ${name}! Se le ha notificado.`);}
-function dmMember(name){
-  const msg=prompt(`Mensaje para ${name}:`);
-  if(msg&&msg.trim())toast(`📨 Mensaje enviado a ${name}`);
+async function dmMember(name){
+  const msg=await promptModal(`Mensaje para ${name}:`);
+  if(msg)toast(`📨 Mensaje enviado a ${name}`);
 }
 
 function changeMemberRole(clubId,initials,newRole){
@@ -8399,8 +8453,8 @@ function changeMemberRole(clubId,initials,newRole){
   toast(`Rol actualizado: ${newRole==='mod'?'🛡️ Moderador':'👤 Miembro'}`);
 }
 
-function kickMember(clubId,initials){
-  if(!confirm('¿Eliminar a este miembro del club?'))return;
+async function kickMember(clubId,initials){
+  if(!await confirmModal('¿Eliminar a este miembro del club?'))return;
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.members=club.members.filter(m=>m.initials!==initials);
@@ -8482,8 +8536,8 @@ function saveClubReto(){
   toast('🏆 Reto creado para todos los miembros del club');
 }
 
-function deleteClubReto(clubId,retoId){
-  if(!confirm('¿Eliminar este reto del club?'))return;
+async function deleteClubReto(clubId,retoId){
+  if(!await confirmModal('¿Eliminar este reto del club?'))return;
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.clubRetos=club.clubRetos.filter(r=>r.id!==retoId);
@@ -8529,8 +8583,8 @@ function saveAnnouncement(){
   toast('📢 Anuncio publicado');
 }
 
-function deleteAnnouncement(clubId,annId){
-  if(!confirm('¿Eliminar este anuncio?'))return;
+async function deleteAnnouncement(clubId,annId){
+  if(!await confirmModal('¿Eliminar este anuncio?'))return;
   const club=CLUBS.find(c=>c.id===clubId);
   if(!club)return;
   club.announcements=club.announcements.filter(a=>a.id!==annId);
@@ -9750,7 +9804,7 @@ function renderReactionsModalTab(filterEmoji){
 async function deleteUserPost(id){
   const post=POSTS_BY_ID[id]||USER_POSTS.find(p=>p.id===id);
   if(post&&post.author&&post.author.id!==(SUPA_USER?SUPA_USER.id:'local'))return; // never your call to make on someone else's post
-  if(!confirm('¿Eliminar esta publicación?'))return;
+  if(!await confirmModal('¿Eliminar esta publicación?'))return;
   // Wait for the actual delete before touching local state/DOM — removing it
   // optimistically meant a failed delete left the post gone from the UI (with a
   // "✓ eliminada" toast) even though it was still sitting in the database.
