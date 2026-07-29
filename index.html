@@ -12,9 +12,14 @@
 :root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8}
 /* Reserva siempre el hueco de la barra de scroll vertical (aunque no haga falta
    todavía) para que cambiar de vista/pestaña y variar la altura del contenido no
-   desplace unos píxeles el resto de la página al aparecer/desaparecer la barra. */
-html{scrollbar-gutter:stable;overflow-y:scroll}
-body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
+   desplace unos píxeles el resto de la página al aparecer/desaparecer la barra.
+   Esto va en body, no en html: body ya es quien de verdad hace scroll aquí (el
+   overflow-x:hidden de abajo obliga al navegador a tratar su overflow-y como
+   "auto" aunque no se declare). Ponerlo también en html crea un segundo
+   contenedor de scroll compitiendo con body, y el position:sticky del sidebar
+   se ancla entonces al equivocado — dejaba de quedarse fijo y se desplazaba
+   hacia arriba junto con el resto de la página. */
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;overflow-y:scroll;scrollbar-gutter:stable}
 a{color:inherit}
 
 /* ═══════ AUTH SCREENS ═══════ */
@@ -1754,6 +1759,10 @@ a{color:inherit}
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modal-people')"><i class="ti ti-x"></i></button>
   <h2 id="people-modal-title">Siguiendo</h2>
+  <div class="srch-wrap" style="margin:12px 0">
+    <i class="ti ti-search srch-ico"></i>
+    <input class="srch-inp" id="people-modal-search-inp" placeholder="Buscar por nombre o @usuario..." oninput="renderPeopleModalList()" autocomplete="off">
+  </div>
   <div id="people-modal-list"></div>
 </div>
 </div>
@@ -2408,6 +2417,10 @@ a{color:inherit}
       <div style="display:flex;gap:8px;border-bottom:2px solid var(--border);margin-bottom:14px">
         <button class="retos-tab on" data-tab="siguiendo" onclick="setFriendsTab(this,'siguiendo')">Siguiendo <span id="friends-tab-count">0</span></button>
         <button class="retos-tab" data-tab="seguidores" onclick="setFriendsTab(this,'seguidores')">Seguidores <span id="followers-tab-count">0</span></button>
+      </div>
+      <div class="srch-wrap" style="margin-bottom:14px">
+        <i class="ti ti-search srch-ico"></i>
+        <input class="srch-inp" id="friends-search-inp" placeholder="Buscar por nombre o @usuario..." oninput="filterFriendsPage()" autocomplete="off">
       </div>
       <div id="friends-tab-siguiendo">
         <div id="friends-list"></div>
@@ -7800,18 +7813,36 @@ function friendRowHtml(u,buttonHtml,size){
   return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${u.username}')"><div class="f-av" style="background:${u.bg};color:${u.tc};width:${size}px;height:${size}px;border-radius:50%;font-size:${size>=40?13:12}px;font-weight:600;flex-shrink:0">${u.initials}</div><div style="flex:1;min-width:0"><div style="font-size:${nameSize}px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div></div>${buttonHtml||''}</div>`;
 }
 
-function renderFriends(){
+// Shared by the "Amigos" page list and the Siguiendo/Seguidores popup: matches
+// on name or @usuario, case/accent-insensitive-ish (simple lowercase includes).
+function filterPeopleList(arr,query){
+  if(!query)return arr;
+  const q=query.trim().toLowerCase();
+  if(!q)return arr;
+  return arr.filter(u=>(u.name||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q));
+}
+
+// Re-filters the two already-loaded lists by the search box — used both on page
+// load and on every keystroke, without re-fetching suggestions or profile stats.
+function filterFriendsPage(){
   const list=document.getElementById('friends-list');
   const empty=document.getElementById('friends-empty');
+  const query=document.getElementById('friends-search-inp')?.value||'';
+  const filtered=filterPeopleList(FRIENDS,query);
+  if(!FRIENDS.length){list.innerHTML='';empty.style.display='block';empty.querySelector('p').textContent='Aún no sigues a nadie';}
+  else if(!filtered.length){list.innerHTML='';empty.style.display='block';empty.querySelector('p').textContent='Sin resultados para tu búsqueda';}
+  else{
+    empty.style.display='none';
+    list.innerHTML=filtered.map(f=>friendRowHtml(f,`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button>`,40)).join('');
+  }
+  renderFollowersTab();
+}
+
+function renderFriends(){
   document.getElementById('friends-count-sub').textContent=`${FRIENDS.length} siguiendo · ${FOLLOWERS.length} seguidores`;
   document.getElementById('friends-tab-count').textContent=FRIENDS.length;
   document.getElementById('followers-tab-count').textContent=FOLLOWERS.length;
-  if(!FRIENDS.length){list.innerHTML='';empty.style.display='block';}
-  else{
-    empty.style.display='none';
-    list.innerHTML=FRIENDS.map(f=>friendRowHtml(f,`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button>`,40)).join('');
-  }
-  renderFollowersTab();
+  filterFriendsPage();
   if(SUPA_USER)loadSuggestedReaders(); else renderLocalSuggestions();
   updateProfileStats();
 }
@@ -7820,9 +7851,12 @@ function renderFollowersTab(){
   const list=document.getElementById('followers-list-page');
   const empty=document.getElementById('followers-empty-page');
   if(!list)return;
-  if(!FOLLOWERS.length){list.innerHTML='';empty.style.display='block';return;}
+  const query=document.getElementById('friends-search-inp')?.value||'';
+  const filtered=filterPeopleList(FOLLOWERS,query);
+  if(!FOLLOWERS.length){list.innerHTML='';empty.style.display='block';empty.querySelector('p').textContent='Aún no tienes seguidores';return;}
+  if(!filtered.length){list.innerHTML='';empty.style.display='block';empty.querySelector('p').textContent='Sin resultados para tu búsqueda';return;}
   empty.style.display='none';
-  list.innerHTML=FOLLOWERS.map(u=>{
+  list.innerHTML=filtered.map(u=>{
     const isFriend=!!FRIENDS.find(f=>f.username===u.username);
     const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
     return friendRowHtml(u,btn,40);
@@ -7837,18 +7871,29 @@ function setFriendsTab(btn,tab){
 }
 
 // Popup version of the Siguiendo/Seguidores lists, opened from your own profile stats.
+let _peopleModalKind='siguiendo';
 function openPeopleModal(kind){
   document.querySelector('.sidebar')?.classList.remove('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  _peopleModalKind=kind;
   document.getElementById('people-modal-title').textContent=kind==='seguidores'?'Seguidores':'Siguiendo';
-  renderPeopleModalList(kind);
+  const searchInp=document.getElementById('people-modal-search-inp');
+  if(searchInp)searchInp.value='';
+  renderPeopleModalList();
   openModal('modal-people');
 }
 
+// kind is only ever passed by legacy call sites; the search box (and the modal's own
+// internal refreshes, e.g. after unfollowing someone) always re-derive it from
+// _peopleModalKind so filtering by name keeps working while you type.
 function renderPeopleModalList(kind){
-  const list=kind==='seguidores'?FOLLOWERS:FRIENDS;
+  kind=kind||_peopleModalKind;
+  const query=document.getElementById('people-modal-search-inp')?.value||'';
+  const list=filterPeopleList(kind==='seguidores'?FOLLOWERS:FRIENDS,query);
   const el=document.getElementById('people-modal-list');
-  if(!list.length){el.innerHTML=`<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>${kind==='seguidores'?'Aún no tienes seguidores.':'Aún no sigues a nadie.'}</p></div>`;return;}
+  const fullList=kind==='seguidores'?FOLLOWERS:FRIENDS;
+  if(!fullList.length){el.innerHTML=`<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>${kind==='seguidores'?'Aún no tienes seguidores.':'Aún no sigues a nadie.'}</p></div>`;return;}
+  if(!list.length){el.innerHTML=`<div class="empty" style="padding:24px 10px"><i class="ti ti-users"></i><p>Sin resultados para tu búsqueda</p></div>`;return;}
   el.innerHTML=list.map(u=>{
     let btn;
     if(kind==='siguiendo'){
