@@ -1885,7 +1885,6 @@ a{color:inherit}
   </div>
   <div class="sb-section">
     <div class="sb-lbl">Yo</div>
-    <button class="nb" onclick="go('reviews',this)"><i class="ti ti-message-2"></i> Reseñas</button>
     <button class="nb" onclick="go('retos',this)"><i class="ti ti-target"></i> Retos <span class="nb-badge" id="retos-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('stats',this)"><i class="ti ti-chart-bar"></i> Estadísticas</button>
   </div>
@@ -2634,15 +2633,6 @@ a{color:inherit}
     <div class="f-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="fp-spoiler"> <span>⚠️ Contiene spoilers</span></label></div>
     <button class="btn btn-red w-full" onclick="saveClubForumPost()"><i class="ti ti-send"></i> Publicar</button>
   </div>
-</div>
-
-<!-- ── RESEÑAS ── -->
-<div id="p-reviews" class="page">
-  <div class="tb"><div><h1>Mis reseñas</h1><p id="reviews-sub">0 reseñas</p></div>
-    <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro leído</button>
-  </div>
-  <div id="reviews-list"></div>
-  <div id="reviews-empty" class="empty card"><i class="ti ti-pencil"></i><p>Aún no tienes reseñas</p><span>Añade libros leídos con valoración</span><br><button class="btn btn-red" style="margin-top:12px" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir primer libro</button></div>
 </div>
 
 <!-- ── RETOS ── -->
@@ -4364,7 +4354,7 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 // the user actually came from, instead of a hardcoded destination per page type.
 let NAV_STACK=[];
 let CURRENT_ENTITY={}; // {bookdetail:id, authorpage:id, clubdetail:id, userprofile:username}
-const NB_INDEX={home:0,shelf:1,discover:2,feed:3,friends:4,clubs:5,reviews:6,retos:7,stats:8};
+const NB_INDEX={home:0,shelf:1,discover:2,feed:3,friends:4,clubs:5,retos:6,stats:7};
 function nbFor(id){const i=NB_INDEX[id];return i!=null?document.querySelectorAll('.nb')[i]:null;}
 
 function toggleMobileNav(){
@@ -4434,7 +4424,7 @@ function go(id,btn,extraId,_isBack){
   }
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
-  ({shelf:renderShelf,stats:renderStats,retos:renderRetos,reviews:renderReviews,
+  ({shelf:renderShelf,stats:renderStats,retos:renderRetos,
     home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs})[id]?.();
 }
 
@@ -6478,6 +6468,41 @@ function toggleYearAddMenu(){
   document.getElementById('year-add-dropdown')?.classList.toggle('show');
 }
 
+// "Tu reseña" (the private text you wrote when adding/finishing this book — never
+// shown anywhere except this page) — used to live on its own now-removed "Reseñas"
+// tab, read-only and with no way to add or fix one after the fact. Editing it right
+// here, where the rest of the book's own data already lives, replaces that tab.
+let _editingReviewBookId=null;
+function bookReviewSectionHtml(book,selfKey){
+  if(_editingReviewBookId===book.id){
+    return `<div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-pencil"></i> Tu reseña</div>
+      <textarea class="f-input" id="book-review-edit-inp" style="height:90px;resize:vertical;max-width:760px" placeholder="¿Qué te pareció?">${escapeHtml(book.review||'')}</textarea>
+      <div class="flex gap-2" style="margin-top:8px">
+        <button class="btn btn-red btn-sm" onclick="saveBookReview('${book.id}','${selfKey}')"><i class="ti ti-check"></i> Guardar</button>
+        <button class="btn btn-white btn-sm" onclick="_editingReviewBookId=null;renderBookPage('${selfKey}')">Cancelar</button>
+      </div>
+    </div>`;
+  }
+  const body=book.review
+    ?`<div class="text-sm" style="font-style:italic;color:#444;line-height:1.7;border-left:3px solid var(--red);padding-left:10px;max-width:760px">«${escapeHtml(book.review)}»</div>`
+    :`<div class="text-sm text-muted">Aún no has escrito una reseña de este libro.</div>`;
+  return `<div class="book-page-section">
+    <div class="book-page-section-title"><i class="ti ti-pencil"></i> Tu reseña</div>
+    ${body}
+    <button class="btn btn-white btn-sm" style="margin-top:8px" onclick="_editingReviewBookId='${book.id}';renderBookPage('${selfKey}')"><i class="ti ${book.review?'ti-edit':'ti-plus'}"></i> ${book.review?'Editar reseña':'Escribir reseña'}</button>
+  </div>`;
+}
+function saveBookReview(bookId,selfKey){
+  const book=allBooks().find(b=>b.id===bookId);
+  if(!book)return;
+  book.review=document.getElementById('book-review-edit-inp').value.trim();
+  saveSupaBook(book);
+  _editingReviewBookId=null;
+  renderBookPage(selfKey);
+  toast('✅ Reseña guardada');
+}
+
 function renderBookPage(key){
   const book=allBooks().find(b=>bookWorkKey(b)===key);
   if(!book){renderBookPageGeneric(key);return;}
@@ -6588,6 +6613,7 @@ function renderBookPage(key){
     </div>
 
     ${synopsisHtml}
+    ${book.status==='leidos'?bookReviewSectionHtml(book,selfKey):''}
     ${communityCountsHtml}
     ${ratingBreakdownHtml}
     ${authorSnippetHtml}
@@ -7185,19 +7211,6 @@ document.addEventListener('click',e=>{
   const drop=document.getElementById('rank-srch-drop');
   if(drop&&!e.target.closest('#rank-srch-inp')&&!e.target.closest('#rank-srch-drop'))drop.style.display='none';
 });
-
-// ═══════════════════════════════════════════════
-// REVIEWS
-// ═══════════════════════════════════════════════
-function renderReviews(){
-  const books=DB.leidos.filter(b=>b.stars>0);
-  document.getElementById('reviews-sub').textContent=`${books.length} reseña${books.length!==1?'s':''}`;
-  const empty=document.getElementById('reviews-empty');
-  const list=document.getElementById('reviews-list');
-  if(!books.length){empty.style.display='block';list.innerHTML='';return;}
-  empty.style.display='none';
-  list.innerHTML=books.map(b=>`<div class="card"><div class="flex gap-3">${cvr(b,'spine')}<div style="flex:1;min-width:0"><div class="flex justify-between items-center"><div><div style="font-size:15px;font-weight:600">${b.title}</div><div class="text-xs text-muted">${b.author}${b.year?' · '+b.year:''}${b.finishedAt?' · Leído: '+b.finishedAt:''}</div></div><div style="color:var(--amber);font-size:14px;flex-shrink:0">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div></div>${b.review?`<div style="font-size:13px;font-style:italic;color:#444;margin-top:8px;line-height:1.7;border-left:3px solid var(--red);padding-left:10px">«${b.review}»</div>`:'<div class="text-xs text-muted mt-1">Sin reseña escrita.</div>'}</div></div></div>`).join('');
-}
 
 // ═══════════════════════════════════════════════
 // DISCOVER
