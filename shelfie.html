@@ -2700,15 +2700,22 @@ a{color:inherit}
     </div>
   </div>
 
-  <div class="g2">
-    <div class="card">
-      <div class="card-head"><div class="card-title">Últimos libros leídos</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver todos →</button></div>
-      <div id="p-recent-books"><div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div></div>
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tu shelfie</div>
+      <div class="view-toggle">
+        <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
+        <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
+        <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">Mis géneros</div></div>
-      <div id="p-genres"><div style="font-size:13px;color:var(--ink3)">Añade libros para ver tus géneros.</div></div>
+    <div class="shelf-tabs-row" id="profile-shelf-tabs" style="margin:12px 0">
+      <button class="shelf-tab on" data-tab="leidos" onclick="profileShelfTabClick(this,'leidos')"><i class="ti ti-check" style="color:var(--green)"></i> Leídos <span id="pst-leidos">(0)</span></button>
+      <button class="shelf-tab" data-tab="leyendo" onclick="profileShelfTabClick(this,'leyendo')"><i class="ti ti-book-2" style="color:var(--blue)"></i> Leyendo <span id="pst-leyendo">(0)</span></button>
+      <button class="shelf-tab" data-tab="quiero" onclick="profileShelfTabClick(this,'quiero')"><i class="ti ti-bookmark" style="color:var(--amber)"></i> Quiero leer <span id="pst-quiero">(0)</span></button>
+      <button class="shelf-tab" data-tab="dnf" onclick="profileShelfTabClick(this,'dnf')"><i class="ti ti-x" style="color:var(--ink3)"></i> Abandonados <span id="pst-dnf">(0)</span></button>
     </div>
+    <div id="profile-shelf-content"></div>
   </div>
 
   <!-- RETOS: creados vs unidos -->
@@ -4402,6 +4409,28 @@ async function renderUserProfilePage(username){
   }
 }
 
+let upProfileShelfTab='leidos';
+let upProfileShelfView='shelf';
+let _upProfileBooks={leidos:[],leyendo:[],quiero:[],dnf:[]};
+function setUpProfileShelfView(v){
+  upProfileShelfView=v;
+  document.getElementById('upv-shelf').classList.toggle('on',v==='shelf');
+  document.getElementById('upv-grid').classList.toggle('on',v==='grid');
+  document.getElementById('upv-list').classList.toggle('on',v==='list');
+  renderUpProfileShelfieContent();
+}
+function upProfileShelfTabClick(el,tab){
+  upProfileShelfTab=tab;
+  document.querySelectorAll('#up-shelf-tabs .shelf-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderUpProfileShelfieContent();
+}
+function renderUpProfileShelfieContent(){
+  const el=document.getElementById('up-shelf-content');
+  if(!el)return;
+  el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView);
+}
+
 function renderUserProfileView(profile,books,posts,following,followers,cached){
   const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
@@ -4412,15 +4441,12 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const quiero=books.filter(b=>b.status==='quiero');
   const dnf=books.filter(b=>b.status==='dnf');
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
+  upProfileShelfTab='leidos';
+  upProfileShelfView='shelf';
+  _upProfileBooks={leidos,leyendo,quiero,dnf};
 
   const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
-
-  // Capped at 8, same as your own profile's "Últimos libros leídos" — previously showed
-  // every single book this user had ever read, unbounded, which both contradicted the
-  // "latest" framing of the heading and could render hundreds of grid cells for prolific readers.
-  const booksGridHtml=leidos.length?`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`
-    :`<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>`;
 
   // "Leyendo ahora" — same banner as your own profile shows to others
   const readingNowHtml=leyendo.length?(()=>{
@@ -4451,15 +4477,6 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     const pct=totalBooks?Math.round(s.n/totalBooks*100):0;
     return `<div class="shelfie-breakdown-row"><div class="shelfie-breakdown-icon" style="background:${s.color}"><i class="ti ${s.icon}"></i></div><div class="shelfie-breakdown-info"><div class="shelfie-breakdown-lbl">${s.lbl}</div><div class="shelfie-breakdown-track"><div class="shelfie-breakdown-fill" style="width:${pct}%;background:${s.color}"></div></div></div><div class="shelfie-breakdown-n">${s.n}</div></div>`;
   }).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-books" style="font-size:24px"></i><p style="font-size:13px">Su shelfie está vacío</p></div>`;
-
-  // Géneros — distribución real a partir de los libros leídos (no aproximada)
-  const genreCounts={};
-  leidos.forEach(b=>{(b.genres||[]).forEach(g=>{genreCounts[g]=(genreCounts[g]||0)+1;});});
-  const genreEntries=Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const genresHtml=genreEntries.length?genreEntries.map(([g,n])=>{
-    const pct=leidos.length?Math.round(n/leidos.length*100):0;
-    return `<div class="bar-row"><div class="bar-lbl">${escapeHtml(g)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`;
-  }).join(''):`<div style="font-size:13px;color:var(--ink3)">Sin géneros registrados.</div>`;
 
   // Actividad reciente: TODAS sus publicaciones completas, más nuevas primero (rollo Twitter)
   const activityHtml=posts.length?posts.map(p=>renderOnePost(p)).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no ha publicado nada</p></div>`;
@@ -4502,15 +4519,22 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
       </div>
     </div>
 
-    <div class="g2">
-      <div class="card">
-        <div class="card-head"><div class="card-title">Últimos libros leídos</div></div>
-        ${booksGridHtml}
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Shelfie de ${escapeHtml(profile.name||profile.username)}</div>
+        <div class="view-toggle">
+          <button class="view-toggle-btn on" id="upv-shelf" onclick="setUpProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
+          <button class="view-toggle-btn" id="upv-grid" onclick="setUpProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
+          <button class="view-toggle-btn" id="upv-list" onclick="setUpProfileShelfView('list')"><i class="ti ti-list"></i></button>
+        </div>
       </div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">Géneros</div></div>
-        ${genresHtml}
+      <div class="shelf-tabs-row" id="up-shelf-tabs" style="margin:12px 0">
+        <button class="shelf-tab on" data-tab="leidos" onclick="upProfileShelfTabClick(this,'leidos')"><i class="ti ti-check" style="color:var(--green)"></i> Leídos (${leidos.length})</button>
+        <button class="shelf-tab" data-tab="leyendo" onclick="upProfileShelfTabClick(this,'leyendo')"><i class="ti ti-book-2" style="color:var(--blue)"></i> Leyendo (${leyendo.length})</button>
+        <button class="shelf-tab" data-tab="quiero" onclick="upProfileShelfTabClick(this,'quiero')"><i class="ti ti-bookmark" style="color:var(--amber)"></i> Quiero leer (${quiero.length})</button>
+        <button class="shelf-tab" data-tab="dnf" onclick="upProfileShelfTabClick(this,'dnf')"><i class="ti ti-x" style="color:var(--ink3)"></i> Abandonados (${dnf.length})</button>
       </div>
+      <div id="up-shelf-content"></div>
     </div>
 
     <div class="card">
@@ -4519,6 +4543,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     </div>
   `;
   setAvatarEl(document.getElementById('up-av'),profile.photo,cached.initials||'??',cached.bg,cached.tc);
+  renderUpProfileShelfieContent();
 }
 
 function renderFeedPage(){
@@ -5815,13 +5840,17 @@ function listDrop(e,targetIdx){
 
 // Universal "Mover a..." dropdown — lets any book jump to any other status directly
 // Real bookshelf spine: width scales with actual page count, title font-size shrinks to fit
-function spineRealHtml(b,idx){
+function spineDims(b){
   const pages=b.pages||240;
   // Width scales with pages: 20px (tiny novella) to 80px (doorstop), height always tall
   const widthPx=Math.max(20,Math.min(80,Math.round(10+pages/13)));
   const heightPx=Math.max(200,Math.min(280,200+Math.round(pages/9)));
-  const titleLen=b.title.length;
+  const titleLen=(b.title||'').length;
   const fontSize=titleLen>40?9:titleLen>28?10:titleLen>18?12:titleLen>12?13:15;
+  return{pages,widthPx,heightPx,fontSize};
+}
+function spineRealHtml(b,idx){
+  const{pages,widthPx,heightPx,fontSize}=spineDims(b);
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-idx="${idx}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
@@ -5879,6 +5908,35 @@ function renderMultiRowShelf(books){
 
 function initShelfDragAndDrop(){
   // native drag events already attached inline; just ensure dragover works on empty shelf areas
+}
+
+// Read-only shelfie browser embedded in profile pages (own + others'): same three view
+// modes as "Mi shelfie", but no drag-reorder or edit menu — clicking a book just opens
+// its ficha. Used by renderProfile() and renderUserProfileView().
+function profileSpineHtml(b){
+  const{pages,widthPx,heightPx,fontSize}=spineDims(b);
+  return `<div class="real-shelf-spine" style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18);cursor:pointer"
+    onclick="go('bookdetail',null,'${bkKey(b)}')" title="${escapeHtml(b.title)} · ${pages} pp">
+    <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
+  </div>`;
+}
+function shelfieSectionContentHtml(books,view){
+  if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
+  if(view==='shelf'){
+    const rowSize=12;
+    const rows=[];
+    for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
+    return `<div class="shelf-unit">${rows.map(rowBooks=>`
+      <div class="shelf-row-wrap">
+        <div class="shelf-books-row">${rowBooks.map(b=>profileSpineHtml(b)).join('')}</div>
+        <div class="shelf-plank"></div>
+      </div>`).join('')}
+    </div>`;
+  }
+  if(view==='grid'){
+    return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)}</div>`:''}</div>`).join('')}</div>`;
+  }
+  return `<div class="shelf-list-scroll">${books.map(b=>`<div class="book-list-row" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div>${b.stars?`<div class="book-list-stars">${'★'.repeat(b.stars)}</div>`:''}</div></div>`).join('')}</div>`;
 }
 
 function moveMenuHtml(id,currentStatus){
@@ -8410,6 +8468,27 @@ function renderNotifications(){
   }).join('');
 }
 
+let profileShelfTab='leidos';
+let profileShelfView='shelf';
+function setProfileShelfView(v){
+  profileShelfView=v;
+  document.getElementById('pv-shelf').classList.toggle('on',v==='shelf');
+  document.getElementById('pv-grid').classList.toggle('on',v==='grid');
+  document.getElementById('pv-list').classList.toggle('on',v==='list');
+  renderProfileShelfieContent();
+}
+function profileShelfTabClick(el,tab){
+  profileShelfTab=tab;
+  document.querySelectorAll('#profile-shelf-tabs .shelf-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderProfileShelfieContent();
+}
+function renderProfileShelfieContent(){
+  const el=document.getElementById('profile-shelf-content');
+  if(!el)return;
+  el.innerHTML=shelfieSectionContentHtml(DB[profileShelfTab]||[],profileShelfView);
+}
+
 function renderProfile(){
   const av=document.getElementById('p-av');
   setAvatarEl(av,PROFILE.photo,(PROFILE.name||'??').slice(0,2).toUpperCase(),'var(--red)','white');
@@ -8457,23 +8536,12 @@ function renderProfile(){
     </div>`;
   } else { rnWrap.style.display='none'; }
 
-  // recent books
-  const rb=document.getElementById('p-recent-books');
-  if(!DB.leidos.length){rb.innerHTML='<div class="empty" style="padding:16px"><i class="ti ti-book" style="font-size:24px"></i><p style="font-size:13px">Aún no hay libros</p></div>';}
-  else{rb.innerHTML=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(75px,1fr))">${DB.leidos.slice(0,8).map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${b.title}</div><div class="grid-s" style="font-size:10px">${b.stars?'★'.repeat(b.stars):''}</div></div>`).join('')}</div>`;}
-
-  // genres — real distribution from read books (was a hardcoded genre-name list with a
-  // made-up decay formula, unrelated to the user's actual books; other users' profiles
-  // via renderUserProfileView always computed this for real — now both match)
-  const ge=document.getElementById('p-genres');
-  if(!DB.leidos.length){ge.innerHTML='<div style="font-size:13px;color:var(--ink3)">Añade libros para ver géneros.</div>';}
-  else{
-    const geEntries=profileGenreEntries.slice(0,5);
-    ge.innerHTML=geEntries.length?geEntries.map(([g,n])=>{
-      const pct=Math.round(n/DB.leidos.length*100);
-      return `<div class="bar-row"><div class="bar-lbl">${escapeHtml(g)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--red)"></div></div><div class="bar-pct">${pct}%</div></div>`;
-    }).join(''):'<div style="font-size:13px;color:var(--ink3)">Sin géneros registrados.</div>';
-  }
+  // tu shelfie — tabs por estado + selector de vista (shelf/grid/lista), como en "Mi shelfie"
+  document.getElementById('pst-leidos').textContent=`(${DB.leidos.length})`;
+  document.getElementById('pst-leyendo').textContent=`(${DB.leyendo.length})`;
+  document.getElementById('pst-quiero').textContent=`(${DB.quiero.length})`;
+  document.getElementById('pst-dnf').textContent=`(${DB.dnf.length})`;
+  renderProfileShelfieContent();
 
   // public ranking on profile — rendered by dedicated function
   profileFavEditMode=false;
