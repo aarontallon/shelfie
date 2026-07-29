@@ -5850,7 +5850,7 @@ async function setShelfPublicView(view){
   if(document.getElementById('p-profile')?.classList.contains('on'))renderProfileShelfieContent();
   if(!SUPA_USER)return;
   const{error}=await supa.from('profiles').update({shelf_public_view:view}).eq('id',SUPA_USER.id);
-  if(error)console.error('setShelfPublicView failed:',error);
+  if(error){console.error('setShelfPublicView failed:',error);toast('❌ No se pudo guardar la vista. Comprueba tu conexión.');}
 }
 
 function toggleYearGoal(id){
@@ -6038,6 +6038,8 @@ const FLOWER_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"
 const HEART_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><path d="M24 36 C11 26 7 17 14 11 C19 7 24 10 24 15 C24 10 29 7 34 11 C41 17 37 26 24 36Z" fill="#F2A6B8" opacity="0.6"/></svg>`;
 const LEAF_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="52" height="52"><path d="M10 42 C10 20 22 10 42 10 C42 30 30 42 10 42Z" fill="#8FBFA0" opacity="0.5"/></svg>`;
 const SUNFLOWER_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58"><g fill="#F2C230" opacity="0.65"><circle cx="29" cy="16" r="6"/><circle cx="40" cy="23" r="6"/><circle cx="40" cy="35" r="6"/><circle cx="29" cy="42" r="6"/><circle cx="18" cy="35" r="6"/><circle cx="18" cy="23" r="6"/></g><circle cx="29" cy="29" r="6.5" fill="#7A5230"/></svg>`;
+const CLOUD_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90"><g fill="#FFFFFF" opacity="0.85"><ellipse cx="26" cy="50" rx="16" ry="11"/><ellipse cx="42" cy="44" rx="20" ry="14"/><ellipse cx="58" cy="52" rx="14" ry="10"/><ellipse cx="40" cy="58" rx="24" ry="9"/></g></svg>`;
+const STAR2_SVG=`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><path d="M24 6 L28 18 L41 18 L30 26 L34 38 L24 30 L14 38 L18 26 L7 18 L20 18 Z" fill="#1A1A1A" opacity="0.55"/></svg>`;
 const SHELF_THEMES={
   clasica:{label:'Clásica',bg:'#FAFAFA',plank:'#1A1A1A',border:'#E8E8E8'},
   minimal:{label:'Blanco minimalista',bg:'#FFFFFF',plank:'#D1D1D1',border:'#EEEEEE'},
@@ -6047,7 +6049,6 @@ const SHELF_THEMES={
   lavanda:{label:'Lavanda',bg:'#F1EBFB',plank:'#7E5BA6',border:'#DDD0F0'},
   oceano:{label:'Azul océano',bg:'#EAF3FA',plank:'#245B7A',border:'#CFE3F0'},
   coral:{label:'Coral suave',bg:'#FDECE3',plank:'#C1613F',border:'#F4D2BE'},
-  menta:{label:'Menta fresca',bg:'#E9F7F2',plank:'#2E8B72',border:'#CDEBE1'},
   arena:{label:'Arena cálida',bg:'#F6EEE3',plank:'#A9764F',border:'#E8DAC5'},
   papel:{label:'Papel arrugado',bg:'linear-gradient(135deg,rgba(255,255,255,0.35) 0%,transparent 45%),linear-gradient(315deg,rgba(0,0,0,0.07) 0%,transparent 40%),linear-gradient(60deg,rgba(0,0,0,0.06) 15%,transparent 50%),#E4D9BE',plank:'#6B5638',border:'#C9B98F'},
   flores:{label:'Flores',bg:svgPatternBg(FLOWER_SVG,56,'#FFF7F9'),plank:'#C97B93',border:'#F5D6E0'},
@@ -6055,7 +6056,8 @@ const SHELF_THEMES={
   hojas:{label:'Hojas',bg:svgPatternBg(LEAF_SVG,52,'#F1F8F1'),plank:'#3D6B52',border:'#CFE3D9'},
   girasoles:{label:'Girasoles',bg:svgPatternBg(SUNFLOWER_SVG,58,'#FFFBEF'),plank:'#B8860B',border:'#F0E0B0'},
   lunares:{label:'Lunares',bg:'radial-gradient(circle,#FFFFFF 3px,transparent 3.6px) 0 0/22px 22px, #D9C7F0',plank:'#7E5BA6',border:'#DDD0F0'},
-  lunaresazul:{label:'Lunares azul',bg:'radial-gradient(circle,#5B6B7D 3px,transparent 3.6px) 0 0/22px 22px, #1F2937',plank:'#8896A6',border:'#3B4656'},
+  nubes:{label:'Nubes',bg:svgPatternBg(CLOUD_SVG,90,'#C7E8F7'),plank:'#3E6E91',border:'#A9D4EC'},
+  estrellas:{label:'Estrellas',bg:svgPatternBg(STAR2_SVG,48,'#CFCFCF'),plank:'#3A3A3A',border:'#B8B8B8'},
   rayas:{label:'Rayas',bg:'repeating-linear-gradient(45deg,#FFFFFF 0 10px,#DCEFEA 10px 20px)',plank:'#3D6B52',border:'#CFE3D9'},
 };
 function applyShelfThemeVars(el,themeKey){
