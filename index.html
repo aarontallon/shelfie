@@ -1960,7 +1960,7 @@ a{color:inherit}
       </div>
       <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
       <select class="f-input" style="width:auto;padding:8px 12px" id="shelf-sort" onchange="renderShelf()">
-        <option value="reciente">Más recientes</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
+        <option value="reciente">Más recientes</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option><option value="manual">Mi orden (el que arrastro)</option>
       </select>
       <button class="btn btn-red" onclick="openModal('modal-add')"><i class="ti ti-plus"></i> Añadir libro</button>
     </div>
@@ -2715,12 +2715,18 @@ a{color:inherit}
   <div class="card">
     <div class="card-head">
       <div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tu shelfie</div>
-      <div class="view-toggle">
-        <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
-        <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
-        <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
+      <div class="flex gap-2" style="align-items:center">
+        <select class="f-input" style="width:auto;padding:6px 10px;font-size:12.5px" id="profile-public-sort" onchange="setProfilePublicSort(this.value)" title="Cómo ven tu shelfie los demás">
+          <option value="reciente">Más recientes</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option><option value="manual">Mi orden (el que arrastro)</option>
+        </select>
+        <div class="view-toggle">
+          <button class="view-toggle-btn on" id="pv-shelf" onclick="setProfileShelfView('shelf')"><i class="ti ti-books"></i></button>
+          <button class="view-toggle-btn" id="pv-grid" onclick="setProfileShelfView('grid')"><i class="ti ti-layout-grid"></i></button>
+          <button class="view-toggle-btn" id="pv-list" onclick="setProfileShelfView('list')"><i class="ti ti-list"></i></button>
+        </div>
       </div>
     </div>
+    <p class="text-xs text-muted" style="margin:8px 0 0">Así ven tu shelfie los demás cuando visitan tu perfil.</p>
     <div class="shelf-tabs-row" id="profile-shelf-tabs" style="margin:12px 0">
       <button class="shelf-tab on" data-tab="leidos" onclick="profileShelfTabClick(this,'leidos')"><i class="ti ti-check" style="color:var(--green)"></i> Leídos <span id="pst-leidos">(0)</span></button>
       <button class="shelf-tab" data-tab="leyendo" onclick="profileShelfTabClick(this,'leyendo')"><i class="ti ti-book-2" style="color:var(--blue)"></i> Leyendo <span id="pst-leyendo">(0)</span></button>
@@ -2828,6 +2834,7 @@ async function loadSupaProfile(){
   PROFILE.city=data.city||'';
   PROFILE.photo=data.photo||null;
   PROFILE.email=SUPA_USER.email||'';
+  PROFILE.shelfPublicSort=data.shelf_public_sort||'reciente';
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
@@ -3452,7 +3459,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'reciente'};
 
 let CLUBS=[
   {
@@ -4463,7 +4470,15 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const favs=leidos.filter(b=>b.is_favorite).sort((a,b)=>(a.rank_pos??99)-(b.rank_pos??99));
   upProfileShelfTab='leidos';
   upProfileShelfView='shelf';
-  _upProfileBooks={leidos,leyendo,quiero,dnf};
+  // Whoever owns this shelfie picked how it's sorted for anyone viewing it — same
+  // sortBooksForDisplay() helper as your own profile, just without a picker to change it.
+  const theirSort=profile.shelf_public_sort||'reciente';
+  _upProfileBooks={
+    leidos:sortBooksForDisplay(leidos,theirSort),
+    leyendo:sortBooksForDisplay(leyendo,theirSort),
+    quiero:sortBooksForDisplay(quiero,theirSort),
+    dnf:sortBooksForDisplay(dnf,theirSort),
+  };
 
   const favsHtml=favs.length?`<div class="pub-rank-grid">${favs.slice(0,10).map((b,i)=>`<div class="pub-rank-item" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:11px;margin-top:4px">${escapeHtml(b.title)}</div><div class="grid-a" style="font-size:10px">${escapeHtml(b.author)}</div></div>`).join('')}</div>`
     :`<div class="empty" style="padding:20px"><i class="ti ti-trophy" style="font-size:28px"></i><p style="font-size:13px">Sin favoritos todavía</p></div>`;
@@ -5897,6 +5912,24 @@ function bookActionsMenuItemsHtml(b){
   items.push(`<button onclick="toggleYearGoal('${b.id}');closeAllMoveMenus()"><i class="ti ti-calendar-event"></i> ${inYear?'Quitar del':'Añadir al'} Shelfie ${CURRENT_SHELFIE_YEAR}</button>`);
   items.push(`<button onclick="removeBook('${b.id}','${b.status}');closeAllMoveMenus()" style="color:var(--red)"><i class="ti ti-trash"></i> Eliminar</button>`);
   return items.join('');
+}
+
+// Shared with "Mi shelfie"'s own #shelf-sort dropdown and the profile's public-sort
+// picker — 'reciente' and 'manual' both mean "keep the array as-is" (which reflects
+// however the books were last dragged/reordered).
+function sortBooksForDisplay(books,sortMode){
+  const arr=[...books];
+  if(sortMode==='titulo')arr.sort((a,b)=>a.title.localeCompare(b.title));
+  else if(sortMode==='autor')arr.sort((a,b)=>a.author.localeCompare(b.author));
+  else if(sortMode==='valoracion')arr.sort((a,b)=>(b.stars||0)-(a.stars||0));
+  return arr;
+}
+async function setProfilePublicSort(sortMode){
+  PROFILE.shelfPublicSort=sortMode;
+  renderProfileShelfieContent();
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('profiles').update({shelf_public_sort:sortMode}).eq('id',SUPA_USER.id);
+  if(error){console.error('setProfilePublicSort failed:',error);toast('❌ No se pudo guardar el orden. Comprueba tu conexión.');}
 }
 
 // ═══ Interactive shelf compartments: 3 real width-based cubicles per shelf level ═══
@@ -8633,7 +8666,10 @@ function profileShelfTabClick(el,tab){
 function renderProfileShelfieContent(){
   const el=document.getElementById('profile-shelf-content');
   if(!el)return;
-  el.innerHTML=shelfieSectionContentHtml(DB[profileShelfTab]||[],profileShelfView,profileShelfTab,true);
+  const sorted=sortBooksForDisplay(DB[profileShelfTab]||[],PROFILE.shelfPublicSort);
+  el.innerHTML=shelfieSectionContentHtml(sorted,profileShelfView,profileShelfTab,true);
+  const sortSel=document.getElementById('profile-public-sort');
+  if(sortSel)sortSel.value=PROFILE.shelfPublicSort;
 }
 
 function renderProfile(){
