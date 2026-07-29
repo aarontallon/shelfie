@@ -360,3 +360,16 @@ create policy "clubs_select" on public.clubs for select using (true);
 -- dos. El nickname vive dentro del jsonb `data`, así que es un índice único
 -- sobre esa expresión en vez de una columna propia.
 create unique index if not exists clubs_nickname_unique on public.clubs (lower(data->>'nickname')) where data->>'nickname' is not null;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: guarda en qué hueco de la estantería está cada libro
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- La vista "shelf" reparte los libros de cada estado (leídos, quiero leer...) en
+-- 3 huecos reales por balda, y se puede arrastrar cualquier libro a cualquier
+-- hueco con sitio. Antes esa colocación solo vivía en memoria y se perdía al
+-- recargar la página — ahora se guarda por libro, igual que rank_pos para el
+-- Top 10 de favoritos.
+alter table public.user_books add column if not exists shelf_level integer;
+alter table public.user_books add column if not exists shelf_col integer;
