@@ -403,10 +403,6 @@ a{color:inherit}
 .real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.95);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.6);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.5px}
 .real-shelf-spine-actions{position:absolute;top:6px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
 .real-shelf-spine:hover .real-shelf-spine-actions{opacity:1}
-/* Rating stamped near the top of the spine (only rendered when the book has stars,
-   i.e. leídos) — that's the empty space above the vertical title, which otherwise
-   only holds the hover-only 3-dot button. */
-.real-shelf-spine-stars{position:absolute;top:24px;left:2px;right:2px;text-align:center;color:var(--amber);font-size:8px;line-height:1;letter-spacing:-1px;white-space:nowrap;overflow:hidden;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,0.45);z-index:1}
 .book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;backdrop-filter:blur(4px)}
 .book3dot-btn:hover{background:rgba(0,0,0,0.8)}
 /* Single global action menu — lives at <body> level so transforms on ancestors don't break position:fixed */
@@ -503,10 +499,7 @@ a{color:inherit}
 .feed-item:last-child{border-bottom:none}
 .f-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
 .f-txt{font-size:13px;color:var(--ink);line-height:1.6}
-.f-book-link{color:var(--red);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;font-size:13px;padding:0;font-style:italic}
-.f-book-link:hover{text-decoration:underline}
 .f-time{font-size:11px;color:var(--ink3);margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.f-quote{margin-top:8px;padding:10px 14px;background:#FBF9F7;border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:13px;font-style:italic;color:#444;line-height:1.65}
 .like-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;font-family:'Inter',sans-serif;transition:all 0.12s}
 .like-btn:hover,.like-btn.on{color:var(--red);background:var(--red-light)}
 .comment-like-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;margin-top:3px;font-family:'Inter',sans-serif}
@@ -526,37 +519,9 @@ a{color:inherit}
 .reactions-modal-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F0F0}
 .reactions-modal-row:last-child{border-bottom:none}
 
-/* ═══ NEW FEED: jerarquía, agrupación, logros ═══ */
-.feed-filters{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto}
-.feed-filter{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.12s}
-.feed-filter:hover{background:var(--paper)}
-.feed-filter.on{background:var(--ink);color:white;border-color:var(--ink)}
-.feed-group{margin-bottom:8px}
-.feed-group-lbl{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink3);font-weight:600;margin:18px 0 10px;padding-left:2px}
-.feed-group-lbl:first-child{margin-top:0}
 .feed-card{background:white;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px}
-
-/* big card: terminó libro con reseña, o abandono con cita — el contenido "premium" */
-.feed-card-xl{padding:20px}
-.fc-top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.fc-who{font-size:13px;color:var(--ink)}
-.fc-action{color:var(--ink3)}
-.fc-time{font-size:11px;color:var(--ink3);margin-left:auto;flex-shrink:0;white-space:nowrap}
-.fc-body-xl{display:flex;gap:16px}
-.fc-book-title{font-family:'Inter',sans-serif;font-size:17px;font-weight:500;color:var(--ink);line-height:1.25}
-.fc-book-author{font-size:12px;color:var(--ink3);margin-top:2px}
-.fc-stars-big{color:var(--amber);font-size:18px;margin-top:6px;letter-spacing:2px}
-.fc-actions{display:flex;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #EBEBEB}
 .fc-action-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-family:'Inter',sans-serif;transition:all 0.12s}
 .fc-action-btn:hover{background:var(--paper);color:var(--ink)}
-
-/* medium card: empezó a leer — más compacta, menos peso visual */
-.feed-card-md{display:flex;align-items:center;gap:12px;padding:13px 16px}
-.fc-who-inline{font-size:13px;color:var(--ink);line-height:1.5}
-
-/* streak/achievement card — estilo Strava, icono destacado a la izquierda */
-.feed-card-streak{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,#FFF7ED,white);border-color:#FED7AA}
-.streak-icon{width:40px;height:40px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 
 /* ── FLAME ANIMATIONS ── */
 @keyframes flicker{
@@ -590,19 +555,6 @@ a{color:inherit}
 .streak-week-dots{display:flex;gap:5px;margin-top:8px}
 .streak-week-dot{width:9px;height:9px;border-radius:50%;background:#EDEDED}
 .streak-week-dot.on{background:var(--amber)}
-
-/* reto card — bloque CTA destacado */
-.fc-reto-box{display:flex;align-items:center;gap:12px;background:var(--paper);border-radius:10px;padding:12px 14px}
-.fc-reto-icon{width:36px;height:36px;border-radius:8px;background:var(--ink);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.fc-reto-name{font-size:13px;font-weight:600;color:var(--ink)}
-.fc-reto-desc{font-size:11px;color:var(--ink3)}
-
-/* grouped row — varios libros en una fila compacta, tipo "stories" */
-.feed-card-grouped{padding:14px 18px}
-.fc-grouped-head{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);margin-bottom:10px;flex-wrap:wrap}
-.fc-grouped-row{display:flex;gap:10px}
-.fc-grouped-book{text-align:center}
-.fc-grouped-title{font-size:10px;color:var(--ink3);margin-top:4px;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ═══ COMPOSER ═══ */
 .composer-card{background:white;border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px}
@@ -1924,17 +1876,17 @@ a{color:inherit}
 
   <!-- Stats row -->
   <div class="stats-grid">
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--red-light)"><i class="ti ti-book" style="color:var(--red)"></i></div>
       <div class="stat-val" id="h-leidos">0</div>
       <div class="stat-lbl">Leídos</div>
     </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--blue-light)"><i class="ti ti-book-open" style="color:var(--blue)"></i></div>
       <div class="stat-val" id="h-leyendo">0</div>
       <div class="stat-lbl">Leyendo</div>
     </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--amber-light)"><i class="ti ti-bookmark" style="color:var(--amber)"></i></div>
       <div class="stat-val" id="h-quiero">0</div>
       <div class="stat-lbl">Quiero leer</div>
@@ -1966,7 +1918,7 @@ a{color:inherit}
       <div class="card">
         <div class="card-head">
           <div class="card-title"><i class="ti ti-target" style="color:var(--red);font-size:14px"></i> Mis retos</div>
-          <button class="card-link" onclick="go('retos',document.querySelectorAll('.nb')[8])">Ver todos →</button>
+          <button class="card-link" onclick="go('retos',nbFor('retos'))">Ver todos →</button>
         </div>
         <div id="home-retos"></div>
       </div>
@@ -1976,14 +1928,14 @@ a{color:inherit}
       <div class="card" style="margin-bottom:14px">
         <div class="card-head">
           <div class="card-title">✨ Recomendado para ti</div>
-          <button class="card-link" onclick="go('discover',document.querySelectorAll('.nb')[3])">Ver más →</button>
+          <button class="card-link" onclick="go('discover',nbFor('discover'))">Ver más →</button>
         </div>
         <div id="home-recs"></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title"><i class="ti ti-users" style="color:var(--blue);font-size:14px"></i> Tu comunidad</div>
-          <button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ir al feed →</button>
+          <button class="card-link" onclick="go('feed',nbFor('feed'))">Ir al feed →</button>
         </div>
         <div id="home-feed"></div>
       </div>
@@ -2278,7 +2230,7 @@ a{color:inherit}
         <input type="checkbox" id="composer-spoiler-check">
         <span class="spoiler-toggle-pill"><i class="ti ti-eye-off"></i> Contiene spoiler</span>
       </label>
-      <label class="composer-spoiler-toggle">
+      <label class="composer-spoiler-toggle" id="composer-review-toggle-label">
         <input type="checkbox" id="composer-review-check">
         <span class="review-toggle-pill"><i class="ti ti-star"></i> Marcar como reseña</span>
       </label>
@@ -2293,121 +2245,8 @@ a{color:inherit}
     </div>
   </div>
 
-  <div class="feed-filters" id="feed-filters">
-    <button class="feed-filter on" data-f="todo" onclick="setFeedFilter(this)">Todo</button>
-    <button class="feed-filter" data-f="logros" onclick="setFeedFilter(this)"><i class="ti ti-trophy" style="font-size:13px"></i> Logros</button>
-    <button class="feed-filter" data-f="resenas" onclick="setFeedFilter(this)"><i class="ti ti-quote" style="font-size:13px"></i> Reseñas</button>
-    <button class="feed-filter" data-f="retos" onclick="setFeedFilter(this)"><i class="ti ti-target" style="font-size:13px"></i> Retos</button>
-  </div>
-
   <!-- USER-CREATED POSTS render here, newest first -->
   <div id="user-posts"></div>
-
-  <!-- HOY -->
-  <div class="feed-group" data-group="logros">
-    <div class="feed-group-lbl">Hoy</div>
-
-    <!-- LOGRO GRANDE: terminó libro + reseña alta -->
-    <div class="feed-card feed-card-xl" data-group="logros resenas">
-      <div class="fc-top">
-        <div class="f-av" style="background:#EFF6FF;color:#1E3A8A">ML</div>
-        <div class="fc-who"><strong>María López</strong> <span class="fc-action">terminó un libro</span></div>
-        <div class="fc-time">hace 2h</div>
-      </div>
-      <div class="fc-body-xl">
-        <div class="spine" style="background:#6B2D2D;width:64px;height:96px;flex-shrink:0" onclick="quickAddDirect('La insoportable levedad del ser','Milan Kundera','quiero')"></div>
-        <div style="flex:1;min-width:0">
-          <div class="fc-book-title">La insoportable levedad del ser</div>
-          <div class="fc-book-author">Milan Kundera</div>
-          <div class="fc-stars-big">★★★★☆</div>
-          <div class="f-quote" style="margin-top:10px">«No hay nada más pesado que la compasión. Hasta tu propio dolor pesa menos que el dolor de alguien a quien amas.»</div>
-        </div>
-      </div>
-      <div class="fc-actions">
-        <button class="like-btn" id="lk1" onclick="toggleLike('lk1','lk1n')"><i class="ti ti-heart"></i> <span id="lk1n">34</span></button>
-        <button class="fc-action-btn"><i class="ti ti-message-circle"></i> Comentar</button>
-        <button class="fc-action-btn" onclick="quickAddDirect('La insoportable levedad del ser','Milan Kundera','quiero')"><i class="ti ti-bookmark-plus"></i> Añadir a mi shelfie</button>
-      </div>
-    </div>
-
-    <!-- LOGRO: racha / hito (estilo Strava) -->
-    <div class="feed-card feed-card-streak" data-group="logros">
-      <div class="streak-icon"><i class="ti ti-flame"></i></div>
-      <div style="flex:1">
-        <div class="fc-who"><strong>Ramón García</strong> lleva una racha de <strong style="color:var(--red)">12 días</strong> leyendo</div>
-        <div class="fc-time">hace 3h</div>
-      </div>
-      <button class="like-btn" id="lk3" onclick="toggleLike('lk3','lk3n')"><i class="ti ti-flame"></i> <span id="lk3n">8</span></button>
-    </div>
-  </div>
-
-  <!-- ESTA SEMANA -->
-  <div class="feed-group" data-group="todo">
-    <div class="feed-group-lbl">Esta semana</div>
-
-    <!-- LOGRO MEDIO: empezó a leer -->
-    <div class="feed-card feed-card-md" data-group="logros">
-      <div class="f-av" style="background:var(--green-light);color:#065F46">RG</div>
-      <div style="flex:1;min-width:0">
-        <div class="fc-who-inline"><strong>Ramón García</strong> empezó a leer <button class="f-book-link" onclick="quickAddDirect('2666','Roberto Bolaño','quiero')">«2666»</button> <span class="text-muted">de Roberto Bolaño</span></div>
-        <div class="fc-time">hace 5h <button class="card-link" style="margin-left:8px" onclick="quickAddDirect('2666','Roberto Bolaño','quiero')">+ Añadir a mi shelfie</button></div>
-      </div>
-      <div class="spine" style="background:#2C3E7A;width:34px;height:50px;flex-shrink:0" onclick="quickAddDirect('2666','Roberto Bolaño','quiero')"></div>
-    </div>
-
-    <!-- RETO: alguien creó un reto público (CTA fuerte) -->
-    <div class="feed-card feed-card-reto" data-group="retos">
-      <div class="fc-top">
-        <div class="f-av" style="background:var(--purple-light);color:#5B21B6">LB</div>
-        <div class="fc-who"><strong>Laila Benali</strong> <span class="fc-action">creó un reto público</span></div>
-        <div class="fc-time">hace 3 días</div>
-      </div>
-      <div class="fc-reto-box">
-        <div class="fc-reto-icon"><i class="ti ti-target"></i></div>
-        <div style="flex:1">
-          <div class="fc-reto-name">Narrativa árabe — 8 autores</div>
-          <div class="fc-reto-desc">Descubrir 8 autores de la literatura árabe</div>
-        </div>
-        <button class="btn btn-sm btn-red" onclick="joinCommunityReto(this,'Narrativa árabe',8,'Descubrir 8 autores de la literatura árabe')">Unirme</button>
-      </div>
-    </div>
-
-    <!-- LOGRO GRANDE: abandono con cita (también importa, es contenido real) -->
-    <div class="feed-card feed-card-xl" data-group="logros resenas">
-      <div class="fc-top">
-        <div class="f-av" style="background:var(--amber-light);color:#78350F">AT</div>
-        <div class="fc-who"><strong>Ana Torres</strong> <span class="fc-action">abandonó un libro</span></div>
-        <div class="fc-time">hace 2 días</div>
-      </div>
-      <div class="fc-body-xl">
-        <div class="spine" style="background:#2A2A2A;width:64px;height:96px;flex-shrink:0"></div>
-        <div style="flex:1;min-width:0">
-          <div class="fc-book-title">Ulises</div>
-          <div class="fc-book-author">James Joyce · pág. 234</div>
-          <div class="f-quote" style="margin-top:10px">«La vida es demasiado corta para Ulises. Sin arrepentimientos.»</div>
-        </div>
-      </div>
-      <div class="fc-actions">
-        <button class="like-btn" id="lk2" onclick="toggleLike('lk2','lk2n')"><i class="ti ti-heart"></i> <span id="lk2n">23</span></button>
-        <button class="fc-action-btn"><i class="ti ti-message-circle"></i> 6 comentarios</button>
-      </div>
-    </div>
-
-    <!-- AGRUPADO: varios "quiero leer" del mismo día, en una fila compacta tipo stories -->
-    <div class="feed-card feed-card-grouped" data-group="todo">
-      <div class="fc-grouped-head"><strong>Club Ficción BCN</strong> <span class="text-muted">añadió 3 libros a la lista del club</span> <span class="fc-time" style="margin-left:auto">hace 4 días</span></div>
-      <div class="fc-grouped-row">
-        <div class="fc-grouped-book"><div class="spine" style="background:#5C2E7A;width:40px;height:58px"></div><div class="fc-grouped-title">Rayuela</div></div>
-        <div class="fc-grouped-book"><div class="spine" style="background:#1A3A5C;width:40px;height:58px"></div><div class="fc-grouped-title">2666</div></div>
-        <div class="fc-grouped-book"><div class="spine" style="background:#7A4A1A;width:40px;height:58px"></div><div class="fc-grouped-title">Pedro Páramo</div></div>
-      </div>
-      <button class="btn btn-sm btn-white mt-1" onclick="go('clubs',document.querySelectorAll('.nb')[6])">Ver debate del club</button>
-    </div>
-  </div>
-
-  <div style="text-align:center;padding:20px 0">
-    <button class="btn btn-white" onclick="toast('Cargando más actividad...')">Ver actividad anterior</button>
-  </div>
 </div>
 
 <!-- ── AMIGOS ── -->
@@ -2711,7 +2550,7 @@ a{color:inherit}
 
   <!-- Libros en progreso -->
   <div class="card" style="margin-top:14px">
-    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',nbFor('shelf'))">Ver shelfie →</button></div>
     <div id="st-progress"></div>
   </div>
 </div>
@@ -2741,8 +2580,8 @@ a{color:inherit}
       </div>
     </div>
     <div class="profile-stats">
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
+      <div class="ps" onclick="go('shelf',nbFor('shelf'))"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
+      <div class="ps" onclick="go('shelf',nbFor('shelf'))"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
       <div class="ps" onclick="openPeopleModal('siguiendo')"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
       <div class="ps" onclick="openPeopleModal('seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
@@ -2762,7 +2601,7 @@ a{color:inherit}
     </div>
     <!-- SHELFIES STATE BREAKDOWN -->
     <div class="card">
-      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',nbFor('shelf'))">Ver shelfie →</button></div>
       <div id="profile-shelfie-breakdown"></div>
     </div>
   </div>
@@ -2800,7 +2639,7 @@ a{color:inherit}
 
   <!-- ACTIVIDAD RECIENTE: posts propios, con likes/comentarios -->
   <div class="card">
-    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ver feed →</button></div>
+    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',nbFor('feed'))">Ver feed →</button></div>
     <div id="profile-activity"></div>
   </div>
 </div>
@@ -4401,6 +4240,7 @@ function go(id,btn,extraId,_isBack){
   if(id==='bookdetail'){
     CURRENT_ENTITY.bookdetail=extraId;
     document.getElementById('p-book-detail').classList.add('on');
+    _bookActivityTab='tuya';
     renderBookPage(extraId);
     return;
   }
@@ -6004,7 +5844,6 @@ function spineDims(b){
 // is recomputed from real spine widths on every render.
 function editableSpineHtml(b,statusArr){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
-  const starsHtml=b.stars?`<div class="real-shelf-spine-stars">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:'';
   return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
@@ -6013,7 +5852,6 @@ function editableSpineHtml(b,statusArr){
     <div class="real-shelf-spine-actions" onclick="event.stopPropagation()">
       <button class="book3dot-btn" onclick="openFixedMenu(event,'${b.id}')"><i class="ti ti-dots-vertical"></i></button>
     </div>
-    ${starsHtml}
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
@@ -6330,10 +6168,8 @@ function initShelfDragAndDrop(){
 // just opens its ficha.
 function profileSpineHtml(b){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
-  const starsHtml=b.stars?`<div class="real-shelf-spine-stars">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:'';
   return `<div class="real-shelf-spine" style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18);cursor:pointer"
     onclick="go('bookdetail',null,'${bkKey(b)}')" title="${escapeHtml(b.title)} · ${pages} pp">
-    ${starsHtml}
     <div class="real-shelf-spine-title" style="font-size:${fontSize}px">${escapeHtml(b.title)}</div>
   </div>`;
 }
@@ -6343,9 +6179,9 @@ function shelfieSectionContentHtml(books,view,statusArr,editable,sortMode){
   if(view==='shelf')return shelfViewHtml(books,statusArr,editable,'profile-shelf-content',sortMode);
   if(!books.length)return `<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
   if(view==='grid'){
-    return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)}</div>`:''}</div>`).join('')}</div>`;
+    return `<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(85px,1fr))">${books.map(b=>`<div class="grid-item" onclick="go('bookdetail',null,'${bkKey(b)}')">${cvr(b,'grid')}<div class="grid-t" style="font-size:11px">${escapeHtml(b.title)}</div>${b.stars?`<div class="grid-s" style="font-size:10px">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:''}</div>`).join('')}</div>`;
   }
-  return `<div class="shelf-list-scroll">${books.map(b=>`<div class="book-list-row" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div>${b.stars?`<div class="book-list-stars">${'★'.repeat(b.stars)}</div>`:''}</div></div>`).join('')}</div>`;
+  return `<div class="shelf-list-scroll">${books.map(b=>`<div class="book-list-row" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div>${b.stars?`<div class="book-list-stars">${'★'.repeat(b.stars)+'☆'.repeat(5-b.stars)}</div>`:''}</div></div>`).join('')}</div>`;
 }
 
 function moveMenuHtml(id,currentStatus){
@@ -6460,7 +6296,7 @@ async function removeBook(id,from){
 function composerBookFromDetail(bookId){
   const book=allBooks().find(b=>b.id===bookId);
   if(!book)return;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',nbFor('feed'));
   setTimeout(()=>selectComposerBook(book),100);
 }
 
@@ -6473,6 +6309,10 @@ function toggleYearAddMenu(){
 // tab, read-only and with no way to add or fix one after the fact. Editing it right
 // here, where the rest of the book's own data already lives, replaces that tab.
 let _editingReviewBookId=null;
+// Which "Actividad" tab (Tú/Amigos/Reseñas) is open — kept across a re-render of the
+// same book page (e.g. right after saving "Tu reseña") so you don't get bounced back
+// to "Tú"; reset to "Tú" only when you actually navigate to a (possibly different) book.
+let _bookActivityTab='tuya';
 function bookReviewSectionHtml(book,selfKey){
   if(_editingReviewBookId===book.id){
     return `<div class="book-page-section">
@@ -6487,10 +6327,14 @@ function bookReviewSectionHtml(book,selfKey){
   const body=book.review
     ?`<div class="text-sm" style="font-style:italic;color:#444;line-height:1.7;border-left:3px solid var(--red);padding-left:10px;max-width:760px">«${escapeHtml(book.review)}»</div>`
     :`<div class="text-sm text-muted">Aún no has escrito una reseña de este libro.</div>`;
+  const shareBtn=book.review?`<button class="btn btn-white btn-sm" style="margin-top:8px" onclick="shareReviewToFeed('${book.id}')"><i class="ti ti-send-2"></i> Compartir en el feed</button>`:'';
   return `<div class="book-page-section">
     <div class="book-page-section-title"><i class="ti ti-pencil"></i> Tu reseña</div>
     ${body}
-    <button class="btn btn-white btn-sm" style="margin-top:8px" onclick="_editingReviewBookId='${book.id}';renderBookPage('${selfKey}')"><i class="ti ${book.review?'ti-edit':'ti-plus'}"></i> ${book.review?'Editar reseña':'Escribir reseña'}</button>
+    <div class="flex gap-2" style="margin-top:8px">
+      <button class="btn btn-white btn-sm" onclick="_editingReviewBookId='${book.id}';renderBookPage('${selfKey}')"><i class="ti ${book.review?'ti-edit':'ti-plus'}"></i> ${book.review?'Editar reseña':'Escribir reseña'}</button>
+      ${shareBtn}
+    </div>
   </div>`;
 }
 function saveBookReview(bookId,selfKey){
@@ -6501,6 +6345,24 @@ function saveBookReview(bookId,selfKey){
   _editingReviewBookId=null;
   renderBookPage(selfKey);
   toast('✅ Reseña guardada');
+}
+// "Compartir en el feed" bridge: your private "Tu reseña" text and a public review
+// post are different things (one only you ever see, the other is a real Feed post
+// visible to others and counted in the book's community Reseñas), but writing your
+// thoughts twice is silly — this takes you to the composer with the book, the review
+// checkbox and your text already filled in, ready to tweak and publish.
+function shareReviewToFeed(bookId){
+  const book=allBooks().find(b=>b.id===bookId);
+  if(!book)return;
+  go('feed',nbFor('feed'));
+  setTimeout(()=>{
+    selectComposerBook(book);
+    const textEl=document.getElementById('composer-text');
+    if(textEl){textEl.value=book.review||'';autoGrow(textEl);}
+    const reviewCheck=document.getElementById('composer-review-check');
+    if(reviewCheck)reviewCheck.checked=true;
+    textEl?.focus();
+  },100);
 }
 
 function renderBookPage(key){
@@ -6622,18 +6484,19 @@ function renderBookPage(key){
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-users"></i> Actividad</div>
       <div class="book-activity-tabs">
-        <button class="book-activity-tab on" onclick="setBookActivityTab(this,'tuya')">Tú</button>
-        <button class="book-activity-tab" onclick="setBookActivityTab(this,'amigos')">Amigos</button>
-        <button class="book-activity-tab" onclick="setBookActivityTab(this,'resenas')">Reseñas</button>
+        <button class="book-activity-tab ${_bookActivityTab==='tuya'?'on':''}" onclick="setBookActivityTab(this,'tuya')">Tú</button>
+        <button class="book-activity-tab ${_bookActivityTab==='amigos'?'on':''}" onclick="setBookActivityTab(this,'amigos')">Amigos</button>
+        <button class="book-activity-tab ${_bookActivityTab==='resenas'?'on':''}" onclick="setBookActivityTab(this,'resenas')">Reseñas</button>
       </div>
-      <div class="book-activity-panel on" id="book-activity-tuya">
+      <div class="book-activity-panel ${_bookActivityTab==='tuya'?'on':''}" id="book-activity-tuya">
         ${myPosts.length?myPosts.map(p=>renderOnePost(p)).join(''):`<div class="text-sm text-muted">Aún no has publicado nada sobre este libro. <button class="card-link" onclick="composerBookFromDetail('${book.id}')">Escribir algo →</button></div>`}
       </div>
-      <div class="book-activity-panel" id="book-activity-amigos">
+      <div class="book-activity-panel ${_bookActivityTab==='amigos'?'on':''}" id="book-activity-amigos">
         <div class="friends-book-block" style="margin-top:0">${friendsHtml}</div>
       </div>
-      <div class="book-activity-panel" id="book-activity-resenas">
-        <div class="text-sm text-muted">Cargando…</div>
+      <div class="book-activity-panel ${_bookActivityTab==='resenas'?'on':''}" id="book-activity-resenas">
+        <div id="book-activity-resenas-mine">${myReviewBlockHtml(book)}</div>
+        <div id="book-activity-resenas-community"><div class="text-sm text-muted">Cargando…</div></div>
       </div>
     </div>
   `;
@@ -6641,6 +6504,24 @@ function renderBookPage(key){
     loadRealBookCommunityData(book.title,selfKey);
     loadRealBookReviews(book.title,selfKey);
   }
+}
+// Your own "Tu reseña" text (see bookReviewSectionHtml above) shown a second time
+// here, inside "Actividad → Reseñas", so it actually shows up where the "reviews"
+// concept for this book lives — instead of only existing in the section above and
+// never appearing anywhere near the community's reviews of the same book.
+function myReviewBlockHtml(book){
+  if(book.status!=='leidos'||!book.review)return'';
+  const initials=(PROFILE.name||'Tú').trim().slice(0,2).toUpperCase();
+  return `<div class="card" style="margin-bottom:12px">
+    <div class="third-party-review">
+      <div class="f-av" style="background:var(--red);color:white;width:34px;height:34px;flex-shrink:0">${initials}</div>
+      <div class="third-party-review-body">
+        <div class="third-party-review-name">Tu reseña</div>
+        ${book.stars?`<div class="third-party-review-stars">${'★'.repeat(book.stars)}${'☆'.repeat(5-book.stars)}</div>`:''}
+        <div class="third-party-review-text">«${escapeHtml(book.review)}»</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // Real community counts (how many people across the whole app have this book as
@@ -6697,7 +6578,10 @@ async function loadRealBookReviews(title,guardKey){
     if(error||!data)return;
     if(CURRENT_ENTITY.bookdetail!==guardKey)return;
     const reviews=data.filter(r=>r.extra?.isReview&&r.user_id!==SUPA_USER.id);
-    const el=document.getElementById('book-activity-resenas');
+    // Owned-book ficha (renderBookPage) has "Tu reseña" in its own sibling container
+    // (#book-activity-resenas-community); the generic ficha for a book you don't have
+    // yet (renderBookPageGeneric) has no such split and uses the panel directly.
+    const el=document.getElementById('book-activity-resenas-community')||document.getElementById('book-activity-resenas');
     if(!el)return;
     if(!reviews.length){el.innerHTML='<div class="text-sm text-muted">Aún no hay reseñas de la comunidad para este libro.</div>';return;}
     await ensureAuthorsLoaded(reviews.map(r=>r.user_id));
@@ -6810,6 +6694,7 @@ async function renderBookPageGeneric(key){
 }
 
 function setBookActivityTab(btn,tab){
+  _bookActivityTab=tab;
   document.querySelectorAll('.book-activity-tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
   document.querySelectorAll('.book-activity-panel').forEach(p=>p.classList.remove('on'));
@@ -8216,11 +8101,6 @@ async function onClubsSearch(q){
 
 function joinClub(btn,name){btn.textContent='¡Unido! ✓';btn.className='btn btn-sm btn-red';btn.disabled=true;toast(`✅ Unido al club «${name}»`);}
 
-// Same "join" treatment as joinClub() above, for the static illustrative reto card in
-// the feed (not backed by a real COMMUNITY_RETOS entry) — this button called an
-// undefined joinCommunityReto() and silently did nothing when clicked.
-function joinCommunityReto(btn,name){btn.textContent='¡Unido! ✓';btn.disabled=true;toast(`✅ Unido al reto «${name}»`);}
-
 // ── CLUB DETAIL ──
 function renderClubDetail(id){
   CURRENT_CLUB_ID=id;
@@ -8272,7 +8152,7 @@ async function deleteClub(id){
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
-  go('clubs',document.querySelectorAll('.nb')[5]);
+  go('clubs',nbFor('clubs'));
   toast('Club eliminado');
 }
 
@@ -8281,7 +8161,7 @@ async function leaveClub(id){
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
-  go('clubs',document.querySelectorAll('.nb')[5]);
+  go('clubs',nbFor('clubs'));
   toast('Has salido del club');
 }
 
@@ -9019,7 +8899,7 @@ function renderProfile(){
     ];
     sb.innerHTML=states.map(s=>{
       const pct=total?Math.round(s.n/total*100):0;
-      return `<div class="shelfie-breakdown-row" onclick="go('shelf',document.querySelectorAll('.nb')[1]);setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
+      return `<div class="shelfie-breakdown-row" onclick="go('shelf',nbFor('shelf'));setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
         <div class="shelfie-breakdown-icon" style="background:${s.color}"><i class="ti ${s.icon}"></i></div>
         <div class="shelfie-breakdown-info"><div class="shelfie-breakdown-lbl">${s.lbl}</div><div class="shelfie-breakdown-track"><div class="shelfie-breakdown-fill" style="width:${pct}%;background:${s.color}"></div></div></div>
         <div class="shelfie-breakdown-n">${s.n}</div>
@@ -9048,26 +8928,6 @@ function renderProfile(){
   } else {
     actCont.innerHTML=myPosts.map(p=>renderOnePost(p)).join('');
   }
-}
-
-// ═══════════════════════════════════════════════
-// FEED LIKES
-// ═══════════════════════════════════════════════
-function toggleLike(btnId,nId){const btn=document.getElementById(btnId);const nel=document.getElementById(nId);const on=btn.classList.toggle('on');nel.textContent=parseInt(nel.textContent)+(on?1:-1);}
-
-function setFeedFilter(btn){
-  document.querySelectorAll('.feed-filter').forEach(f=>f.classList.remove('on'));
-  btn.classList.add('on');
-  const f=btn.dataset.f;
-  document.querySelectorAll('#p-feed .feed-card, #p-feed .upost').forEach(el=>{
-    if(f==='todo'){el.style.display='';return;}
-    const groups=(el.dataset.group||'').split(' ');
-    el.style.display=groups.includes(f)?'':'none';
-  });
-  document.querySelectorAll('#p-feed .feed-group').forEach(g=>{
-    const visibleCards=[...g.querySelectorAll('.feed-card')].some(c=>c.style.display!=='none');
-    g.style.display=visibleCards?'':'none';
-  });
 }
 
 // ═══════════════════════════════════════════════
@@ -9150,7 +9010,7 @@ function renderSharePreview(){
 function confirmShareToComposer(){
   closeModal('modal-share-preview');
   const books=_sharePreviewBooks;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',nbFor('feed'));
   setTimeout(()=>{
     const shelfieBtn=document.querySelector('.composer-mode[data-mode="shelfiepost"]');
     if(shelfieBtn){shelfieBtn.classList.add('on');document.querySelectorAll('.composer-mode').forEach(b=>{if(b!==shelfieBtn)b.classList.remove('on');});setComposerMode(shelfieBtn);}
@@ -9239,6 +9099,13 @@ function setComposerMode(btn){
   document.getElementById('composer-body-cita').style.display=composerMode==='cita'?'block':'none';
   document.getElementById('composer-body-marginalia').style.display=composerMode==='marginalia'?'block':'none';
   document.getElementById('composer-body-shelfiepost').style.display=composerMode==='shelfiepost'?'block':'none';
+  // A shelfie post is a stack of book covers, not something you're reviewing —
+  // "Marcar como reseña" doesn't apply to it.
+  const reviewToggleLabel=document.getElementById('composer-review-toggle-label');
+  if(reviewToggleLabel){
+    reviewToggleLabel.style.display=composerMode==='shelfiepost'?'none':'flex';
+    if(composerMode==='shelfiepost')document.getElementById('composer-review-check').checked=false;
+  }
   document.getElementById('composer-add-thread-btn').style.display=composerMode==='hilo'?'inline-flex':'none';
   document.getElementById('composer-text').placeholder=composerMode==='hilo'?'Empieza tu historia...':'¿Qué estás pensando sobre tu lectura?';
   // If we're leaving "hilo" mode (and not loading an edit), clear the extra paragraphs so they don't leak into other types
@@ -9636,10 +9503,10 @@ function renderOnePost(p){
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
   // Small secondary book reference — used when the post's main subject is a character
-  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',document.querySelectorAll('.nb')[1])">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
+  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',nbFor('shelf'))">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
 
   // Big visual book block: cover + title + author + stars — used when subject is the book itself
-  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',document.querySelectorAll('.nb')[1])">
+  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',nbFor('shelf'))">
     ${cvr(p.book,'spine')}
     <div class="upost-book-big-info">
       <div class="upost-book-big-title">${escapeHtml(p.book.title)}</div>
@@ -9658,14 +9525,12 @@ function renderOnePost(p){
     </div>
   </div>`:'';
 
-  const dataGroup=(p.type==='marginalia'||p.type==='cita'||p.isReview)?'resenas todo':'todo';
-
   const locParts=[];
   if(p.page)locParts.push('pág. '+escapeHtml(p.page));
   if(p.chapter)locParts.push('cap. '+escapeHtml(p.chapter));
   const locTag=locParts.length?`<span class="upost-loc-tag"><i class="ti ti-bookmark" style="font-size:11px"></i> ${locParts.join(' · ')}</span>`:'';
   const reviewBadge=p.isReview?`<span class="upost-review-tag"><i class="ti ti-star" style="font-size:11px"></i> Reseña</span>`:'';
-  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',document.querySelectorAll('.nb')[8])"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
+  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',nbFor('retos'))"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
   const badgesRow=(reviewBadge||retoBadge)?`<div class="flex gap-2" style="flex-wrap:wrap;margin-bottom:10px">${reviewBadge}${retoBadge}</div>`:'';
   const titleHtml=p.title?`<div class="upost-title">${escapeHtml(p.title)}</div>`:'';
 
@@ -9796,7 +9661,7 @@ function renderOnePost(p){
   const bodyBlock=metaContent+narrativeBlock;
 
   return `
-    <div class="${cardClass}" data-group="${dataGroup}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
+    <div class="${cardClass}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
       <div class="upost-head" style="${needsOwnPadding?'padding:16px 18px 0':''}">
         <div class="u-av" style="${av};width:36px;height:36px;cursor:${author.username?'pointer':'default'}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${author.photo?'':initials}</div>
         <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
