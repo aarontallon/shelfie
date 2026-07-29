@@ -2858,6 +2858,8 @@ async function loadSupaBooks(){
       finishedAt:row.finished_at||null,
       isFavorite:row.is_favorite||false,
       rankPos:row.rank_pos??null,
+      shelfLevel:row.shelf_level??null,
+      shelfCol:row.shelf_col??null,
       publisher:row.publisher||null,
       isbn:row.isbn||null,
       editionYear:row.edition_year||null,
@@ -2894,6 +2896,8 @@ async function saveSupaBook(book,attempt){
     finished_at:book.finishedAt||null,
     is_favorite:book.isFavorite||false,
     rank_pos:book.rankPos??null,
+    shelf_level:Number.isInteger(book.shelfLevel)?book.shelfLevel:null,
+    shelf_col:Number.isInteger(book.shelfCol)?book.shelfCol:null,
     publisher:book.publisher||null,
     isbn:book.isbn||null,
     edition_year:book.editionYear||null,
@@ -4448,6 +4452,10 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
   const theirReadingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
   const streak=calculateCurrentStreak(theirReadingDays);
+  // Raw rows use shelf_level/shelf_col like the rest of user_books' snake_case fields —
+  // mirror them onto shelfLevel/shelfCol so their saved shelf arrangement shows for real,
+  // the same helpers own profile uses instead of always recomputing a fresh layout.
+  books.forEach(b=>{b.shelfLevel=b.shelf_level??null;b.shelfCol=b.shelf_col??null;});
   const leidos=books.filter(b=>b.status==='leidos');
   const leyendo=books.filter(b=>b.status==='leyendo');
   const quiero=books.filter(b=>b.status==='quiero');
@@ -5938,13 +5946,6 @@ function assignShelfCompartments(books,compartmentWidthPx){
   return levels;
 }
 
-// After a manual placement, every OTHER book's assignment is cleared so the next render
-// re-flows them fresh around the one pinned spot — closing whatever gap the moved book
-// left behind (a book from hueco 2 slides back into hueco 1), like sliding books
-// together on a real shelf, without disturbing the book you just placed on purpose.
-function shelfClearOtherAssignments(arr,keepId){
-  arr.forEach(b=>{if(b.id!==keepId){delete b.shelfLevel;delete b.shelfCol;}});
-}
 let _shelfDragBookId=null;
 function shelfCellDragStart(e,bookId){_shelfDragBookId=bookId;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
 function shelfCellDragEnd(e){e.currentTarget.classList.remove('dragging');}
@@ -5963,9 +5964,9 @@ function shelfCellUsedWidth(cellEl,arr,excludeId){
   const usedWidth=ids.map(id=>arr.find(b=>b.id===id)).filter(Boolean).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
   return{availableWidth,usedWidth};
 }
-// Dropped directly on another spine: adopts that spine's compartment and reorders to
-// sit right before it — works whether the target is in the same compartment or a
-// different one. Real-width capacity check applies whenever the target is inside a cell.
+// Dropped directly on another spine: adopts that spine's compartment (or just reorders,
+// if already in the same one) — compartments are fully independent, this never touches
+// any other book's placement. Real-width capacity check applies inside a compartment cell.
 function shelfCellDropOnSpine(e,statusArr,targetBookId){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
@@ -5982,8 +5983,8 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
   }
   if(Number.isInteger(target.shelfLevel)&&Number.isInteger(target.shelfCol)){
     book.shelfLevel=target.shelfLevel;book.shelfCol=target.shelfCol;
+    saveSupaBook(book);
   }
-  shelfClearOtherAssignments(arr,book.id);
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
   const[moved]=arr.splice(fromIdx,1);
   const toIdx=arr.findIndex(b=>b.id===targetBookId);
@@ -5994,6 +5995,9 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
 // Dropped on empty space within a compartment (or an entirely empty one): the book's
 // (level,col) is set explicitly to this cell, so it actually lands here regardless of
 // whether an earlier compartment still has room — only blocked if it doesn't really fit.
+// Compartments are fully independent: this never moves any other book. Within the same
+// compartment, removing a book from the middle just closes up naturally on re-render —
+// there's no fixed per-book slot, so nothing needs to shift explicitly.
 function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null)return;
@@ -6008,7 +6012,7 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
     return;
   }
   book.shelfLevel=levelIdx;book.shelfCol=colIdx;
-  shelfClearOtherAssignments(arr,book.id);
+  saveSupaBook(book);
   // Move it to just after this cell's current last book in array order too, so grid/list
   // views and re-renders keep a sensible reading order.
   const cellBookIds=[...targetCellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==_shelfDragBookId);
