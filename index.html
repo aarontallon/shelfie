@@ -1920,17 +1920,17 @@ a{color:inherit}
 
   <!-- Stats row -->
   <div class="stats-grid">
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=leidos]'),'leidos')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--red-light)"><i class="ti ti-book" style="color:var(--red)"></i></div>
       <div class="stat-val" id="h-leidos">0</div>
       <div class="stat-lbl">Leídos</div>
     </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=leyendo]'),'leyendo')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--blue-light)"><i class="ti ti-book-open" style="color:var(--blue)"></i></div>
       <div class="stat-val" id="h-leyendo">0</div>
       <div class="stat-lbl">Leyendo</div>
     </div>
-    <div class="stat" onclick="go('shelf',document.querySelectorAll('.nb')[1]);shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
+    <div class="stat" onclick="go('shelf',nbFor('shelf'));shelfTab(document.querySelector('[data-tab=quiero]'),'quiero')" style="cursor:pointer">
       <div class="stat-icon" style="background:var(--amber-light)"><i class="ti ti-bookmark" style="color:var(--amber)"></i></div>
       <div class="stat-val" id="h-quiero">0</div>
       <div class="stat-lbl">Quiero leer</div>
@@ -1962,7 +1962,7 @@ a{color:inherit}
       <div class="card">
         <div class="card-head">
           <div class="card-title"><i class="ti ti-target" style="color:var(--red);font-size:14px"></i> Mis retos</div>
-          <button class="card-link" onclick="go('retos',document.querySelectorAll('.nb')[8])">Ver todos →</button>
+          <button class="card-link" onclick="go('retos',nbFor('retos'))">Ver todos →</button>
         </div>
         <div id="home-retos"></div>
       </div>
@@ -1972,14 +1972,14 @@ a{color:inherit}
       <div class="card" style="margin-bottom:14px">
         <div class="card-head">
           <div class="card-title">✨ Recomendado para ti</div>
-          <button class="card-link" onclick="go('discover',document.querySelectorAll('.nb')[3])">Ver más →</button>
+          <button class="card-link" onclick="go('discover',nbFor('discover'))">Ver más →</button>
         </div>
         <div id="home-recs"></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title"><i class="ti ti-users" style="color:var(--blue);font-size:14px"></i> Tu comunidad</div>
-          <button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ir al feed →</button>
+          <button class="card-link" onclick="go('feed',nbFor('feed'))">Ir al feed →</button>
         </div>
         <div id="home-feed"></div>
       </div>
@@ -2397,7 +2397,7 @@ a{color:inherit}
         <div class="fc-grouped-book"><div class="spine" style="background:#1A3A5C;width:40px;height:58px"></div><div class="fc-grouped-title">2666</div></div>
         <div class="fc-grouped-book"><div class="spine" style="background:#7A4A1A;width:40px;height:58px"></div><div class="fc-grouped-title">Pedro Páramo</div></div>
       </div>
-      <button class="btn btn-sm btn-white mt-1" onclick="go('clubs',document.querySelectorAll('.nb')[6])">Ver debate del club</button>
+      <button class="btn btn-sm btn-white mt-1" onclick="go('clubs',nbFor('clubs'))">Ver debate del club</button>
     </div>
   </div>
 
@@ -2707,7 +2707,7 @@ a{color:inherit}
 
   <!-- Libros en progreso -->
   <div class="card" style="margin-top:14px">
-    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+    <div class="card-head"><div class="card-title">📖 Leyendo ahora</div><button class="card-link" onclick="go('shelf',nbFor('shelf'))">Ver shelfie →</button></div>
     <div id="st-progress"></div>
   </div>
 </div>
@@ -2737,8 +2737,8 @@ a{color:inherit}
       </div>
     </div>
     <div class="profile-stats">
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
-      <div class="ps" onclick="go('shelf',document.querySelectorAll('.nb')[1])"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
+      <div class="ps" onclick="go('shelf',nbFor('shelf'))"><div class="ps-n" id="ps-leidos">0</div><div class="ps-l">Leídos</div></div>
+      <div class="ps" onclick="go('shelf',nbFor('shelf'))"><div class="ps-n" id="ps-leyendo">0</div><div class="ps-l">Leyendo</div></div>
       <div class="ps" onclick="openPeopleModal('siguiendo')"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
       <div class="ps" onclick="openPeopleModal('seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
@@ -2758,7 +2758,7 @@ a{color:inherit}
     </div>
     <!-- SHELFIES STATE BREAKDOWN -->
     <div class="card">
-      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',document.querySelectorAll('.nb')[1])">Ver shelfie →</button></div>
+      <div class="card-head"><div class="card-title"><i class="ti ti-books" style="font-size:14px;color:var(--red)"></i> Tus shelfies</div><button class="card-link" onclick="go('shelf',nbFor('shelf'))">Ver shelfie →</button></div>
       <div id="profile-shelfie-breakdown"></div>
     </div>
   </div>
@@ -2796,7 +2796,7 @@ a{color:inherit}
 
   <!-- ACTIVIDAD RECIENTE: posts propios, con likes/comentarios -->
   <div class="card">
-    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',document.querySelectorAll('.nb')[4])">Ver feed →</button></div>
+    <div class="card-head"><div class="card-title"><i class="ti ti-news" style="font-size:14px;color:var(--red)"></i> Tu actividad reciente</div><button class="card-link" onclick="go('feed',nbFor('feed'))">Ver feed →</button></div>
     <div id="profile-activity"></div>
   </div>
 </div>
@@ -4397,6 +4397,7 @@ function go(id,btn,extraId,_isBack){
   if(id==='bookdetail'){
     CURRENT_ENTITY.bookdetail=extraId;
     document.getElementById('p-book-detail').classList.add('on');
+    _bookActivityTab='tuya';
     renderBookPage(extraId);
     return;
   }
@@ -6452,7 +6453,7 @@ async function removeBook(id,from){
 function composerBookFromDetail(bookId){
   const book=allBooks().find(b=>b.id===bookId);
   if(!book)return;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',nbFor('feed'));
   setTimeout(()=>selectComposerBook(book),100);
 }
 
@@ -6465,6 +6466,10 @@ function toggleYearAddMenu(){
 // tab, read-only and with no way to add or fix one after the fact. Editing it right
 // here, where the rest of the book's own data already lives, replaces that tab.
 let _editingReviewBookId=null;
+// Which "Actividad" tab (Tú/Amigos/Reseñas) is open — kept across a re-render of the
+// same book page (e.g. right after saving "Tu reseña") so you don't get bounced back
+// to "Tú"; reset to "Tú" only when you actually navigate to a (possibly different) book.
+let _bookActivityTab='tuya';
 function bookReviewSectionHtml(book,selfKey){
   if(_editingReviewBookId===book.id){
     return `<div class="book-page-section">
@@ -6479,10 +6484,14 @@ function bookReviewSectionHtml(book,selfKey){
   const body=book.review
     ?`<div class="text-sm" style="font-style:italic;color:#444;line-height:1.7;border-left:3px solid var(--red);padding-left:10px;max-width:760px">«${escapeHtml(book.review)}»</div>`
     :`<div class="text-sm text-muted">Aún no has escrito una reseña de este libro.</div>`;
+  const shareBtn=book.review?`<button class="btn btn-white btn-sm" style="margin-top:8px" onclick="shareReviewToFeed('${book.id}')"><i class="ti ti-send-2"></i> Compartir en el feed</button>`:'';
   return `<div class="book-page-section">
     <div class="book-page-section-title"><i class="ti ti-pencil"></i> Tu reseña</div>
     ${body}
-    <button class="btn btn-white btn-sm" style="margin-top:8px" onclick="_editingReviewBookId='${book.id}';renderBookPage('${selfKey}')"><i class="ti ${book.review?'ti-edit':'ti-plus'}"></i> ${book.review?'Editar reseña':'Escribir reseña'}</button>
+    <div class="flex gap-2" style="margin-top:8px">
+      <button class="btn btn-white btn-sm" onclick="_editingReviewBookId='${book.id}';renderBookPage('${selfKey}')"><i class="ti ${book.review?'ti-edit':'ti-plus'}"></i> ${book.review?'Editar reseña':'Escribir reseña'}</button>
+      ${shareBtn}
+    </div>
   </div>`;
 }
 function saveBookReview(bookId,selfKey){
@@ -6493,6 +6502,24 @@ function saveBookReview(bookId,selfKey){
   _editingReviewBookId=null;
   renderBookPage(selfKey);
   toast('✅ Reseña guardada');
+}
+// "Compartir en el feed" bridge: your private "Tu reseña" text and a public review
+// post are different things (one only you ever see, the other is a real Feed post
+// visible to others and counted in the book's community Reseñas), but writing your
+// thoughts twice is silly — this takes you to the composer with the book, the review
+// checkbox and your text already filled in, ready to tweak and publish.
+function shareReviewToFeed(bookId){
+  const book=allBooks().find(b=>b.id===bookId);
+  if(!book)return;
+  go('feed',nbFor('feed'));
+  setTimeout(()=>{
+    selectComposerBook(book);
+    const textEl=document.getElementById('composer-text');
+    if(textEl){textEl.value=book.review||'';autoGrow(textEl);}
+    const reviewCheck=document.getElementById('composer-review-check');
+    if(reviewCheck)reviewCheck.checked=true;
+    textEl?.focus();
+  },100);
 }
 
 function renderBookPage(key){
@@ -6614,18 +6641,19 @@ function renderBookPage(key){
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-users"></i> Actividad</div>
       <div class="book-activity-tabs">
-        <button class="book-activity-tab on" onclick="setBookActivityTab(this,'tuya')">Tú</button>
-        <button class="book-activity-tab" onclick="setBookActivityTab(this,'amigos')">Amigos</button>
-        <button class="book-activity-tab" onclick="setBookActivityTab(this,'resenas')">Reseñas</button>
+        <button class="book-activity-tab ${_bookActivityTab==='tuya'?'on':''}" onclick="setBookActivityTab(this,'tuya')">Tú</button>
+        <button class="book-activity-tab ${_bookActivityTab==='amigos'?'on':''}" onclick="setBookActivityTab(this,'amigos')">Amigos</button>
+        <button class="book-activity-tab ${_bookActivityTab==='resenas'?'on':''}" onclick="setBookActivityTab(this,'resenas')">Reseñas</button>
       </div>
-      <div class="book-activity-panel on" id="book-activity-tuya">
+      <div class="book-activity-panel ${_bookActivityTab==='tuya'?'on':''}" id="book-activity-tuya">
         ${myPosts.length?myPosts.map(p=>renderOnePost(p)).join(''):`<div class="text-sm text-muted">Aún no has publicado nada sobre este libro. <button class="card-link" onclick="composerBookFromDetail('${book.id}')">Escribir algo →</button></div>`}
       </div>
-      <div class="book-activity-panel" id="book-activity-amigos">
+      <div class="book-activity-panel ${_bookActivityTab==='amigos'?'on':''}" id="book-activity-amigos">
         <div class="friends-book-block" style="margin-top:0">${friendsHtml}</div>
       </div>
-      <div class="book-activity-panel" id="book-activity-resenas">
-        <div class="text-sm text-muted">Cargando…</div>
+      <div class="book-activity-panel ${_bookActivityTab==='resenas'?'on':''}" id="book-activity-resenas">
+        <div id="book-activity-resenas-mine">${myReviewBlockHtml(book)}</div>
+        <div id="book-activity-resenas-community"><div class="text-sm text-muted">Cargando…</div></div>
       </div>
     </div>
   `;
@@ -6633,6 +6661,24 @@ function renderBookPage(key){
     loadRealBookCommunityData(book.title,selfKey);
     loadRealBookReviews(book.title,selfKey);
   }
+}
+// Your own "Tu reseña" text (see bookReviewSectionHtml above) shown a second time
+// here, inside "Actividad → Reseñas", so it actually shows up where the "reviews"
+// concept for this book lives — instead of only existing in the section above and
+// never appearing anywhere near the community's reviews of the same book.
+function myReviewBlockHtml(book){
+  if(book.status!=='leidos'||!book.review)return'';
+  const initials=(PROFILE.name||'Tú').trim().slice(0,2).toUpperCase();
+  return `<div class="card" style="margin-bottom:12px">
+    <div class="third-party-review">
+      <div class="f-av" style="background:var(--red);color:white;width:34px;height:34px;flex-shrink:0">${initials}</div>
+      <div class="third-party-review-body">
+        <div class="third-party-review-name">Tu reseña</div>
+        ${book.stars?`<div class="third-party-review-stars">${'★'.repeat(book.stars)}${'☆'.repeat(5-book.stars)}</div>`:''}
+        <div class="third-party-review-text">«${escapeHtml(book.review)}»</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 // Real community counts (how many people across the whole app have this book as
@@ -6689,7 +6735,10 @@ async function loadRealBookReviews(title,guardKey){
     if(error||!data)return;
     if(CURRENT_ENTITY.bookdetail!==guardKey)return;
     const reviews=data.filter(r=>r.extra?.isReview&&r.user_id!==SUPA_USER.id);
-    const el=document.getElementById('book-activity-resenas');
+    // Owned-book ficha (renderBookPage) has "Tu reseña" in its own sibling container
+    // (#book-activity-resenas-community); the generic ficha for a book you don't have
+    // yet (renderBookPageGeneric) has no such split and uses the panel directly.
+    const el=document.getElementById('book-activity-resenas-community')||document.getElementById('book-activity-resenas');
     if(!el)return;
     if(!reviews.length){el.innerHTML='<div class="text-sm text-muted">Aún no hay reseñas de la comunidad para este libro.</div>';return;}
     await ensureAuthorsLoaded(reviews.map(r=>r.user_id));
@@ -6802,6 +6851,7 @@ async function renderBookPageGeneric(key){
 }
 
 function setBookActivityTab(btn,tab){
+  _bookActivityTab=tab;
   document.querySelectorAll('.book-activity-tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
   document.querySelectorAll('.book-activity-panel').forEach(p=>p.classList.remove('on'));
@@ -8264,7 +8314,7 @@ async function deleteClub(id){
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
-  go('clubs',document.querySelectorAll('.nb')[5]);
+  go('clubs',nbFor('clubs'));
   toast('Club eliminado');
 }
 
@@ -8273,7 +8323,7 @@ async function leaveClub(id){
   const ok=await deleteSupaClub(id);
   if(!ok)return;
   CLUBS=CLUBS.filter(c=>c.id!==id);
-  go('clubs',document.querySelectorAll('.nb')[5]);
+  go('clubs',nbFor('clubs'));
   toast('Has salido del club');
 }
 
@@ -9011,7 +9061,7 @@ function renderProfile(){
     ];
     sb.innerHTML=states.map(s=>{
       const pct=total?Math.round(s.n/total*100):0;
-      return `<div class="shelfie-breakdown-row" onclick="go('shelf',document.querySelectorAll('.nb')[1]);setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
+      return `<div class="shelfie-breakdown-row" onclick="go('shelf',nbFor('shelf'));setTimeout(()=>document.querySelector('.shelf-tab[data-tab=\\'${s.key}\\']')?.click(),50)">
         <div class="shelfie-breakdown-icon" style="background:${s.color}"><i class="ti ${s.icon}"></i></div>
         <div class="shelfie-breakdown-info"><div class="shelfie-breakdown-lbl">${s.lbl}</div><div class="shelfie-breakdown-track"><div class="shelfie-breakdown-fill" style="width:${pct}%;background:${s.color}"></div></div></div>
         <div class="shelfie-breakdown-n">${s.n}</div>
@@ -9142,7 +9192,7 @@ function renderSharePreview(){
 function confirmShareToComposer(){
   closeModal('modal-share-preview');
   const books=_sharePreviewBooks;
-  go('feed',document.querySelectorAll('.nb')[4]);
+  go('feed',nbFor('feed'));
   setTimeout(()=>{
     const shelfieBtn=document.querySelector('.composer-mode[data-mode="shelfiepost"]');
     if(shelfieBtn){shelfieBtn.classList.add('on');document.querySelectorAll('.composer-mode').forEach(b=>{if(b!==shelfieBtn)b.classList.remove('on');});setComposerMode(shelfieBtn);}
@@ -9628,10 +9678,10 @@ function renderOnePost(p){
   const isCharacterSubject=p.subject==='personaje'&&p.character;
 
   // Small secondary book reference — used when the post's main subject is a character
-  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',document.querySelectorAll('.nb')[1])">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
+  const bookSmallRef=p.book?`<div class="upost-book-small-ref" onclick="go('shelf',nbFor('shelf'))">${cvr(p.book,'mini')}<div class="upost-book-small-ref-txt">De <strong>${escapeHtml(p.book.title)}</strong> · ${escapeHtml(p.book.author)}</div></div>`:'';
 
   // Big visual book block: cover + title + author + stars — used when subject is the book itself
-  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',document.querySelectorAll('.nb')[1])">
+  const bookBig=(p.book&&!isCharacterSubject)?`<div class="upost-book-big" onclick="go('shelf',nbFor('shelf'))">
     ${cvr(p.book,'spine')}
     <div class="upost-book-big-info">
       <div class="upost-book-big-title">${escapeHtml(p.book.title)}</div>
@@ -9657,7 +9707,7 @@ function renderOnePost(p){
   if(p.chapter)locParts.push('cap. '+escapeHtml(p.chapter));
   const locTag=locParts.length?`<span class="upost-loc-tag"><i class="ti ti-bookmark" style="font-size:11px"></i> ${locParts.join(' · ')}</span>`:'';
   const reviewBadge=p.isReview?`<span class="upost-review-tag"><i class="ti ti-star" style="font-size:11px"></i> Reseña</span>`:'';
-  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',document.querySelectorAll('.nb')[8])"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
+  const retoBadge=p.retoName?`<span class="upost-reto-tag" onclick="go('retos',nbFor('retos'))"><i class="ti ti-target" style="font-size:11px"></i> ${escapeHtml(p.retoName)}</span>`:'';
   const badgesRow=(reviewBadge||retoBadge)?`<div class="flex gap-2" style="flex-wrap:wrap;margin-bottom:10px">${reviewBadge}${retoBadge}</div>`:'';
   const titleHtml=p.title?`<div class="upost-title">${escapeHtml(p.title)}</div>`:'';
 
