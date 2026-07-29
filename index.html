@@ -5892,9 +5892,12 @@ function bookActionsMenuItemsHtml(b){
 }
 
 // ═══ Interactive shelf compartments: 3 real width-based cubicles per shelf level ═══
-// A book's row/compartment is never persisted — it's recomputed on every render from
-// the underlying array order + each spine's real width, so dragging a book into a
-// compartment just means "reorder it to sit after that compartment's current books".
+// Which (level,col) each book sits in is explicit data on the book itself (b.shelfLevel/
+// b.shelfCol), not something re-derived from array order — a book dragged into hueco 3
+// must actually land in hueco 3, even when an earlier hueco still has room (greedy
+// repacking purely from array order would otherwise "absorb" it into that earlier hueco
+// first). Books without an assignment yet (new books, or first time this renders) get
+// auto-placed into the next available real-width slot, and that placement sticks.
 const SHELF_CELL_GAP=3;
 function computeShelfCompartmentWidth(containerId){
   const el=document.getElementById(containerId);
@@ -5903,22 +5906,45 @@ function computeShelfCompartmentWidth(containerId){
   const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
   return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
 }
-function packBooksIntoShelfLevels(books,compartmentWidthPx){
+function assignShelfCompartments(books,compartmentWidthPx){
   const levels=[];
-  let level=[[],[],[]],col=0,widthUsed=0;
+  const ensureLevel=li=>{while(levels.length<=li)levels.push([[],[],[]]);};
+  const hasValidSlot=b=>Number.isInteger(b.shelfLevel)&&Number.isInteger(b.shelfCol)&&b.shelfCol>=0&&b.shelfCol<=2;
+  // Pass 1: seed already-assigned books into their existing slot, in array order.
   books.forEach(b=>{
-    const w=spineDims(b).widthPx+SHELF_CELL_GAP;
-    if(level[col].length&&widthUsed+w>compartmentWidthPx){
-      col++;widthUsed=0;
-      if(col>2){levels.push(level);level=[[],[],[]];col=0;}
-    }
-    level[col].push(b);
-    widthUsed+=w;
+    if(!hasValidSlot(b))return;
+    ensureLevel(b.shelfLevel);
+    levels[b.shelfLevel][b.shelfCol].push(b);
   });
-  if(level.some(c=>c.length))levels.push(level);
+  // Pass 2: auto-place any book without a valid assignment yet, into the first slot
+  // (reading order) with real-width room, and make that placement stick.
+  books.forEach(b=>{
+    if(hasValidSlot(b))return;
+    const w=spineDims(b).widthPx+SHELF_CELL_GAP;
+    let li=0,ci=0;
+    while(true){
+      ensureLevel(li);
+      const cellBooks=levels[li][ci];
+      const usedWidth=cellBooks.reduce((s,x)=>s+spineDims(x).widthPx+SHELF_CELL_GAP,0);
+      if(!cellBooks.length||usedWidth+w<=compartmentWidthPx){
+        cellBooks.push(b);
+        b.shelfLevel=li;b.shelfCol=ci;
+        break;
+      }
+      ci++;
+      if(ci>2){ci=0;li++;}
+    }
+  });
   return levels;
 }
 
+// After a manual placement, every OTHER book's assignment is cleared so the next render
+// re-flows them fresh around the one pinned spot — closing whatever gap the moved book
+// left behind (a book from hueco 2 slides back into hueco 1), like sliding books
+// together on a real shelf, without disturbing the book you just placed on purpose.
+function shelfClearOtherAssignments(arr,keepId){
+  arr.forEach(b=>{if(b.id!==keepId){delete b.shelfLevel;delete b.shelfCol;}});
+}
 let _shelfDragBookId=null;
 function shelfCellDragStart(e,bookId){_shelfDragBookId=bookId;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
 function shelfCellDragEnd(e){e.currentTarget.classList.remove('dragging');}
@@ -5937,15 +5963,16 @@ function shelfCellUsedWidth(cellEl,arr,excludeId){
   const usedWidth=ids.map(id=>arr.find(b=>b.id===id)).filter(Boolean).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
   return{availableWidth,usedWidth};
 }
-// Dropped directly on another spine: reorder to sit right before it — works whether
-// the target is in the same compartment or a different one. If the target is inside a
-// compartment cell, the same real-width capacity check applies as an empty-space drop.
+// Dropped directly on another spine: adopts that spine's compartment and reorders to
+// sit right before it — works whether the target is in the same compartment or a
+// different one. Real-width capacity check applies whenever the target is inside a cell.
 function shelfCellDropOnSpine(e,statusArr,targetBookId){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
-  if(!book){_shelfDragBookId=null;return;}
+  const target=arr.find(b=>b.id===targetBookId);
+  if(!book||!target){_shelfDragBookId=null;return;}
   const targetCellEl=e.currentTarget.closest('.shelf-cell');
   const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
   if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
@@ -5953,6 +5980,10 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
     _shelfDragBookId=null;
     return;
   }
+  if(Number.isInteger(target.shelfLevel)&&Number.isInteger(target.shelfCol)){
+    book.shelfLevel=target.shelfLevel;book.shelfCol=target.shelfCol;
+  }
+  shelfClearOtherAssignments(arr,book.id);
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
   const[moved]=arr.splice(fromIdx,1);
   const toIdx=arr.findIndex(b=>b.id===targetBookId);
@@ -5960,12 +5991,10 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
   _shelfDragBookId=null;
   shelfRerender(statusArr);
 }
-// Dropped on empty space within a compartment (or an entirely empty one): append after
-// whatever's already there, but only if it actually fits — otherwise warn and cancel.
-// No requirement to fill earlier compartments first — you can place a book in any
-// hueco with room, in any order. Reads the target cell's current content straight from
-// the DOM (not a freshly recomputed packing) so it always matches exactly what's on screen.
-function shelfCellDropOnEmpty(e,statusArr){
+// Dropped on empty space within a compartment (or an entirely empty one): the book's
+// (level,col) is set explicitly to this cell, so it actually lands here regardless of
+// whether an earlier compartment still has room — only blocked if it doesn't really fit.
+function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
   e.preventDefault();e.stopPropagation();
   if(_shelfDragBookId===null)return;
   const arr=DB[statusArr];
@@ -5978,16 +6007,12 @@ function shelfCellDropOnEmpty(e,statusArr){
     _shelfDragBookId=null;
     return;
   }
-  // Insert right after the last book that appears at or before this cell in reading
-  // order (so dropping into an empty cell lands it in the right spot, not at array start).
-  const allCells=[...targetCellEl.closest('.shelf-levels').querySelectorAll('.shelf-cell')];
-  const targetIdx=allCells.indexOf(targetCellEl);
-  const cellBookIds=cellEl=>[...cellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==_shelfDragBookId);
-  let lastBookId=null;
-  for(let i=targetIdx;i>=0&&!lastBookId;i--){
-    const ids=cellBookIds(allCells[i]);
-    if(ids.length)lastBookId=ids[ids.length-1];
-  }
+  book.shelfLevel=levelIdx;book.shelfCol=colIdx;
+  shelfClearOtherAssignments(arr,book.id);
+  // Move it to just after this cell's current last book in array order too, so grid/list
+  // views and re-renders keep a sensible reading order.
+  const cellBookIds=[...targetCellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==_shelfDragBookId);
+  const lastBookId=cellBookIds[cellBookIds.length-1]||null;
   const fromIdx=arr.findIndex(b=>b.id===_shelfDragBookId);
   arr.splice(fromIdx,1);
   const insertAfterIdx=lastBookId?arr.findIndex(b=>b.id===lastBookId):-1;
@@ -6010,7 +6035,7 @@ function shelfViewHtml(books,statusArr,editable,containerId){
     </div>`;
   }
   const compartmentWidthPx=computeShelfCompartmentWidth(containerId);
-  const levels=packBooksIntoShelfLevels(books,compartmentWidthPx);
+  const levels=assignShelfCompartments(books,compartmentWidthPx);
   // Wall positions sit exactly on the real flex boundary between cells (accounting for
   // the 16px gap), so they never drift off the actual edge regardless of card width.
   const wallsHtml=`<div class="shelf-wall" style="left:calc(33.3333% - 1.333px)"></div><div class="shelf-wall" style="left:calc(66.6667% + 1.333px)"></div>`;
@@ -6020,7 +6045,7 @@ function shelfViewHtml(books,statusArr,editable,containerId){
         ${level.map((cellBooks,ci)=>`
           <div class="shelf-cell">
             ${cellBooks.map(spineHtml).join('')}
-            ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}')"></div>`:''}
+            ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}',${li},${ci})"></div>`:''}
           </div>`).join('')}
       </div>
       <div class="shelf-plank"></div>
