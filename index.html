@@ -205,11 +205,11 @@ a{color:inherit}
 .event-map-link:hover{text-decoration:underline}
 .events-layout{display:flex;gap:22px;align-items:flex-start}
 .events-list-col{flex:1;min-width:0}
-.events-map-col{width:380px;flex-shrink:0;position:sticky;top:20px}
-#events-map{height:calc(100vh - 140px);min-height:320px;max-height:640px;border-radius:14px;border:1px solid var(--border);z-index:0}
+.events-map-col{width:320px;flex-shrink:0;position:sticky;top:20px}
+#events-map{height:420px;border-radius:14px;border:1px solid var(--border);z-index:0}
+.event-card-highlight{animation:eventCardPulse 1.4s ease}
+@keyframes eventCardPulse{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--red-light),0 0 0 4px var(--red)}}
 .leaflet-popup-content{margin:12px 14px}
-.event-popup-link{display:inline-block;margin-top:6px;color:var(--red);font-weight:600;font-size:12.5px;text-decoration:none;cursor:pointer}
-.event-popup-link:hover{text-decoration:underline}
 @media (max-width:900px){
   .events-layout{flex-direction:column}
   .events-map-col{width:100%;position:static}
@@ -3865,7 +3865,7 @@ function renderEventsList(){
     const joined=MY_EVENT_SIGNUPS.has(e.id);
     const signups=e._signups||[];
     const full=e.capacity&&signups.length>=e.capacity;
-    return `<div class="organizer-event-card" style="cursor:pointer" onclick="go('eventdetail',null,'${e.id}')">
+    return `<div class="organizer-event-card" id="event-card-${e.id}" style="cursor:pointer" onclick="go('eventdetail',null,'${e.id}')">
       <div class="organizer-event-top">
         <div>
           <div class="organizer-event-title">${escapeHtml(e.title)}</div>
@@ -3913,6 +3913,15 @@ function openReaderEventAttendees(id,title){
   openModal('modal-event-attendees');
 }
 
+function scrollToEventCard(id){
+  const card=document.getElementById('event-card-'+id);
+  if(!card)return;
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+  card.classList.remove('event-card-highlight');
+  void card.offsetWidth; // reinicia la animación si ya se había disparado antes
+  card.classList.add('event-card-highlight');
+}
+
 function renderEventsMap(events){
   const mapEl=document.getElementById('events-map');
   if(!mapEl)return;
@@ -3927,7 +3936,10 @@ function renderEventsMap(events){
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(EVENTS_MAP_INSTANCE);
   }
   EVENTS_MAP_MARKERS.forEach(m=>EVENTS_MAP_INSTANCE.removeLayer(m));
-  EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng]).addTo(EVENTS_MAP_INSTANCE).bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}<br><a class="event-popup-link" onclick="go('eventdetail',null,'${e.id}')">Ver evento →</a>`));
+  EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng])
+    .addTo(EVENTS_MAP_INSTANCE)
+    .bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}`)
+    .on('click',()=>scrollToEventCard(e.id)));
   setTimeout(()=>EVENTS_MAP_INSTANCE.invalidateSize(),50);
   if(withCoords.length===1){
     EVENTS_MAP_INSTANCE.setView([withCoords[0].lat,withCoords[0].lng],13);
