@@ -115,6 +115,13 @@ a{color:inherit}
 .landing-feature-desc{font-size:13.5px;color:var(--ink3);line-height:1.55}
 
 
+.landing-organizers{background:#25302B;padding:60px 40px}
+.landing-organizers-inner{max-width:640px;margin:0 auto}
+.landing-organizers .landing-section-eyebrow{color:#9DBFA9}
+.landing-organizers .landing-section-title{color:white}
+.landing-organizers .landing-section-sub{color:rgba(255,255,255,0.65)}
+.landing-organizers-link{background:none;border:none;color:white;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:8px 4px;text-decoration:underline;white-space:nowrap}
+
 .landing-cta-band{background:var(--ink);padding:70px 40px;text-align:center;position:relative;overflow:hidden}
 .landing-cta-band::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(74,124,95,0.25),transparent 70%)}
 .landing-cta-band-inner{position:relative;z-index:2}
@@ -168,6 +175,21 @@ a{color:inherit}
 /* ═══════ GENERAL ═══════ */
 .app{display:none;grid-template-columns:230px 1fr;min-height:100vh}
 .app.on{display:grid}
+/* Panel de organizador de eventos — espacio separado del de lectores (.app):
+   sin sidebar, sin ningún dato de shelfie, solo gestión de sus eventos. */
+.organizer-shell{display:none;min-height:100vh;background:var(--paper)}
+.organizer-shell.on{display:block}
+.organizer-topbar{background:white;border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.organizer-content{padding:28px;max-width:900px;margin:0 auto}
+.organizer-event-card{background:white;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px}
+.organizer-event-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.organizer-event-title{font-size:16px;font-weight:700;color:var(--ink)}
+.organizer-event-meta{font-size:12.5px;color:var(--ink3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.organizer-event-type-tag{font-size:10.5px;font-weight:700;color:var(--red);background:var(--red-light);padding:2px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:0.03em}
+.organizer-event-desc{font-size:13px;color:var(--ink2);line-height:1.6;margin:10px 0}
+.organizer-event-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #EEE}
+.event-attendee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F0F0}
+.event-attendee-row:last-child{border-bottom:none}
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
 .main{overflow-x:hidden;position:relative}
 .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;position:fixed;top:0;left:0;right:0;height:56px;background:var(--paper);border-bottom:1px solid var(--border);z-index:200}
@@ -1301,6 +1323,20 @@ a{color:inherit}
     </div>
   </section>
 
+  <section class="landing-section landing-organizers">
+    <div class="landing-organizers-inner">
+      <div class="landing-organizers-text">
+        <div class="landing-section-eyebrow">Para locales y organizadores</div>
+        <h2 class="landing-section-title" style="text-align:left">¿Organizas encuentros de lectura?</h2>
+        <p class="landing-section-sub" style="text-align:left;margin-bottom:20px">Librerías, bibliotecas, centros culturales, clubs de lectura o cualquier local que monte presentaciones, firmas o encuentros literarios: registra tu evento en shelfie y accede a quién se ha apuntado, en un espacio separado del de los lectores.</p>
+        <div class="landing-cta-row">
+          <button class="btn btn-white btn-lg" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
+          <button class="landing-organizers-link" onclick="showAuth('organizer-login')">Ya tengo cuenta de organizador →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="landing-cta-band">
     <div class="landing-cta-band-inner">
       <div class="landing-cta-band-title">Tu próxima lectura favorita empieza aquí</div>
@@ -1482,6 +1518,47 @@ a{color:inherit}
     <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
     <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
     <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: ORGANIZER LOGIN ══════════════════════ -->
+<!-- Espacio separado del de lectores: mismo sistema de login de Supabase,
+     pero esta cuenta nunca tiene fila en profiles (ver handle_new_user en
+     supabase_schema.sql) — solo en organizers. -->
+<div class="auth-screen" id="auth-organizer-login">
+  <button class="auth-back" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div class="auth-box" id="organizer-login-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="ti ti-building-store" style="font-size:26px"></i></div>
+      <div class="logo-text">shelf<em>ie</em> eventos</div>
+    </div>
+    <div class="auth-title">Panel de organizador</div>
+    <div class="auth-sub">Inicia sesión para gestionar tus eventos</div>
+    <div class="auth-error" id="organizer-login-error"></div>
+    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-login-email" type="email" placeholder="tu@local.com"></div>
+    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-login-pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-red w-full btn-lg" onclick="organizerLogin()"><i class="ti ti-login"></i> Iniciar sesión</button>
+    <div class="auth-switch">¿No tienes cuenta de organizador? <button onclick="showAuth('organizer-register')">Regístrate</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: ORGANIZER REGISTER ══════════════════════ -->
+<div class="auth-screen" id="auth-organizer-register">
+  <button class="auth-back" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div class="auth-box" id="organizer-register-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="ti ti-building-store" style="font-size:26px"></i></div>
+      <div class="logo-text">shelf<em>ie</em> eventos</div>
+    </div>
+    <div class="auth-title">Registra tu local o servicio</div>
+    <div class="auth-sub">Publica tus eventos de lectura y ve quién se apunta</div>
+    <div class="auth-error" id="organizer-register-error"></div>
+    <div class="f-row"><label class="f-label">Nombre del local / servicio</label><input class="f-input" id="org-reg-venue" placeholder="Ej: Librería La Central"></div>
+    <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="org-reg-city" placeholder="Ej: Barcelona"></div>
+    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-reg-email" type="email" placeholder="contacto@tulocal.com"></div>
+    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-reg-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <button class="btn btn-red w-full btn-lg" onclick="organizerRegister()"><i class="ti ti-user-plus"></i> Crear cuenta de organizador</button>
+    <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('organizer-login')">Inicia sesión</button></div>
   </div>
 </div>
 
@@ -1827,6 +1904,7 @@ a{color:inherit}
     <button class="nb on" onclick="go('home',this)"><i class="ti ti-layout-dashboard"></i> Inicio</button>
     <button class="nb" onclick="go('shelf',this)"><i class="ti ti-books"></i> Mi shelfie</button>
     <button class="nb" onclick="go('discover',this)"><i class="ti ti-telescope"></i> Descubrir</button>
+    <button class="nb" onclick="go('events',this)"><i class="ti ti-calendar-event"></i> Eventos</button>
   </div>
   <div class="sb-section">
     <div class="sb-lbl">Social</div>
@@ -2077,6 +2155,18 @@ a{color:inherit}
     <div id="disc-list-modal-desc" style="font-size:13px;color:var(--ink3);margin-bottom:14px"></div>
     <div class="disc-grid" id="disc-list-modal-body"></div>
   </div>
+</div>
+
+<!-- ── EVENTOS ── -->
+<div id="p-events" class="page">
+  <div class="tb"><div><h1>Eventos</h1><p id="events-sub">Encuentros de lectura cerca de ti</p></div></div>
+  <div id="events-no-city" class="empty card" style="display:none">
+    <i class="ti ti-map-pin"></i>
+    <p>Añade tu ciudad en tu perfil para ver los eventos de tu zona</p>
+    <button class="btn btn-red" style="margin-top:12px" onclick="openProfileEdit()"><i class="ti ti-edit"></i> Editar perfil</button>
+  </div>
+  <div id="events-list"></div>
+  <div id="events-empty" class="empty card" style="display:none"><i class="ti ti-calendar-event"></i><p>No hay eventos programados en tu zona todavía</p></div>
 </div>
 
 <!-- ── FEED ── -->
@@ -2664,6 +2754,67 @@ a{color:inherit}
 
 </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- ══════════════════════ ORGANIZER SHELL (espacio separado de Shelfie) ══════════════════════ -->
+<div class="organizer-shell" id="organizer-shell">
+  <nav class="organizer-topbar">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><i class="ti ti-building-store" style="font-size:22px"></i></div>
+      <div class="logo-text">shelf<em>ie</em> eventos</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div id="organizer-venue-name" style="font-size:13px;font-weight:600;color:var(--ink)"></div>
+      <button class="btn btn-white btn-sm" onclick="organizerLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button>
+    </div>
+  </nav>
+  <div class="organizer-content">
+    <div class="tb">
+      <div><h1>Tus eventos</h1><p>Gestiona tus eventos y consulta quién se ha apuntado</p></div>
+      <button class="btn btn-red" onclick="openCreateEventModal()"><i class="ti ti-plus"></i> Crear evento</button>
+    </div>
+    <div id="organizer-events-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ MODAL: CREAR EVENTO ══════════════════════ -->
+<div class="overlay" id="modal-create-event" style="display:none" onclick="if(event.target===this)closeModal('modal-create-event')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-create-event')"><i class="ti ti-x"></i></button>
+  <h2>Crear evento</h2>
+  <p class="sub">Se publica al instante, visible para lectores de tu ciudad</p>
+  <div class="f-row"><label class="f-label">Título del evento</label><input class="f-input" id="ev-title" placeholder="Ej: Presentación de «Cien años de soledad»"></div>
+  <div class="f-row"><label class="f-label">Descripción</label><textarea class="f-input" id="ev-desc" style="height:80px;resize:vertical" placeholder="¿Qué va a pasar en el evento?"></textarea></div>
+  <div class="f-row">
+    <label class="f-label">Tipo de evento</label>
+    <select class="f-input" id="ev-type">
+      <option value="presentacion">Presentación de libro</option>
+      <option value="firma">Firma de ejemplares</option>
+      <option value="club">Club de lectura</option>
+      <option value="taller">Taller / curso</option>
+      <option value="feria">Feria / mercadillo</option>
+      <option value="otro">Otro</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:10px">
+    <div class="f-row" style="flex:1"><label class="f-label">Ciudad</label><input class="f-input" id="ev-city" placeholder="Ej: Barcelona"></div>
+    <div class="f-row" style="flex:1"><label class="f-label">Dirección</label><input class="f-input" id="ev-address" placeholder="Calle, número..."></div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <div class="f-row" style="flex:1"><label class="f-label">Fecha y hora</label><input class="f-input" id="ev-datetime" type="datetime-local"></div>
+    <div class="f-row" style="flex:1"><label class="f-label">Aforo <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input class="f-input" id="ev-capacity" type="number" min="1" placeholder="Sin límite"></div>
+  </div>
+  <button class="btn btn-red w-full" onclick="saveNewEvent()"><i class="ti ti-check"></i> Publicar evento</button>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: INSCRITOS EN EL EVENTO ══════════════════════ -->
+<div class="overlay" id="modal-event-attendees" style="display:none" onclick="if(event.target===this)closeModal('modal-event-attendees')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-event-attendees')"><i class="ti ti-x"></i></button>
+  <h2 id="event-attendees-title">Inscritos</h2>
+  <div id="event-attendees-list"></div>
+</div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════
@@ -3253,7 +3404,15 @@ function handleReactionRealtime(type,payload){
 }
 
 // ── Internal: enter app after auth ──
+// Organizadores y lectores comparten auth.users pero nunca los mismos datos
+// (ver handle_new_user en supabase_schema.sql) — así que la primera vez que
+// detectamos una sesión, miramos primero si es un organizador y, si lo es,
+// entramos directamente a su panel en vez de al flujo normal de lector.
 async function _supaEnterApp(){
+  try{
+    const{data:orgRow}=await supa.from('organizers').select('*').eq('id',SUPA_USER.id).maybeSingle();
+    if(orgRow){await _organizerEnterApp(orgRow);return;}
+  }catch(e){console.error('organizer check failed:',e);}
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
   // Friends must be loaded before posts — the feed query needs FRIENDS to know
@@ -3272,6 +3431,224 @@ async function _supaEnterApp(){
   // that no longer exists.
   if(!SUPA_USER)return;
   try{enterApp(true);}catch(e){console.error('enterApp failed:',e);}
+}
+
+// ═══════════════════════════════════════════════
+// EVENTOS — panel de organizador (espacio separado de Shelfie)
+// ═══════════════════════════════════════════════
+let ORGANIZER=null; // {id,venue_name,city,description,contact_email}
+let ORGANIZER_EVENTS=[];
+
+async function organizerRegister(){
+  const venueName=document.getElementById('org-reg-venue').value.trim();
+  const city=document.getElementById('org-reg-city').value.trim();
+  const email=document.getElementById('org-reg-email').value.trim();
+  const pass=document.getElementById('org-reg-pass').value;
+  if(!venueName){toast('⚠️ Escribe el nombre de tu local o servicio');return;}
+  if(!city){toast('⚠️ Escribe tu ciudad');return;}
+  if(!email||!pass||pass.length<8){authErr('organizer-register-error','Escribe un email válido y una contraseña de al menos 8 caracteres.');return;}
+  const btn=document.querySelector('#organizer-register-box .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Creando...';}
+  const{data,error}=await supa.auth.signUp({email,password:pass,options:{data:{account_type:'organizer',venue_name:venueName,city}}});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Crear cuenta de organizador';}
+  if(error){
+    const msg=error.message||JSON.stringify(error);
+    authErr('organizer-register-error',(msg.includes('already registered')||msg.includes('already been registered'))?'Ya existe una cuenta con ese email. Inicia sesión.':(msg||'Error al crear la cuenta. Inténtalo de nuevo.'));
+    return;
+  }
+  SUPA_USER=data.user||data.session?.user||null;
+  if(!SUPA_USER){const{data:sd}=await supa.auth.getSession();SUPA_USER=sd?.session?.user||null;}
+  toast(`✅ Cuenta creada para «${venueName}»`);
+  if(SUPA_USER&&!isLoggedIn&&!_appEntering){_appEntering=true;try{await _supaEnterApp();}finally{_appEntering=false;}}
+}
+
+async function organizerLogin(){
+  const email=document.getElementById('org-login-email').value.trim();
+  const pass=document.getElementById('org-login-pass').value;
+  if(!email||!pass){authErr('organizer-login-error','Escribe tu email y contraseña.');return;}
+  const btn=document.querySelector('#organizer-login-box .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Entrando...';}
+  const{error}=await supa.auth.signInWithPassword({email,password:pass});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Iniciar sesión';}
+  if(error){authErr('organizer-login-error','Email o contraseña incorrectos.');return;}
+  // onAuthStateChange will fire SIGNED_IN, call _supaEnterApp(), which routes to
+  // the organizer dashboard once it finds this uid in organizers.
+}
+
+async function _organizerEnterApp(orgRow){
+  ORGANIZER=orgRow;
+  isLoggedIn=true;
+  document.querySelectorAll('.auth-screen,.landing-screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('organizer-shell').classList.add('on');
+  document.getElementById('organizer-venue-name').textContent=ORGANIZER.venue_name;
+  await loadOrganizerEvents();
+}
+
+async function loadOrganizerEvents(){
+  const{data,error}=await supa.from('events').select('*').eq('organizer_id',ORGANIZER.id).order('starts_at',{ascending:true});
+  if(error){console.error('loadOrganizerEvents failed:',error);return;}
+  ORGANIZER_EVENTS=data||[];
+  renderOrganizerEvents();
+}
+
+const EVENT_TYPE_LABELS={presentacion:'Presentación',firma:'Firma de ejemplares',club:'Club de lectura',taller:'Taller / curso',feria:'Feria / mercadillo',otro:'Evento'};
+
+function formatEventDate(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+
+function renderOrganizerEvents(){
+  const el=document.getElementById('organizer-events-list');
+  if(!el)return;
+  if(!ORGANIZER_EVENTS.length){el.innerHTML='<div class="empty card"><i class="ti ti-calendar-event"></i><p>Aún no has creado ningún evento</p></div>';return;}
+  el.innerHTML=ORGANIZER_EVENTS.map(e=>`
+    <div class="organizer-event-card">
+      <div class="organizer-event-top">
+        <div>
+          <div class="organizer-event-title">${escapeHtml(e.title)}</div>
+          <div class="organizer-event-meta">
+            <span class="organizer-event-type-tag">${EVENT_TYPE_LABELS[e.event_type]||'Evento'}</span>
+            <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(e.starts_at)}</span>
+            ${e.city||e.address?`<span><i class="ti ti-map-pin" style="font-size:12px"></i> ${escapeHtml([e.address,e.city].filter(Boolean).join(', '))}</span>`:''}
+          </div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+      ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
+      <div class="organizer-event-actions">
+        <button class="btn btn-white btn-sm" onclick="openEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos</button>
+        ${e.capacity?`<span class="text-xs text-muted" style="align-self:center">Aforo: ${e.capacity}</span>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function openCreateEventModal(){
+  ['ev-title','ev-desc','ev-city','ev-address','ev-datetime','ev-capacity'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('ev-city').value=ORGANIZER?.city||'';
+  document.getElementById('ev-type').value='presentacion';
+  openModal('modal-create-event');
+}
+
+async function saveNewEvent(){
+  const title=document.getElementById('ev-title').value.trim();
+  const desc=document.getElementById('ev-desc').value.trim();
+  const type=document.getElementById('ev-type').value;
+  const city=document.getElementById('ev-city').value.trim();
+  const address=document.getElementById('ev-address').value.trim();
+  const datetime=document.getElementById('ev-datetime').value;
+  const capacity=parseInt(document.getElementById('ev-capacity').value)||null;
+  if(!title){toast('⚠️ Escribe un título para el evento');return;}
+  if(!city){toast('⚠️ Escribe la ciudad del evento');return;}
+  if(!datetime){toast('⚠️ Elige fecha y hora');return;}
+  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity};
+  const{data,error}=await supa.from('events').insert(row).select().single();
+  if(error){console.error('saveNewEvent failed:',error);toast('❌ No se pudo crear el evento. Inténtalo de nuevo.');return;}
+  ORGANIZER_EVENTS.push(data);
+  ORGANIZER_EVENTS.sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
+  renderOrganizerEvents();
+  closeModal('modal-create-event');
+  toast(`✅ Evento «${title}» publicado`);
+}
+
+async function deleteEvent(id){
+  if(!await confirmModal('¿Eliminar este evento? También se borrarán sus inscripciones.'))return;
+  const{error}=await supa.from('events').delete().eq('id',id);
+  if(error){console.error('deleteEvent failed:',error);toast('❌ No se pudo eliminar el evento.');return;}
+  ORGANIZER_EVENTS=ORGANIZER_EVENTS.filter(e=>e.id!==id);
+  renderOrganizerEvents();
+  toast('Evento eliminado');
+}
+
+async function openEventAttendees(id,title){
+  document.getElementById('event-attendees-title').textContent=`Inscritos · ${title}`;
+  const listEl=document.getElementById('event-attendees-list');
+  listEl.innerHTML='<div class="text-sm text-muted">Cargando…</div>';
+  openModal('modal-event-attendees');
+  const{data,error}=await supa.from('event_signups').select('*').eq('event_id',id).order('created_at',{ascending:true});
+  if(error){console.error('openEventAttendees failed:',error);listEl.innerHTML='<div class="text-sm text-muted">No se pudo cargar la lista.</div>';return;}
+  if(!data.length){listEl.innerHTML='<div class="empty" style="padding:20px 10px"><i class="ti ti-users"></i><p>Nadie se ha apuntado todavía</p></div>';return;}
+  listEl.innerHTML=data.map(s=>`
+    <div class="event-attendee-row">
+      <div class="f-av" style="background:var(--red);color:white;width:32px;height:32px;font-size:12px">${escapeHtml((s.name||'??').slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${escapeHtml(s.name||'Lector')}</div>
+        ${s.username?`<div style="font-size:11px;color:var(--ink3)">@${escapeHtml(s.username)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+async function organizerLogout(){
+  if(!await confirmModal('¿Cerrar sesión de organizador?'))return;
+  await supa.auth.signOut();
+  ORGANIZER=null;ORGANIZER_EVENTS=[];
+  isLoggedIn=false;SUPA_USER=null;
+  document.getElementById('organizer-shell').classList.remove('on');
+  showAuth('landing');
+  toast('Sesión cerrada');
+}
+
+// ═══════════════════════════════════════════════
+// EVENTOS — vista de lector (dentro de Shelfie, filtrada por tu ciudad)
+// ═══════════════════════════════════════════════
+let MY_EVENT_SIGNUPS=new Set();
+
+async function renderEventsPage(){
+  const noCityEl=document.getElementById('events-no-city');
+  const listEl=document.getElementById('events-list');
+  const emptyEl=document.getElementById('events-empty');
+  if(!PROFILE.city){
+    noCityEl.style.display='block';listEl.innerHTML='';emptyEl.style.display='none';
+    return;
+  }
+  noCityEl.style.display='none';
+  emptyEl.style.display='none';
+  listEl.innerHTML='<div class="text-sm text-muted">Cargando…</div>';
+  const{data,error}=await supa.from('events').select('*').ilike('city',PROFILE.city).gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true});
+  if(error){console.error('renderEventsPage failed:',error);listEl.innerHTML='';emptyEl.style.display='block';return;}
+  const events=data||[];
+  if(!events.length){listEl.innerHTML='';emptyEl.style.display='block';return;}
+  const{data:mySignups}=await supa.from('event_signups').select('event_id').eq('user_id',SUPA_USER.id);
+  MY_EVENT_SIGNUPS=new Set((mySignups||[]).map(s=>s.event_id));
+  listEl.innerHTML=events.map(e=>{
+    const joined=MY_EVENT_SIGNUPS.has(e.id);
+    return `<div class="organizer-event-card">
+      <div class="organizer-event-top">
+        <div>
+          <div class="organizer-event-title">${escapeHtml(e.title)}</div>
+          <div class="organizer-event-meta">
+            <span class="organizer-event-type-tag">${EVENT_TYPE_LABELS[e.event_type]||'Evento'}</span>
+            <span><i class="ti ti-building-store" style="font-size:12px"></i> ${escapeHtml(e.venue_name)}</span>
+            <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(e.starts_at)}</span>
+          </div>
+          ${e.address?`<div class="organizer-event-meta"><i class="ti ti-map-pin" style="font-size:12px"></i> ${escapeHtml(e.address)}, ${escapeHtml(e.city)}</div>`:''}
+        </div>
+      </div>
+      ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
+      <div class="organizer-event-actions">
+        ${joined
+          ?`<button class="btn btn-white btn-sm" onclick="cancelEventSignup('${e.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
+          :`<button class="btn btn-red btn-sm" onclick="signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function signUpForEvent(id){
+  const row={event_id:id,user_id:SUPA_USER.id,name:PROFILE.name||'Lector',username:PROFILE.username||''};
+  const{error}=await supa.from('event_signups').insert(row);
+  if(error){console.error('signUpForEvent failed:',error);toast('❌ No se pudo completar la inscripción.');return;}
+  MY_EVENT_SIGNUPS.add(id);
+  toast('✅ ¡Apuntado! Nos vemos allí');
+  renderEventsPage();
+}
+
+async function cancelEventSignup(id){
+  const{error}=await supa.from('event_signups').delete().eq('event_id',id).eq('user_id',SUPA_USER.id);
+  if(error){console.error('cancelEventSignup failed:',error);toast('❌ No se pudo cancelar la inscripción.');return;}
+  MY_EVENT_SIGNUPS.delete(id);
+  toast('Inscripción cancelada');
+  renderEventsPage();
 }
 
 // ═══════════════════════════════════════════════
@@ -4193,7 +4570,7 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 // the user actually came from, instead of a hardcoded destination per page type.
 let NAV_STACK=[];
 let CURRENT_ENTITY={}; // {bookdetail:id, authorpage:id, clubdetail:id, userprofile:username}
-const NB_INDEX={home:0,shelf:1,discover:2,feed:3,friends:4,clubs:5,retos:6,stats:7};
+const NB_INDEX={home:0,shelf:1,discover:2,events:3,feed:4,friends:5,clubs:6,retos:7,stats:8};
 function nbFor(id){const i=NB_INDEX[id];return i!=null?document.querySelectorAll('.nb')[i]:null;}
 
 function toggleMobileNav(){
@@ -4265,7 +4642,7 @@ function go(id,btn,extraId,_isBack){
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,
-    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs})[id]?.();
+    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs,events:renderEventsPage})[id]?.();
 }
 
 // Pops the last page off the history stack and returns to it. Falls back to a

@@ -416,3 +416,124 @@ alter table public.profiles add column if not exists shelf_theme text;
 -- muestra en "Mi shelfie" y "Tu shelfie", y es la que ve cualquier visitante.
 -- Un solo valor persistido, cambiable desde cualquiera de los dos toggles.
 alter table public.profiles add column if not exists shelf_public_view text;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: Eventos (locales/negocios que organizan eventos de lectura)
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Espacio totalmente aparte del de los lectores: un local/librería/biblioteca
+-- se registra como "organizador" (no como lector), publica sus eventos y ve
+-- quién se ha apuntado. Los lectores, desde su Shelfie normal, ven en
+-- "Eventos" los que caen en su ciudad y pueden apuntarse.
+--
+-- Organizadores y lectores comparten auth.users (mismo sistema de login de
+-- Supabase, con contraseñas de verdad) pero jamás la misma fila de datos:
+-- el trigger de más abajo mira `raw_user_meta_data->>'account_type'` en el
+-- momento del alta y decide si crear una fila en `organizers` o en
+-- `profiles` — nunca ambas para la misma cuenta.
+
+create table if not exists public.organizers (
+  id uuid primary key references auth.users(id) on delete cascade,
+  venue_name text not null default '',
+  city text not null default '',
+  description text not null default '',
+  contact_email text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table public.organizers enable row level security;
+drop policy if exists "organizers_select_own" on public.organizers;
+create policy "organizers_select_own" on public.organizers for select using (auth.uid() = id);
+drop policy if exists "organizers_update_own" on public.organizers;
+create policy "organizers_update_own" on public.organizers for update using (auth.uid() = id);
+
+-- Eventos: legibles por cualquiera (lectores logueados o no, para que la
+-- landing pueda enseñarlos si algún día hace falta) — solo el organizador
+-- dueño puede crear/editar/borrar los suyos. venue_name/city van duplicados
+-- aquí (copiados del organizador al crear el evento) para que un lector
+-- pueda ver esos datos sin necesitar acceso de lectura a `organizers`, que
+-- se queda privada.
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  organizer_id uuid not null references public.organizers(id) on delete cascade,
+  venue_name text not null default '',
+  title text not null,
+  description text not null default '',
+  event_type text not null default 'otro',
+  city text not null default '',
+  address text not null default '',
+  starts_at timestamptz not null,
+  capacity int,
+  created_at timestamptz not null default now()
+);
+alter table public.events enable row level security;
+drop policy if exists "events_select_all" on public.events;
+create policy "events_select_all" on public.events for select using (true);
+drop policy if exists "events_insert_own" on public.events;
+create policy "events_insert_own" on public.events for insert with check (auth.uid() = organizer_id);
+drop policy if exists "events_update_own" on public.events;
+create policy "events_update_own" on public.events for update using (auth.uid() = organizer_id);
+drop policy if exists "events_delete_own" on public.events;
+create policy "events_delete_own" on public.events for delete using (auth.uid() = organizer_id);
+
+-- Inscripciones: cada lector ve/crea/borra la suya; el organizador del
+-- evento ve todas las de sus propios eventos (para poder contactar a quien
+-- se ha apuntado). name/username van duplicados aquí (capturados del lector
+-- en el momento de apuntarse) para que el organizador tenga una lista de
+-- asistentes legible sin depender de una policy de lectura sobre profiles.
+create table if not exists public.event_signups (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null default '',
+  username text not null default '',
+  created_at timestamptz not null default now(),
+  unique(event_id, user_id)
+);
+alter table public.event_signups enable row level security;
+drop policy if exists "event_signups_select_own" on public.event_signups;
+create policy "event_signups_select_own" on public.event_signups for select using (auth.uid() = user_id);
+drop policy if exists "event_signups_select_organizer" on public.event_signups;
+create policy "event_signups_select_organizer" on public.event_signups for select using (
+  exists (select 1 from public.events e where e.id = event_signups.event_id and e.organizer_id = auth.uid())
+);
+drop policy if exists "event_signups_insert_own" on public.event_signups;
+create policy "event_signups_insert_own" on public.event_signups for insert with check (auth.uid() = user_id);
+drop policy if exists "event_signups_delete_own" on public.event_signups;
+create policy "event_signups_delete_own" on public.event_signups for delete using (auth.uid() = user_id);
+
+-- Reemplaza el trigger de alta para que sepa distinguir organizador de
+-- lector según el account_type que viaje en el signUp() — CREATE OR REPLACE
+-- es seguro de volver a ejecutar y sustituye la versión anterior (solo
+-- lectores) definida más arriba en este mismo archivo.
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  base_username text;
+begin
+  if (new.raw_user_meta_data->>'account_type') = 'organizer' then
+    insert into public.organizers (id, venue_name, city, contact_email)
+    values (
+      new.id,
+      coalesce(new.raw_user_meta_data->>'venue_name', split_part(new.email, '@', 1)),
+      coalesce(new.raw_user_meta_data->>'city', ''),
+      new.email
+    )
+    on conflict (id) do nothing;
+    return new;
+  end if;
+
+  base_username := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    '[^a-z0-9]', '', 'g'
+  ));
+  insert into public.profiles (id, name, username)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    base_username || '_reads'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
