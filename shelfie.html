@@ -6,6 +6,9 @@
 <title>Shelfie — Tu shelfie social</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -190,6 +193,18 @@ a{color:inherit}
 .organizer-event-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #EEE}
 .event-attendee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F0F0}
 .event-attendee-row:last-child{border-bottom:none}
+.organizer-stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.organizer-stat-card{flex:1;min-width:120px;background:white;border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.organizer-stat-n{font-size:22px;font-weight:700;color:var(--ink);line-height:1.1}
+.organizer-stat-l{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.event-capacity-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-top:8px;max-width:260px}
+.event-capacity-fill{height:100%;background:var(--red);border-radius:3px}
+.event-capacity-fill.full{background:var(--amber)}
+.event-capacity-txt{font-size:11.5px;color:var(--ink3);margin-top:4px}
+.event-attendee-names{font-size:12px;color:var(--ink2);margin-top:6px}
+.event-map-link{color:var(--red);text-decoration:none}
+.event-map-link:hover{text-decoration:underline}
+#events-map{height:280px;border-radius:14px;margin-bottom:18px;border:1px solid var(--border);z-index:0}
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
 .main{overflow-x:hidden;position:relative}
 .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;position:fixed;top:0;left:0;right:0;height:56px;background:var(--paper);border-bottom:1px solid var(--border);z-index:200}
@@ -229,7 +244,7 @@ a{color:inherit}
 .tb h1{font-family:'Inter',sans-serif;font-size:24px;font-weight:700;color:var(--ink);letter-spacing:-0.03em}
 .tb p{font-size:13px;color:var(--ink3);margin-top:3px}
 .tb-right{display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
-.btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.12s;white-space:nowrap}
+.btn{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all 0.12s;white-space:nowrap;text-decoration:none}
 .btn:active{transform:scale(0.97)}
 .btn-red{background:var(--red);color:white}.btn-red:hover{background:var(--red-dark)}
 .btn-white{background:white;color:var(--ink);border:1px solid var(--border)}.btn-white:hover{background:var(--paper)}
@@ -2165,8 +2180,15 @@ a{color:inherit}
     <p>Añade tu ciudad en tu perfil para ver los eventos de tu zona</p>
     <button class="btn btn-red" style="margin-top:12px" onclick="openProfileEdit()"><i class="ti ti-edit"></i> Editar perfil</button>
   </div>
-  <div id="events-list"></div>
-  <div id="events-empty" class="empty card" style="display:none"><i class="ti ti-calendar-event"></i><p>No hay eventos programados en tu zona todavía</p></div>
+  <div id="events-body" style="display:none">
+    <div style="display:flex;gap:8px;border-bottom:2px solid var(--border);margin-bottom:16px">
+      <button class="retos-tab on" data-tab="todos" onclick="setEventsTab(this,'todos')">Todos</button>
+      <button class="retos-tab" data-tab="mios" onclick="setEventsTab(this,'mios')">Mis eventos</button>
+    </div>
+    <div id="events-map" style="display:none"></div>
+    <div id="events-list"></div>
+    <div id="events-empty" class="empty card" style="display:none"><i class="ti ti-calendar-event"></i><p>No hay eventos programados en tu zona todavía</p></div>
+  </div>
 </div>
 
 <!-- ── FEED ── -->
@@ -2772,6 +2794,11 @@ a{color:inherit}
       <div><h1>Tus eventos</h1><p>Gestiona tus eventos y consulta quién se ha apuntado</p></div>
       <button class="btn btn-red" onclick="openCreateEventModal()"><i class="ti ti-plus"></i> Crear evento</button>
     </div>
+    <div class="organizer-stats-row" id="organizer-stats-row"></div>
+    <div style="display:flex;gap:8px;border-bottom:2px solid var(--border);margin:18px 0 16px">
+      <button class="retos-tab on" data-tab="proximos" onclick="setOrganizerEventsTab(this,'proximos')">Próximos</button>
+      <button class="retos-tab" data-tab="pasados" onclick="setOrganizerEventsTab(this,'pasados')">Pasados</button>
+    </div>
     <div id="organizer-events-list"></div>
   </div>
 </div>
@@ -2780,8 +2807,8 @@ a{color:inherit}
 <div class="overlay" id="modal-create-event" style="display:none" onclick="if(event.target===this)closeModal('modal-create-event')">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modal-create-event')"><i class="ti ti-x"></i></button>
-  <h2>Crear evento</h2>
-  <p class="sub">Se publica al instante, visible para lectores de tu ciudad</p>
+  <h2 id="create-event-title">Crear evento</h2>
+  <p class="sub" id="create-event-sub">Se publica al instante, visible para lectores de tu ciudad</p>
   <div class="f-row"><label class="f-label">Título del evento</label><input class="f-input" id="ev-title" placeholder="Ej: Presentación de «Cien años de soledad»"></div>
   <div class="f-row"><label class="f-label">Descripción</label><textarea class="f-input" id="ev-desc" style="height:80px;resize:vertical" placeholder="¿Qué va a pasar en el evento?"></textarea></div>
   <div class="f-row">
@@ -2799,11 +2826,12 @@ a{color:inherit}
     <div class="f-row" style="flex:1"><label class="f-label">Ciudad</label><input class="f-input" id="ev-city" placeholder="Ej: Barcelona"></div>
     <div class="f-row" style="flex:1"><label class="f-label">Dirección</label><input class="f-input" id="ev-address" placeholder="Calle, número..."></div>
   </div>
+  <div id="ev-geocode-status" style="font-size:11.5px;color:var(--ink3);margin:-6px 0 10px"></div>
   <div style="display:flex;gap:10px">
     <div class="f-row" style="flex:1"><label class="f-label">Fecha y hora</label><input class="f-input" id="ev-datetime" type="datetime-local"></div>
     <div class="f-row" style="flex:1"><label class="f-label">Aforo <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input class="f-input" id="ev-capacity" type="number" min="1" placeholder="Sin límite"></div>
   </div>
-  <button class="btn btn-red w-full" onclick="saveNewEvent()"><i class="ti ti-check"></i> Publicar evento</button>
+  <button class="btn btn-red w-full" id="create-event-btn" onclick="saveNewEvent()"><i class="ti ti-check"></i> Publicar evento</button>
 </div>
 </div>
 
@@ -2811,7 +2839,11 @@ a{color:inherit}
 <div class="overlay" id="modal-event-attendees" style="display:none" onclick="if(event.target===this)closeModal('modal-event-attendees')">
 <div class="modal">
   <button class="modal-close" onclick="closeModal('modal-event-attendees')"><i class="ti ti-x"></i></button>
-  <h2 id="event-attendees-title">Inscritos</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">
+    <h2 id="event-attendees-title" style="margin:0">Inscritos</h2>
+    <button class="btn btn-white btn-sm" id="event-attendees-export-btn" style="display:none" onclick="exportEventAttendeesCsv()"><i class="ti ti-download"></i> Exportar CSV</button>
+  </div>
+  <div id="event-attendees-capacity"></div>
   <div id="event-attendees-list"></div>
 </div>
 </div>
@@ -3438,6 +3470,42 @@ async function _supaEnterApp(){
 // ═══════════════════════════════════════════════
 let ORGANIZER=null; // {id,venue_name,city,description,contact_email}
 let ORGANIZER_EVENTS=[];
+let ORGANIZER_EVENTS_TAB='proximos';
+let EDITING_EVENT_ID=null;
+let ORGANIZER_ATTENDEE_CACHE={}; // event_id -> signups[], filled lazily by openEventAttendees
+
+function googleMapsLink(e){
+  const q=[e.address,e.city].filter(Boolean).join(', ');
+  return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+}
+
+function googleCalendarLink(e){
+  const start=new Date(e.starts_at);
+  const end=new Date(start.getTime()+2*60*60*1000); // asumimos 2h si no hay hora de fin
+  const fmt=d=>d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const params=new URLSearchParams({
+    action:'TEMPLATE',
+    text:e.title,
+    dates:`${fmt(start)}/${fmt(end)}`,
+    details:e.description||'',
+    location:[e.address,e.city].filter(Boolean).join(', '),
+  });
+  return 'https://calendar.google.com/calendar/render?'+params.toString();
+}
+
+// Nominatim (OpenStreetMap) — geocodificación gratuita sin API key, para poder
+// pintar el evento en el mapa. Best-effort: si falla, el evento se guarda igual
+// sin lat/lng y simplemente no aparece en el mapa (solo en la lista).
+async function geocodeAddress(address,city){
+  const q=[address,city].filter(Boolean).join(', ');
+  if(!q)return null;
+  try{
+    const res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q));
+    const data=await res.json();
+    if(data&&data[0])return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+  }catch(e){console.error('geocodeAddress failed:',e);}
+  return null;
+}
 
 async function organizerRegister(){
   const venueName=document.getElementById('org-reg-venue').value.trim();
@@ -3488,6 +3556,7 @@ async function loadOrganizerEvents(){
   const{data,error}=await supa.from('events').select('*').eq('organizer_id',ORGANIZER.id).order('starts_at',{ascending:true});
   if(error){console.error('loadOrganizerEvents failed:',error);return;}
   ORGANIZER_EVENTS=data||[];
+  await loadOrganizerSignupCounts();
   renderOrganizerEvents();
 }
 
@@ -3498,11 +3567,53 @@ function formatEventDate(iso){
   return d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 }
 
+function capacityBarHtml(signupCount,capacity){
+  if(!capacity)return `<div class="event-capacity-txt">${signupCount} inscrito${signupCount===1?'':'s'} · aforo libre</div>`;
+  const pct=Math.min(100,Math.round(signupCount/capacity*100));
+  const full=signupCount>=capacity;
+  return `<div class="event-capacity-bar"><div class="event-capacity-fill${full?' full':''}" style="width:${pct}%"></div></div>
+    <div class="event-capacity-txt">${signupCount} / ${capacity} inscritos${full?' · ¡Completo!':''}</div>`;
+}
+
+function setOrganizerEventsTab(btn,tab){
+  ORGANIZER_EVENTS_TAB=tab;
+  document.querySelectorAll('#organizer-shell .retos-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderOrganizerEvents();
+}
+
+function renderOrganizerStats(){
+  const el=document.getElementById('organizer-stats-row');
+  if(!el)return;
+  const now=new Date();
+  const upcoming=ORGANIZER_EVENTS.filter(e=>new Date(e.starts_at)>=now);
+  const totalSignups=ORGANIZER_EVENTS.reduce((sum,e)=>sum+(e._signupCount||0),0);
+  el.innerHTML=`
+    <div class="organizer-stat-card"><div class="organizer-stat-n">${ORGANIZER_EVENTS.length}</div><div class="organizer-stat-l">Eventos creados</div></div>
+    <div class="organizer-stat-card"><div class="organizer-stat-n">${upcoming.length}</div><div class="organizer-stat-l">Próximos</div></div>
+    <div class="organizer-stat-card"><div class="organizer-stat-n">${totalSignups}</div><div class="organizer-stat-l">Inscripciones totales</div></div>`;
+}
+
+async function loadOrganizerSignupCounts(){
+  if(!ORGANIZER_EVENTS.length)return;
+  const ids=ORGANIZER_EVENTS.map(e=>e.id);
+  const{data,error}=await supa.from('event_signups').select('event_id').in('event_id',ids);
+  if(error){console.error('loadOrganizerSignupCounts failed:',error);return;}
+  const counts={};
+  (data||[]).forEach(s=>{counts[s.event_id]=(counts[s.event_id]||0)+1;});
+  ORGANIZER_EVENTS.forEach(e=>{e._signupCount=counts[e.id]||0;});
+}
+
 function renderOrganizerEvents(){
   const el=document.getElementById('organizer-events-list');
   if(!el)return;
-  if(!ORGANIZER_EVENTS.length){el.innerHTML='<div class="empty card"><i class="ti ti-calendar-event"></i><p>Aún no has creado ningún evento</p></div>';return;}
-  el.innerHTML=ORGANIZER_EVENTS.map(e=>`
+  renderOrganizerStats();
+  const now=new Date();
+  const events=ORGANIZER_EVENTS
+    .filter(e=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(e.starts_at)>=now:new Date(e.starts_at)<now)
+    .sort((a,b)=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(a.starts_at)-new Date(b.starts_at):new Date(b.starts_at)-new Date(a.starts_at));
+  if(!events.length){el.innerHTML=`<div class="empty card"><i class="ti ti-calendar-event"></i><p>${ORGANIZER_EVENTS_TAB==='proximos'?'No tienes eventos próximos. ¡Crea uno!':'Todavía no hay eventos pasados'}</p></div>`;return;}
+  el.innerHTML=events.map(e=>`
     <div class="organizer-event-card">
       <div class="organizer-event-top">
         <div>
@@ -3510,23 +3621,49 @@ function renderOrganizerEvents(){
           <div class="organizer-event-meta">
             <span class="organizer-event-type-tag">${EVENT_TYPE_LABELS[e.event_type]||'Evento'}</span>
             <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(e.starts_at)}</span>
-            ${e.city||e.address?`<span><i class="ti ti-map-pin" style="font-size:12px"></i> ${escapeHtml([e.address,e.city].filter(Boolean).join(', '))}</span>`:''}
+            ${e.city||e.address?`<span><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(e)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml([e.address,e.city].filter(Boolean).join(', '))}</a></span>`:''}
           </div>
         </div>
-        <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}')"><i class="ti ti-trash"></i></button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-white" onclick="openEditEventModal('${e.id}')"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="deleteEvent('${e.id}')"><i class="ti ti-trash"></i></button>
+        </div>
       </div>
       ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
+      ${capacityBarHtml(e._signupCount||0,e.capacity)}
       <div class="organizer-event-actions">
         <button class="btn btn-white btn-sm" onclick="openEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos</button>
-        ${e.capacity?`<span class="text-xs text-muted" style="align-self:center">Aforo: ${e.capacity}</span>`:''}
       </div>
     </div>`).join('');
 }
 
 function openCreateEventModal(){
+  EDITING_EVENT_ID=null;
   ['ev-title','ev-desc','ev-city','ev-address','ev-datetime','ev-capacity'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('ev-city').value=ORGANIZER?.city||'';
   document.getElementById('ev-type').value='presentacion';
+  document.getElementById('ev-geocode-status').textContent='';
+  document.getElementById('create-event-title').textContent='Crear evento';
+  document.getElementById('create-event-sub').textContent='Se publica al instante, visible para lectores de tu ciudad';
+  document.getElementById('create-event-btn').innerHTML='<i class="ti ti-check"></i> Publicar evento';
+  openModal('modal-create-event');
+}
+
+function openEditEventModal(id){
+  const e=ORGANIZER_EVENTS.find(ev=>ev.id===id);
+  if(!e)return;
+  EDITING_EVENT_ID=id;
+  document.getElementById('ev-title').value=e.title||'';
+  document.getElementById('ev-desc').value=e.description||'';
+  document.getElementById('ev-type').value=e.event_type||'presentacion';
+  document.getElementById('ev-city').value=e.city||'';
+  document.getElementById('ev-address').value=e.address||'';
+  document.getElementById('ev-datetime').value=e.starts_at?new Date(new Date(e.starts_at).getTime()-new Date(e.starts_at).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  document.getElementById('ev-capacity').value=e.capacity||'';
+  document.getElementById('ev-geocode-status').textContent='';
+  document.getElementById('create-event-title').textContent='Editar evento';
+  document.getElementById('create-event-sub').textContent='Los cambios se publican al instante';
+  document.getElementById('create-event-btn').innerHTML='<i class="ti ti-check"></i> Guardar cambios';
   openModal('modal-create-event');
 }
 
@@ -3541,14 +3678,30 @@ async function saveNewEvent(){
   if(!title){toast('⚠️ Escribe un título para el evento');return;}
   if(!city){toast('⚠️ Escribe la ciudad del evento');return;}
   if(!datetime){toast('⚠️ Elige fecha y hora');return;}
-  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity};
-  const{data,error}=await supa.from('events').insert(row).select().single();
-  if(error){console.error('saveNewEvent failed:',error);toast('❌ No se pudo crear el evento. Inténtalo de nuevo.');return;}
-  ORGANIZER_EVENTS.push(data);
-  ORGANIZER_EVENTS.sort((a,b)=>new Date(a.starts_at)-new Date(b.starts_at));
-  renderOrganizerEvents();
-  closeModal('modal-create-event');
-  toast(`✅ Evento «${title}» publicado`);
+  const statusEl=document.getElementById('ev-geocode-status');
+  const btn=document.getElementById('create-event-btn');
+  btn.disabled=true;
+  statusEl.textContent='Localizando la dirección en el mapa…';
+  const coords=address?await geocodeAddress(address,city):null;
+  statusEl.textContent=coords?'':(address?'No se ha podido localizar la dirección exacta; el evento se guardará sin marcador en el mapa.':'');
+  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity,lat:coords?.lat??null,lng:coords?.lng??null};
+  if(EDITING_EVENT_ID){
+    const{data,error}=await supa.from('events').update(row).eq('id',EDITING_EVENT_ID).select().single();
+    btn.disabled=false;
+    if(error){console.error('saveNewEvent (update) failed:',error);toast('❌ No se pudo guardar el evento. Inténtalo de nuevo.');return;}
+    ORGANIZER_EVENTS=ORGANIZER_EVENTS.map(e=>e.id===EDITING_EVENT_ID?{...e,...data}:e);
+    renderOrganizerEvents();
+    closeModal('modal-create-event');
+    toast(`✅ Evento «${title}» actualizado`);
+  }else{
+    const{data,error}=await supa.from('events').insert(row).select().single();
+    btn.disabled=false;
+    if(error){console.error('saveNewEvent failed:',error);toast('❌ No se pudo crear el evento. Inténtalo de nuevo.');return;}
+    ORGANIZER_EVENTS.push(data);
+    renderOrganizerEvents();
+    closeModal('modal-create-event');
+    toast(`✅ Evento «${title}» publicado`);
+  }
 }
 
 async function deleteEvent(id){
@@ -3563,11 +3716,20 @@ async function deleteEvent(id){
 async function openEventAttendees(id,title){
   document.getElementById('event-attendees-title').textContent=`Inscritos · ${title}`;
   const listEl=document.getElementById('event-attendees-list');
+  const capEl=document.getElementById('event-attendees-capacity');
+  const exportBtn=document.getElementById('event-attendees-export-btn');
   listEl.innerHTML='<div class="text-sm text-muted">Cargando…</div>';
+  capEl.innerHTML='';
+  exportBtn.style.display='none';
   openModal('modal-event-attendees');
   const{data,error}=await supa.from('event_signups').select('*').eq('event_id',id).order('created_at',{ascending:true});
   if(error){console.error('openEventAttendees failed:',error);listEl.innerHTML='<div class="text-sm text-muted">No se pudo cargar la lista.</div>';return;}
+  ORGANIZER_ATTENDEE_CACHE[id]=data||[];
+  const ev=ORGANIZER_EVENTS.find(e=>e.id===id);
+  capEl.innerHTML=capacityBarHtml((data||[]).length,ev?.capacity);
   if(!data.length){listEl.innerHTML='<div class="empty" style="padding:20px 10px"><i class="ti ti-users"></i><p>Nadie se ha apuntado todavía</p></div>';return;}
+  exportBtn.style.display='inline-flex';
+  exportBtn.setAttribute('data-event-id',id);
   listEl.innerHTML=data.map(s=>`
     <div class="event-attendee-row">
       <div class="f-av" style="background:var(--red);color:white;width:32px;height:32px;font-size:12px">${escapeHtml((s.name||'??').slice(0,2).toUpperCase())}</div>
@@ -3576,6 +3738,20 @@ async function openEventAttendees(id,title){
         ${s.username?`<div style="font-size:11px;color:var(--ink3)">@${escapeHtml(s.username)}</div>`:''}
       </div>
     </div>`).join('');
+}
+
+function exportEventAttendeesCsv(){
+  const btn=document.getElementById('event-attendees-export-btn');
+  const id=btn?.getAttribute('data-event-id');
+  const rows=ORGANIZER_ATTENDEE_CACHE[id]||[];
+  if(!rows.length)return;
+  const csvLines=['Nombre,Usuario,Fecha de inscripción',...rows.map(s=>[s.name||'',s.username?'@'+s.username:'',s.created_at?new Date(s.created_at).toLocaleString('es-ES'):''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))];
+  const blob=new Blob([csvLines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='inscritos.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function organizerLogout(){
@@ -3592,26 +3768,63 @@ async function organizerLogout(){
 // EVENTOS — vista de lector (dentro de Shelfie, filtrada por tu ciudad)
 // ═══════════════════════════════════════════════
 let MY_EVENT_SIGNUPS=new Set();
+let EVENTS_TAB='todos';
+let EVENTS_CACHE=[];
+let EVENTS_MAP_INSTANCE=null;
+let EVENTS_MAP_MARKERS=[];
+
+function setEventsTab(btn,tab){
+  EVENTS_TAB=tab;
+  document.querySelectorAll('#events-body .retos-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderEventsList();
+}
 
 async function renderEventsPage(){
   const noCityEl=document.getElementById('events-no-city');
+  const bodyEl=document.getElementById('events-body');
   const listEl=document.getElementById('events-list');
-  const emptyEl=document.getElementById('events-empty');
   if(!PROFILE.city){
-    noCityEl.style.display='block';listEl.innerHTML='';emptyEl.style.display='none';
+    noCityEl.style.display='block';bodyEl.style.display='none';
     return;
   }
   noCityEl.style.display='none';
-  emptyEl.style.display='none';
+  bodyEl.style.display='block';
   listEl.innerHTML='<div class="text-sm text-muted">Cargando…</div>';
   const{data,error}=await supa.from('events').select('*').ilike('city',PROFILE.city).gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true});
-  if(error){console.error('renderEventsPage failed:',error);listEl.innerHTML='';emptyEl.style.display='block';return;}
+  if(error){console.error('renderEventsPage failed:',error);listEl.innerHTML='';EVENTS_CACHE=[];renderEventsList();return;}
   const events=data||[];
-  if(!events.length){listEl.innerHTML='';emptyEl.style.display='block';return;}
   const{data:mySignups}=await supa.from('event_signups').select('event_id').eq('user_id',SUPA_USER.id);
   MY_EVENT_SIGNUPS=new Set((mySignups||[]).map(s=>s.event_id));
+  if(events.length){
+    const ids=events.map(e=>e.id);
+    const{data:allSignups}=await supa.from('event_signups').select('*').in('event_id',ids);
+    const byEvent={};
+    (allSignups||[]).forEach(s=>{(byEvent[s.event_id]=byEvent[s.event_id]||[]).push(s);});
+    events.forEach(e=>{e._signups=byEvent[e.id]||[];});
+  }
+  EVENTS_CACHE=events;
+  renderEventsList();
+}
+
+function renderEventsList(){
+  const listEl=document.getElementById('events-list');
+  const emptyEl=document.getElementById('events-empty');
+  const events=EVENTS_TAB==='mios'?EVENTS_CACHE.filter(e=>MY_EVENT_SIGNUPS.has(e.id)):EVENTS_CACHE;
+  renderEventsMap(events);
+  if(!events.length){
+    listEl.innerHTML='';
+    emptyEl.style.display='block';
+    emptyEl.querySelector('p').textContent=EVENTS_TAB==='mios'?'Todavía no te has apuntado a ningún evento':'No hay eventos programados en tu zona todavía';
+    return;
+  }
+  emptyEl.style.display='none';
   listEl.innerHTML=events.map(e=>{
     const joined=MY_EVENT_SIGNUPS.has(e.id);
+    const signups=e._signups||[];
+    const full=e.capacity&&signups.length>=e.capacity;
+    const names=signups.slice(0,6).map(s=>escapeHtml(s.name||'Lector')).join(', ');
+    const extra=signups.length>6?` y ${signups.length-6} más`:'';
     return `<div class="organizer-event-card">
       <div class="organizer-event-top">
         <div>
@@ -3621,34 +3834,67 @@ async function renderEventsPage(){
             <span><i class="ti ti-building-store" style="font-size:12px"></i> ${escapeHtml(e.venue_name)}</span>
             <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(e.starts_at)}</span>
           </div>
-          ${e.address?`<div class="organizer-event-meta"><i class="ti ti-map-pin" style="font-size:12px"></i> ${escapeHtml(e.address)}, ${escapeHtml(e.city)}</div>`:''}
+          ${e.address?`<div class="organizer-event-meta"><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(e)}" target="_blank" rel="noopener">${escapeHtml(e.address)}, ${escapeHtml(e.city)}</a></div>`:''}
         </div>
       </div>
       ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
+      ${capacityBarHtml(signups.length,e.capacity)}
+      ${signups.length?`<div class="event-attendee-names"><i class="ti ti-users" style="font-size:12px"></i> ${names}${extra}</div>`:''}
       <div class="organizer-event-actions">
         ${joined
           ?`<button class="btn btn-white btn-sm" onclick="cancelEventSignup('${e.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
-          :`<button class="btn btn-red btn-sm" onclick="signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+          :full
+            ?`<button class="btn btn-white btn-sm" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
+            :`<button class="btn btn-red btn-sm" onclick="signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+        <a class="btn btn-white btn-sm" href="${googleCalendarLink(e)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
       </div>
     </div>`;
   }).join('');
 }
 
+function renderEventsMap(events){
+  const mapEl=document.getElementById('events-map');
+  if(!mapEl)return;
+  const withCoords=(typeof L!=='undefined')?events.filter(e=>e.lat!=null&&e.lng!=null):[];
+  if(!withCoords.length){
+    mapEl.style.display='none';
+    return;
+  }
+  mapEl.style.display='block';
+  if(!EVENTS_MAP_INSTANCE){
+    EVENTS_MAP_INSTANCE=L.map('events-map',{scrollWheelZoom:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(EVENTS_MAP_INSTANCE);
+  }
+  EVENTS_MAP_MARKERS.forEach(m=>EVENTS_MAP_INSTANCE.removeLayer(m));
+  EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng]).addTo(EVENTS_MAP_INSTANCE).bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}`));
+  setTimeout(()=>EVENTS_MAP_INSTANCE.invalidateSize(),50);
+  if(withCoords.length===1){
+    EVENTS_MAP_INSTANCE.setView([withCoords[0].lat,withCoords[0].lng],13);
+  }else{
+    EVENTS_MAP_INSTANCE.fitBounds(L.latLngBounds(withCoords.map(e=>[e.lat,e.lng])),{padding:[30,30]});
+  }
+}
+
 async function signUpForEvent(id){
+  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  if(ev?.capacity&&(ev._signups||[]).length>=ev.capacity){toast('⚠️ Este evento ya está completo');return;}
   const row={event_id:id,user_id:SUPA_USER.id,name:PROFILE.name||'Lector',username:PROFILE.username||''};
   const{error}=await supa.from('event_signups').insert(row);
   if(error){console.error('signUpForEvent failed:',error);toast('❌ No se pudo completar la inscripción.');return;}
   MY_EVENT_SIGNUPS.add(id);
+  if(ev)ev._signups=[...(ev._signups||[]),row];
   toast('✅ ¡Apuntado! Nos vemos allí');
-  renderEventsPage();
+  renderEventsList();
 }
 
 async function cancelEventSignup(id){
   const{error}=await supa.from('event_signups').delete().eq('event_id',id).eq('user_id',SUPA_USER.id);
   if(error){console.error('cancelEventSignup failed:',error);toast('❌ No se pudo cancelar la inscripción.');return;}
   MY_EVENT_SIGNUPS.delete(id);
+  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  if(ev)ev._signups=(ev._signups||[]).filter(s=>s.user_id!==SUPA_USER.id);
   toast('Inscripción cancelada');
-  renderEventsPage();
+  renderEventsList();
 }
 
 // ═══════════════════════════════════════════════

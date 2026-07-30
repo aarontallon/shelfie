@@ -537,3 +537,22 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: mapa de eventos + lista de inscritos visible para lectores
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Coordenadas del evento (geocodificadas en el navegador del organizador al
+-- crear/editar el evento, vía Nominatim/OpenStreetMap — gratis, sin API key)
+-- para poder pintar cada evento en el mapa de "Eventos".
+alter table public.events add column if not exists lat double precision;
+alter table public.events add column if not exists lng double precision;
+
+-- Antes solo el propio lector inscrito (o el organizador del evento) podían
+-- ver una inscripción. Ahora cualquier lector logueado puede ver cuántos y
+-- quiénes se han apuntado a un evento (igual que ya ve reseñas o quién tiene
+-- un libro) — sigue sin exponer nada más que name/username, ya públicos en
+-- cualquier perfil.
+drop policy if exists "event_signups_select_authenticated" on public.event_signups;
+create policy "event_signups_select_authenticated" on public.event_signups for select using (auth.uid() is not null);
