@@ -205,8 +205,8 @@ a{color:inherit}
 .event-map-link:hover{text-decoration:underline}
 .events-layout{display:flex;gap:22px;align-items:flex-start}
 .events-list-col{flex:1;min-width:0}
-.events-map-col{width:320px;flex-shrink:0;position:sticky;top:20px}
-#events-map{height:420px;border-radius:14px;border:1px solid var(--border);z-index:0}
+.events-map-col{width:460px;flex-shrink:0;position:sticky;top:20px}
+#events-map{height:460px;border-radius:14px;border:1px solid var(--border);z-index:0}
 .event-card-highlight{animation:eventCardPulse 1.4s ease}
 @keyframes eventCardPulse{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--red-light),0 0 0 4px var(--red)}}
 .leaflet-popup-content{margin:12px 14px}
@@ -2266,6 +2266,10 @@ a{color:inherit}
       <button class="retos-tab on" data-tab="todos" onclick="setEventsTab(this,'todos')">Todos</button>
       <button class="retos-tab" data-tab="mios" onclick="setEventsTab(this,'mios')">Mis eventos</button>
     </div>
+    <div class="srch-wrap" style="max-width:420px;margin-bottom:16px">
+      <i class="ti ti-search srch-ico"></i>
+      <input class="srch-inp" id="events-search-inp" placeholder="Buscar por título, local o ciudad..." oninput="setEventsSearch(this.value)" autocomplete="off">
+    </div>
     <div class="events-layout">
       <div class="events-list-col">
         <div id="events-list"></div>
@@ -3862,6 +3866,7 @@ async function organizerLogout(){
 // ═══════════════════════════════════════════════
 let MY_EVENT_SIGNUPS=new Set();
 let EVENTS_TAB='todos';
+let EVENTS_SEARCH='';
 let EVENTS_CACHE=[];
 let EVENTS_MAP_INSTANCE=null;
 let EVENTS_MAP_MARKERS=[];
@@ -3874,6 +3879,24 @@ function setEventsTab(btn,tab){
   renderEventsList();
 }
 
+function setEventsSearch(v){
+  EVENTS_SEARCH=v.trim().toLowerCase();
+  renderEventsList();
+}
+
+function getVisibleEvents(){
+  let events=EVENTS_TAB==='mios'?EVENTS_CACHE.filter(e=>MY_EVENT_SIGNUPS.has(e.id)):EVENTS_CACHE;
+  if(EVENTS_SEARCH){
+    events=events.filter(e=>
+      (e.title||'').toLowerCase().includes(EVENTS_SEARCH)||
+      (e.venue_name||'').toLowerCase().includes(EVENTS_SEARCH)||
+      (e.city||'').toLowerCase().includes(EVENTS_SEARCH)||
+      (e.address||'').toLowerCase().includes(EVENTS_SEARCH)
+    );
+  }
+  return events;
+}
+
 async function renderEventsPage(){
   const noCityEl=document.getElementById('events-no-city');
   const bodyEl=document.getElementById('events-body');
@@ -3884,6 +3907,9 @@ async function renderEventsPage(){
   }
   noCityEl.style.display='none';
   bodyEl.style.display='block';
+  EVENTS_SEARCH='';
+  const searchInp=document.getElementById('events-search-inp');
+  if(searchInp)searchInp.value='';
   listEl.innerHTML='<div class="text-sm text-muted">Cargando…</div>';
   const{data,error}=await supa.from('events').select('*').ilike('city',PROFILE.city).gte('starts_at',new Date().toISOString()).order('starts_at',{ascending:true});
   if(error){console.error('renderEventsPage failed:',error);listEl.innerHTML='';EVENTS_CACHE=[];renderEventsList();return;}
@@ -3913,8 +3939,7 @@ async function geocodeMissingEventCoords(events){
     const coords=await geocodeAddress(e.address,e.city);
     if(coords){
       e.lat=coords.lat;e.lng=coords.lng;
-      const visible=EVENTS_TAB==='mios'?EVENTS_CACHE.filter(ev=>MY_EVENT_SIGNUPS.has(ev.id)):EVENTS_CACHE;
-      renderEventsMap(visible);
+      renderEventsMap(getVisibleEvents());
     }
     await new Promise(r=>setTimeout(r,1100));
   }
@@ -3923,12 +3948,12 @@ async function geocodeMissingEventCoords(events){
 function renderEventsList(){
   const listEl=document.getElementById('events-list');
   const emptyEl=document.getElementById('events-empty');
-  const events=EVENTS_TAB==='mios'?EVENTS_CACHE.filter(e=>MY_EVENT_SIGNUPS.has(e.id)):EVENTS_CACHE;
+  const events=getVisibleEvents();
   renderEventsMap(events);
   if(!events.length){
     listEl.innerHTML='';
     emptyEl.style.display='block';
-    emptyEl.querySelector('p').textContent=EVENTS_TAB==='mios'?'Todavía no te has apuntado a ningún evento':'No hay eventos programados en tu zona todavía';
+    emptyEl.querySelector('p').textContent=EVENTS_SEARCH?'Ningún evento coincide con tu búsqueda':(EVENTS_TAB==='mios'?'Todavía no te has apuntado a ningún evento':'No hay eventos programados en tu zona todavía');
     return;
   }
   emptyEl.style.display='none';
