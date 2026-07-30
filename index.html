@@ -203,7 +203,18 @@ a{color:inherit}
 .event-capacity-txt{font-size:11.5px;color:var(--ink3);margin-top:4px}
 .event-map-link{color:var(--red);text-decoration:none}
 .event-map-link:hover{text-decoration:underline}
-#events-map{height:280px;border-radius:14px;margin-bottom:18px;border:1px solid var(--border);z-index:0}
+.events-layout{display:flex;gap:22px;align-items:flex-start}
+.events-list-col{flex:1;min-width:0}
+.events-map-col{width:380px;flex-shrink:0;position:sticky;top:20px}
+#events-map{height:calc(100vh - 140px);min-height:320px;max-height:640px;border-radius:14px;border:1px solid var(--border);z-index:0}
+.leaflet-popup-content{margin:12px 14px}
+.event-popup-link{display:inline-block;margin-top:6px;color:var(--red);font-weight:600;font-size:12.5px;text-decoration:none;cursor:pointer}
+.event-popup-link:hover{text-decoration:underline}
+@media (max-width:900px){
+  .events-layout{flex-direction:column}
+  .events-map-col{width:100%;position:static}
+  #events-map{height:280px;max-height:none}
+}
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
 .main{overflow-x:hidden;position:relative}
 .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;position:fixed;top:0;left:0;right:0;height:56px;background:var(--paper);border-bottom:1px solid var(--border);z-index:200}
@@ -2184,10 +2195,22 @@ a{color:inherit}
       <button class="retos-tab on" data-tab="todos" onclick="setEventsTab(this,'todos')">Todos</button>
       <button class="retos-tab" data-tab="mios" onclick="setEventsTab(this,'mios')">Mis eventos</button>
     </div>
-    <div id="events-map" style="display:none"></div>
-    <div id="events-list"></div>
-    <div id="events-empty" class="empty card" style="display:none"><i class="ti ti-calendar-event"></i><p>No hay eventos programados en tu zona todavía</p></div>
+    <div class="events-layout">
+      <div class="events-list-col">
+        <div id="events-list"></div>
+        <div id="events-empty" class="empty card" style="display:none"><i class="ti ti-calendar-event"></i><p>No hay eventos programados en tu zona todavía</p></div>
+      </div>
+      <div class="events-map-col">
+        <div id="events-map" style="display:none"></div>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- ── FICHA DE EVENTO ── -->
+<div id="p-event-detail" class="page">
+  <button class="btn btn-white" style="margin-bottom:16px" onclick="goBackFromEventPage()"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div id="event-detail-content"></div>
 </div>
 
 <!-- ── FEED ── -->
@@ -3771,6 +3794,7 @@ let EVENTS_TAB='todos';
 let EVENTS_CACHE=[];
 let EVENTS_MAP_INSTANCE=null;
 let EVENTS_MAP_MARKERS=[];
+let CURRENT_EVENT_DETAIL=null;
 
 function setEventsTab(btn,tab){
   EVENTS_TAB=tab;
@@ -3841,7 +3865,7 @@ function renderEventsList(){
     const joined=MY_EVENT_SIGNUPS.has(e.id);
     const signups=e._signups||[];
     const full=e.capacity&&signups.length>=e.capacity;
-    return `<div class="organizer-event-card">
+    return `<div class="organizer-event-card" style="cursor:pointer" onclick="go('eventdetail',null,'${e.id}')">
       <div class="organizer-event-top">
         <div>
           <div class="organizer-event-title">${escapeHtml(e.title)}</div>
@@ -3850,26 +3874,26 @@ function renderEventsList(){
             <span><i class="ti ti-building-store" style="font-size:12px"></i> ${escapeHtml(e.venue_name)}</span>
             <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(e.starts_at)}</span>
           </div>
-          ${e.address?`<div class="organizer-event-meta"><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(e)}" target="_blank" rel="noopener">${escapeHtml(e.address)}, ${escapeHtml(e.city)}</a></div>`:''}
+          ${e.address?`<div class="organizer-event-meta"><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(e)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(e.address)}, ${escapeHtml(e.city)}</a></div>`:''}
         </div>
       </div>
       ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
       ${capacityBarHtml(signups.length,e.capacity)}
       <div class="organizer-event-actions">
         ${joined
-          ?`<button class="btn btn-white btn-sm" onclick="cancelEventSignup('${e.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
+          ?`<button class="btn btn-white btn-sm" onclick="event.stopPropagation();cancelEventSignup('${e.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
           :full
-            ?`<button class="btn btn-white btn-sm" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
-            :`<button class="btn btn-red btn-sm" onclick="signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
-        <button class="btn btn-white btn-sm" onclick="openReaderEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
-        <a class="btn btn-white btn-sm" href="${googleCalendarLink(e)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
+            ?`<button class="btn btn-white btn-sm" disabled onclick="event.stopPropagation()"><i class="ti ti-lock"></i> Aforo completo</button>`
+            :`<button class="btn btn-red btn-sm" onclick="event.stopPropagation();signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+        <button class="btn btn-white btn-sm" onclick="event.stopPropagation();openReaderEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
+        <a class="btn btn-white btn-sm" href="${googleCalendarLink(e)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
       </div>
     </div>`;
   }).join('');
 }
 
 function openReaderEventAttendees(id,title){
-  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  const ev=EVENTS_CACHE.find(e=>e.id===id)||(CURRENT_EVENT_DETAIL?.id===id?CURRENT_EVENT_DETAIL:null);
   if(!ev)return;
   document.getElementById('event-attendees-title').textContent=`Inscritos · ${title}`;
   const listEl=document.getElementById('event-attendees-list');
@@ -3899,11 +3923,11 @@ function renderEventsMap(events){
   }
   mapEl.style.display='block';
   if(!EVENTS_MAP_INSTANCE){
-    EVENTS_MAP_INSTANCE=L.map('events-map',{scrollWheelZoom:false});
+    EVENTS_MAP_INSTANCE=L.map('events-map',{scrollWheelZoom:true});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(EVENTS_MAP_INSTANCE);
   }
   EVENTS_MAP_MARKERS.forEach(m=>EVENTS_MAP_INSTANCE.removeLayer(m));
-  EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng]).addTo(EVENTS_MAP_INSTANCE).bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}`));
+  EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng]).addTo(EVENTS_MAP_INSTANCE).bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}<br><a class="event-popup-link" onclick="go('eventdetail',null,'${e.id}')">Ver evento →</a>`));
   setTimeout(()=>EVENTS_MAP_INSTANCE.invalidateSize(),50);
   if(withCoords.length===1){
     EVENTS_MAP_INSTANCE.setView([withCoords[0].lat,withCoords[0].lng],13);
@@ -3912,8 +3936,16 @@ function renderEventsMap(events){
   }
 }
 
+function refreshEventViews(id){
+  if(document.getElementById('p-events')?.classList.contains('on'))renderEventsList();
+  if(document.getElementById('p-event-detail')?.classList.contains('on')&&CURRENT_EVENT_DETAIL?.id===id){
+    const ev=EVENTS_CACHE.find(e=>e.id===id)||CURRENT_EVENT_DETAIL;
+    renderEventDetailContent(ev,MY_EVENT_SIGNUPS.has(id));
+  }
+}
+
 async function signUpForEvent(id){
-  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  const ev=EVENTS_CACHE.find(e=>e.id===id)||(CURRENT_EVENT_DETAIL?.id===id?CURRENT_EVENT_DETAIL:null);
   if(ev?.capacity&&(ev._signups||[]).length>=ev.capacity){toast('⚠️ Este evento ya está completo');return;}
   const row={event_id:id,user_id:SUPA_USER.id,name:PROFILE.name||'Lector',username:PROFILE.username||''};
   const{error}=await supa.from('event_signups').insert(row);
@@ -3921,17 +3953,61 @@ async function signUpForEvent(id){
   MY_EVENT_SIGNUPS.add(id);
   if(ev)ev._signups=[...(ev._signups||[]),row];
   toast('✅ ¡Apuntado! Nos vemos allí');
-  renderEventsList();
+  refreshEventViews(id);
 }
 
 async function cancelEventSignup(id){
   const{error}=await supa.from('event_signups').delete().eq('event_id',id).eq('user_id',SUPA_USER.id);
   if(error){console.error('cancelEventSignup failed:',error);toast('❌ No se pudo cancelar la inscripción.');return;}
   MY_EVENT_SIGNUPS.delete(id);
-  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  const ev=EVENTS_CACHE.find(e=>e.id===id)||(CURRENT_EVENT_DETAIL?.id===id?CURRENT_EVENT_DETAIL:null);
   if(ev)ev._signups=(ev._signups||[]).filter(s=>s.user_id!==SUPA_USER.id);
   toast('Inscripción cancelada');
-  renderEventsList();
+  refreshEventViews(id);
+}
+
+// ═══════════════════════════════════════════════
+// EVENTOS — ficha individual (accesible desde la lista, el mapa o el móvil)
+// ═══════════════════════════════════════════════
+async function renderEventDetailPage(id){
+  const cont=document.getElementById('event-detail-content');
+  cont.innerHTML='<div class="s-loading" style="padding:60px 0"><i class="ti ti-loader-2 spin"></i> Cargando evento...</div>';
+  const{data:ev,error}=await supa.from('events').select('*').eq('id',id).single();
+  if(error||!ev){cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-calendar-x"></i><p>Este evento ya no está disponible.</p></div>';return;}
+  const{data:signups}=await supa.from('event_signups').select('*').eq('event_id',id).order('created_at',{ascending:true});
+  ev._signups=signups||[];
+  const cached=EVENTS_CACHE.find(e=>e.id===id);
+  if(cached)Object.assign(cached,ev);
+  const joined=(signups||[]).some(s=>s.user_id===SUPA_USER.id);
+  if(joined)MY_EVENT_SIGNUPS.add(id);else MY_EVENT_SIGNUPS.delete(id);
+  renderEventDetailContent(ev,joined);
+}
+
+function renderEventDetailContent(ev,joined){
+  CURRENT_EVENT_DETAIL=ev;
+  const cont=document.getElementById('event-detail-content');
+  const signups=ev._signups||[];
+  const full=ev.capacity&&signups.length>=ev.capacity;
+  cont.innerHTML=`
+    <div class="organizer-event-title" style="font-size:26px">${escapeHtml(ev.title)}</div>
+    <div class="organizer-event-meta" style="margin-top:10px">
+      <span class="organizer-event-type-tag">${EVENT_TYPE_LABELS[ev.event_type]||'Evento'}</span>
+      <span><i class="ti ti-building-store" style="font-size:12px"></i> ${escapeHtml(ev.venue_name)}</span>
+      <span><i class="ti ti-calendar" style="font-size:12px"></i> ${formatEventDate(ev.starts_at)}</span>
+    </div>
+    ${ev.address?`<div class="organizer-event-meta" style="margin-top:8px"><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(ev)}" target="_blank" rel="noopener">${escapeHtml(ev.address)}, ${escapeHtml(ev.city)}</a></div>`:''}
+    ${ev.description?`<div class="organizer-event-desc" style="margin-top:18px;font-size:14.5px;line-height:1.65">${escapeHtml(ev.description)}</div>`:''}
+    <div style="margin-top:20px;max-width:320px">${capacityBarHtml(signups.length,ev.capacity)}</div>
+    <div class="organizer-event-actions" style="margin-top:18px">
+      ${joined
+        ?`<button class="btn btn-white" onclick="cancelEventSignup('${ev.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
+        :full
+          ?`<button class="btn btn-white" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
+          :`<button class="btn btn-red" onclick="signUpForEvent('${ev.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+      <button class="btn btn-white" onclick="openReaderEventAttendees('${ev.id}','${escapeHtml(ev.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
+      <a class="btn btn-white" href="${googleCalendarLink(ev)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
+    </div>
+  `;
 }
 
 // ═══════════════════════════════════════════════
@@ -4880,7 +4956,7 @@ function restoreLastPage(){
 // un-hyphenated logical id — so a raw `fromPage.id.replace(/^p-/,'')` produced a
 // mismatched key that silently dropped the entity id and skipped re-rendering
 // whenever you navigated away from a detail page.
-const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile'};
+const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile','event-detail':'eventdetail'};
 function go(id,btn,extraId,_isBack){
   if(!_isBack){
     const fromPage=document.querySelector('.page.on');
@@ -4922,6 +4998,12 @@ function go(id,btn,extraId,_isBack){
     renderUserProfilePage(extraId);
     return;
   }
+  if(id==='eventdetail'){
+    CURRENT_ENTITY.eventdetail=extraId;
+    document.getElementById('p-event-detail').classList.add('on');
+    renderEventDetailPage(extraId);
+    return;
+  }
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,
@@ -4940,6 +5022,7 @@ function goBack(fallbackId){
 function goBackFromBookPage(){goBack('shelf');}
 function goBackFromAuthorPage(){goBack('shelf');}
 function goBackFromUserProfile(){goBack('friends');}
+function goBackFromEventPage(){goBack('events');}
 
 // ═══════════════════════════════════════════════
 // OTHER USERS' PROFILES (public, read-only view)
