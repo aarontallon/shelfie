@@ -1232,6 +1232,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('organizers-landing')"><i class="ti ti-building-store"></i> Shelfie Eventos</button>
       <button class="btn-ghost-nav" onclick="showAuth('login')">Iniciar sesión</button>
       <button class="btn btn-red" onclick="showAuth('register')">Regístrate gratis</button>
     </div>
@@ -1348,25 +1349,95 @@ a{color:inherit}
     </div>
   </section>
 
-  <section class="landing-section landing-organizers">
-    <div class="landing-organizers-inner">
-      <div class="landing-organizers-text">
-        <div class="landing-section-eyebrow">Para locales y organizadores</div>
-        <h2 class="landing-section-title" style="text-align:left">¿Organizas encuentros de lectura?</h2>
-        <p class="landing-section-sub" style="text-align:left;margin-bottom:20px">Librerías, bibliotecas, centros culturales, clubs de lectura o cualquier local que monte presentaciones, firmas o encuentros literarios: registra tu evento en shelfie y accede a quién se ha apuntado, en un espacio separado del de los lectores.</p>
-        <div class="landing-cta-row">
-          <button class="btn btn-white btn-lg" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
-          <button class="landing-organizers-link" onclick="showAuth('organizer-login')">Ya tengo cuenta de organizador →</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <section class="landing-cta-band">
     <div class="landing-cta-band-inner">
       <div class="landing-cta-band-title">Tu próxima lectura favorita empieza aquí</div>
       <div class="landing-cta-band-sub">Gratis para siempre. Sin anuncios. Sin tarjeta de crédito.</div>
       <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crear mi shelfie</button>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
+
+</div>
+
+<!-- ══════════════════════ SHELFIE EVENTOS (explicación para organizadores) ══════════════════════ -->
+<div class="landing-screen" id="auth-organizers-landing">
+
+  <nav class="landing-nav">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em> eventos</div>
+    </div>
+    <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver a Shelfie</button>
+      <button class="btn-ghost-nav" onclick="showAuth('organizer-login')">Ya tengo cuenta</button>
+      <button class="btn btn-red" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
+    </div>
+  </nav>
+
+  <section class="landing-section landing-organizers" style="padding:70px 40px">
+    <div class="landing-organizers-inner" style="text-align:center">
+      <div class="landing-section-eyebrow">Para locales y organizadores</div>
+      <h1 class="landing-section-title" style="margin-top:10px">¿Organizas encuentros de lectura?</h1>
+      <p class="landing-section-sub" style="max-width:540px;margin:0 auto 26px">Librerías, bibliotecas, centros culturales, clubs de lectura o cualquier local que monte presentaciones, firmas o encuentros literarios: publica tu evento y accede a quién se ha apuntado — en un espacio propio, separado del de los lectores.</p>
+      <div class="landing-cta-row" style="justify-content:center;margin-bottom:0">
+        <button class="btn btn-red btn-lg" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
+        <button class="landing-organizers-link" onclick="showAuth('organizer-login')">Ya tengo cuenta de organizador →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="landing-section-head">
+      <div class="landing-section-eyebrow">Cómo funciona</div>
+      <h2 class="landing-section-title">De cero a tu primer evento en un par de minutos</h2>
+    </div>
+    <div class="landing-features">
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:var(--red-light);color:var(--red);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">1</div>
+        <div class="landing-feature-title">Regístrate como organizador</div>
+        <div class="landing-feature-desc">Una cuenta separada de la de los lectores: solo hace falta el nombre de tu local, tu ciudad y un email de contacto.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:var(--blue-light);color:var(--blue);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">2</div>
+        <div class="landing-feature-title">Publica tu evento</div>
+        <div class="landing-feature-desc">Título, descripción, dirección, fecha y aforo. Se publica al instante, sin moderación ni esperas.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:var(--amber-light);color:var(--amber);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">3</div>
+        <div class="landing-feature-title">Consulta quién se apunta</div>
+        <div class="landing-feature-desc">Nombre, usuario y aforo en tiempo real desde tu propio panel, con exportación a CSV cuando la necesites.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section" style="padding-top:0">
+    <div class="landing-also-strip">
+      <div class="landing-also-item"><i class="ti ti-map-pin"></i> Aparece en el mapa de tu ciudad</div>
+      <div class="landing-also-item"><i class="ti ti-brand-google-maps"></i> Dirección enlazada a Google Maps</div>
+      <div class="landing-also-item"><i class="ti ti-calendar-plus"></i> Añadir al calendario en un clic</div>
+      <div class="landing-also-item"><i class="ti ti-download"></i> Exporta tus inscritos en CSV</div>
+      <div class="landing-also-item"><i class="ti ti-gift"></i> Gratis, sin límite de eventos</div>
+    </div>
+  </section>
+
+  <section class="landing-cta-band">
+    <div class="landing-cta-band-inner">
+      <div class="landing-cta-band-title">Publica tu primer evento hoy mismo</div>
+      <div class="landing-cta-band-sub">Gratis para siempre. Sin moderación. Sin tarjeta de crédito.</div>
+      <button class="btn btn-red btn-lg" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
     </div>
   </section>
 
@@ -1551,7 +1622,7 @@ a{color:inherit}
      pero esta cuenta nunca tiene fila en profiles (ver handle_new_user en
      supabase_schema.sql) — solo en organizers. -->
 <div class="auth-screen" id="auth-organizer-login">
-  <button class="auth-back" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <button class="auth-back" onclick="showAuth('organizers-landing')"><i class="ti ti-arrow-left"></i> Volver</button>
   <div class="auth-box" id="organizer-login-box">
     <div class="auth-logo">
       <div class="logo-icon"><i class="ti ti-building-store" style="font-size:26px"></i></div>
@@ -1569,7 +1640,7 @@ a{color:inherit}
 
 <!-- ══════════════════════ AUTH: ORGANIZER REGISTER ══════════════════════ -->
 <div class="auth-screen" id="auth-organizer-register">
-  <button class="auth-back" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <button class="auth-back" onclick="showAuth('organizers-landing')"><i class="ti ti-arrow-left"></i> Volver</button>
   <div class="auth-box" id="organizer-register-box">
     <div class="auth-logo">
       <div class="logo-icon"><i class="ti ti-building-store" style="font-size:26px"></i></div>
