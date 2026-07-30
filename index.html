@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -201,7 +201,6 @@ a{color:inherit}
 .event-capacity-fill{height:100%;background:var(--red);border-radius:3px}
 .event-capacity-fill.full{background:var(--amber)}
 .event-capacity-txt{font-size:11.5px;color:var(--ink3);margin-top:4px}
-.event-attendee-names{font-size:12px;color:var(--ink2);margin-top:6px}
 .event-map-link{color:var(--red);text-decoration:none}
 .event-map-link:hover{text-decoration:underline}
 #events-map{height:280px;border-radius:14px;margin-bottom:18px;border:1px solid var(--border);z-index:0}
@@ -3805,6 +3804,25 @@ async function renderEventsPage(){
   }
   EVENTS_CACHE=events;
   renderEventsList();
+  geocodeMissingEventCoords(events);
+}
+
+// Red de seguridad: si un evento se guardó sin lat/lng (geocodificación fallida
+// al crearlo, o eventos creados antes de que existiera esta función), lo
+// geocodificamos aquí igualmente para que aparezca en el mapa. Solo en memoria
+// (el lector no tiene permiso para escribir en events) y espaciado a 1
+// petición/seg para respetar el límite de uso de Nominatim.
+async function geocodeMissingEventCoords(events){
+  const missing=events.filter(e=>(e.lat==null||e.lng==null)&&(e.address||e.city));
+  for(const e of missing){
+    const coords=await geocodeAddress(e.address,e.city);
+    if(coords){
+      e.lat=coords.lat;e.lng=coords.lng;
+      const visible=EVENTS_TAB==='mios'?EVENTS_CACHE.filter(ev=>MY_EVENT_SIGNUPS.has(ev.id)):EVENTS_CACHE;
+      renderEventsMap(visible);
+    }
+    await new Promise(r=>setTimeout(r,1100));
+  }
 }
 
 function renderEventsList(){
@@ -3823,8 +3841,6 @@ function renderEventsList(){
     const joined=MY_EVENT_SIGNUPS.has(e.id);
     const signups=e._signups||[];
     const full=e.capacity&&signups.length>=e.capacity;
-    const names=signups.slice(0,6).map(s=>escapeHtml(s.name||'Lector')).join(', ');
-    const extra=signups.length>6?` y ${signups.length-6} más`:'';
     return `<div class="organizer-event-card">
       <div class="organizer-event-top">
         <div>
@@ -3839,17 +3855,38 @@ function renderEventsList(){
       </div>
       ${e.description?`<div class="organizer-event-desc">${escapeHtml(e.description)}</div>`:''}
       ${capacityBarHtml(signups.length,e.capacity)}
-      ${signups.length?`<div class="event-attendee-names"><i class="ti ti-users" style="font-size:12px"></i> ${names}${extra}</div>`:''}
       <div class="organizer-event-actions">
         ${joined
           ?`<button class="btn btn-white btn-sm" onclick="cancelEventSignup('${e.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
           :full
             ?`<button class="btn btn-white btn-sm" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
             :`<button class="btn btn-red btn-sm" onclick="signUpForEvent('${e.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+        <button class="btn btn-white btn-sm" onclick="openReaderEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
         <a class="btn btn-white btn-sm" href="${googleCalendarLink(e)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
       </div>
     </div>`;
   }).join('');
+}
+
+function openReaderEventAttendees(id,title){
+  const ev=EVENTS_CACHE.find(e=>e.id===id);
+  if(!ev)return;
+  document.getElementById('event-attendees-title').textContent=`Inscritos · ${title}`;
+  const listEl=document.getElementById('event-attendees-list');
+  const capEl=document.getElementById('event-attendees-capacity');
+  const exportBtn=document.getElementById('event-attendees-export-btn');
+  exportBtn.style.display='none';
+  const signups=ev._signups||[];
+  capEl.innerHTML=capacityBarHtml(signups.length,ev.capacity);
+  listEl.innerHTML=signups.length?signups.map(s=>`
+    <div class="event-attendee-row">
+      <div class="f-av" style="background:var(--red);color:white;width:32px;height:32px;font-size:12px">${escapeHtml((s.name||'??').slice(0,2).toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600">${escapeHtml(s.name||'Lector')}</div>
+        ${s.username?`<div style="font-size:11px;color:var(--ink3)">@${escapeHtml(s.username)}</div>`:''}
+      </div>
+    </div>`).join(''):'<div class="empty" style="padding:20px 10px"><i class="ti ti-users"></i><p>Nadie se ha apuntado todavía</p></div>';
+  openModal('modal-event-attendees');
 }
 
 function renderEventsMap(events){
