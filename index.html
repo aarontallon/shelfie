@@ -10779,16 +10779,15 @@ async function generateShelfieStoryImage(){
       // no una simulación exacta de "Mi shelfie".
       const shelfBooks=hasMore?[...books,{title:`+${notShownCount} más`,color:T.moreTileBg||T.shelfPlank,isMore:true}]:books;
       const N=shelfBooks.length;
-      const SPINE_GAP=16,PLANK_H=18,ROW_GAP=28,MAX_PER_ROW=9;
-      // Cuando hay que mostrar progreso se reserva una franja bajo cada lomo (separada,
-      // no encima) para su barrita, así que los lomos quedan un poco más bajos.
-      const BAR_RESERVE=showProgress?22:0;
+      const PLANK_H=18,ROW_GAP=28,MAX_PER_ROW=9;
+      // Con progreso, cada lomo se separa un poco más del siguiente para dejar sitio a
+      // su propia barra vertical a la derecha (nunca debajo, para no confundirla con la balda).
+      const SPINE_GAP=showProgress?36:16;
       const rowCount=Math.max(1,Math.ceil(N/MAX_PER_ROW));
       const cols=Math.ceil(N/rowCount);
       const availH=contentBottom-contentTop;
       const rowH=Math.min(360,Math.max(190,(availH-rowCount*PLANK_H-(rowCount-1)*ROW_GAP)/rowCount));
-      const spineH=rowH-BAR_RESERVE;
-      const spineW=Math.min(150,Math.max(72,(availW-(cols-1)*SPINE_GAP)/cols));
+      const spineW=Math.min(150,Math.max(72,(availW-(showProgress?cols:cols-1)*SPINE_GAP)/cols));
       const fontSize=Math.max(13,Math.min(22,Math.round(spineW/3.4)));
       const totalH=rowCount*rowH+rowCount*PLANK_H+(rowCount-1)*ROW_GAP;
       const shelfTop=contentTop+(availH-totalH)/2;
@@ -10797,32 +10796,37 @@ async function generateShelfieStoryImage(){
       for(let row=0;row<rowCount;row++){
         const rowStart=row*cols,rowEnd=Math.min(N,rowStart+cols);
         const rowCells=shelfBooks.slice(rowStart,rowEnd);
-        const rowW=rowCells.length*spineW+(rowCells.length-1)*SPINE_GAP;
+        const rowW=showProgress?rowCells.length*(spineW+SPINE_GAP):rowCells.length*spineW+(rowCells.length-1)*SPINE_GAP;
         const y=shelfTop+row*(rowH+PLANK_H+ROW_GAP);
         let x=margin+(availW-rowW)/2;
         rowCells.forEach(b=>{
           ctx.save();
-          roundRectPath(ctx,x,y,spineW,spineH,8);
+          roundRectPath(ctx,x,y,spineW,rowH,8);
           ctx.clip();
           // Lomo de color + título — nunca portadas, igual que la estantería real
           ctx.fillStyle=b.color||'#555';
-          ctx.fillRect(x,y,spineW,spineH);
+          ctx.fillRect(x,y,spineW,rowH);
           ctx.save();
-          ctx.translate(x+spineW/2,y+spineH/2);
+          ctx.translate(x+spineW/2,y+rowH/2);
           ctx.rotate(Math.PI/2);
           ctx.fillStyle=T.fallbackText;
           ctx.font=`700 ${fontSize}px Inter, Arial, sans-serif`;
           ctx.textAlign='center';ctx.textBaseline='middle';
-          const lines=wrapCanvasText(ctx,b.title,spineH-20).slice(0,3);
+          const lines=wrapCanvasText(ctx,b.title,rowH-20).slice(0,3);
           const lh=fontSize+4,ty=-((lines.length-1)*lh)/2;
           lines.forEach((ln,li)=>ctx.fillText(ln,0,ty+li*lh));
           ctx.restore();
           ctx.restore();
           ctx.strokeStyle=T.cellBorder;ctx.lineWidth=1.5;
-          roundRectPath(ctx,x,y,spineW,spineH,8);ctx.stroke();
+          roundRectPath(ctx,x,y,spineW,rowH,8);ctx.stroke();
           if(showProgress){
             const pct=bookProgressPercent(b);
-            if(pct!==null)drawProgressBarBelow(x,y+spineH+8,spineW,pct);
+            if(pct!==null){
+              const barW=8,barX=x+spineW+(SPINE_GAP-barW)/2,barTop=y+10,barBottom=y+rowH-10,barH=barBottom-barTop;
+              roundRectPath(ctx,barX,barTop,barW,barH,barW/2);ctx.fillStyle=T.progressTrack;ctx.fill();
+              const fillH=barH*(pct/100);
+              roundRectPath(ctx,barX,barBottom-fillH,barW,fillH,barW/2);ctx.fillStyle=T.progressFill;ctx.fill();
+            }
           }
           x+=spineW+SPINE_GAP;
         });
@@ -10834,17 +10838,18 @@ async function generateShelfieStoryImage(){
       }
       contentBottomUsed=shelfTop+totalH;
     } else if(_sharePreviewViewMode==='list'){
-      // Lista: portada + título + autor por fila. Con pocos libros, la fila (y por
-      // tanto la portada y el texto) crece para aprovechar el lienzo en vez de dejar
-      // la story vacía; con muchos, se reduce para que quepan todos.
+      // Lista: portada + título + autor por fila. Solo con exactamente un libro (el
+      // caso típico de "Leyendo ahora mismo") la fila crece para aprovechar el
+      // lienzo; con dos o más se mantiene el tamaño de lista de siempre.
       const rowCount=books.length+(hasMore?1:0);
       const availHList=contentBottom-contentTop;
-      const maxRowH=Math.max(150,Math.min(900,900/rowCount));
+      const isSingleBook=rowCount===1;
+      const maxRowH=isSingleBook?900:150;
       const rowH=Math.min(maxRowH,availHList/rowCount);
       const totalH=rowH*rowCount;
       const startY=contentTop+(availHList-totalH)/2;
-      const titleFont=Math.max(28,Math.min(60,Math.round(rowH*0.062)));
-      const authorFont=Math.max(20,Math.min(36,Math.round(rowH*0.042)));
+      const titleFont=isSingleBook?Math.max(28,Math.min(60,Math.round(rowH*0.062))):30;
+      const authorFont=isSingleBook?Math.max(20,Math.min(36,Math.round(rowH*0.042))):24;
       books.forEach((b,i)=>{
         const y=startY+i*rowH;
         // Caja en formato retrato (no cuadrada) + "contain" en vez de recortar, para
@@ -10864,32 +10869,45 @@ async function generateShelfieStoryImage(){
         ctx.restore();
         const textX=margin+coverW+26;
         const textMaxW=1080-margin-textX-40;
+        const pct=showProgress?bookProgressPercent(b):null;
         ctx.font=`700 ${titleFont}px Inter, Arial, sans-serif`;
         ctx.textAlign='left';
         const titleLines=wrapCanvasText(ctx,b.title,textMaxW).slice(0,2);
-        const titleLH=Math.round(titleFont*1.18);
-        ctx.font=`500 ${authorFont}px Inter, Arial, sans-serif`;
-        const authorLines=wrapCanvasText(ctx,b.author||'',textMaxW).slice(0,1);
-        // La página va en su propia línea (ajustada y con salto si hace falta, no
-        // recortada) en vez de pegada al autor, para que nunca se pierda información.
-        const pageLines=showPage&&b.pages&&b.curPage!=null?wrapCanvasText(ctx,`Pág. ${b.curPage} de ${b.pages}`,textMaxW).slice(0,2):[];
-        const authorLH=Math.round(authorFont*1.3);
-        const pct=showProgress?bookProgressPercent(b):null;
-        const barGap=pct!==null?Math.max(14,Math.round(rowH*0.03)):0;
-        const barH=Math.max(6,Math.min(12,Math.round(rowH*0.012)));
-        const blockH=titleLines.length*titleLH+10+authorLines.length*authorLH+pageLines.length*authorLH+(pct!==null?barGap+barH:0);
-        let curY=y+rowH/2-blockH/2+titleFont*0.82;
-        ctx.font=`700 ${titleFont}px Inter, Arial, sans-serif`;
-        ctx.fillStyle=T.textPrimary;
-        titleLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=titleLH;});
-        curY+=10;
-        ctx.font=`500 ${authorFont}px Inter, Arial, sans-serif`;
-        ctx.fillStyle=T.textSecondary;
-        authorLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=authorLH;});
-        pageLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=authorLH;});
-        if(pct!==null){
-          curY+=barGap;
-          drawProgressBarBelow(textX,curY-barH,textMaxW,pct);
+        if(isSingleBook){
+          // Fila grande (un único libro): bloque de texto centrado, con la página en su
+          // propia línea (con salto si hiciera falta) para que nunca se pierda información.
+          const titleLH=Math.round(titleFont*1.18);
+          ctx.font=`500 ${authorFont}px Inter, Arial, sans-serif`;
+          const authorLines=wrapCanvasText(ctx,b.author||'',textMaxW).slice(0,1);
+          const pageLines=showPage&&b.pages&&b.curPage!=null?wrapCanvasText(ctx,`Pág. ${b.curPage} de ${b.pages}`,textMaxW).slice(0,2):[];
+          const authorLH=Math.round(authorFont*1.3);
+          const barGap=pct!==null?Math.max(14,Math.round(rowH*0.03)):0;
+          const barH=Math.max(6,Math.min(12,Math.round(rowH*0.012)));
+          const blockH=titleLines.length*titleLH+10+authorLines.length*authorLH+pageLines.length*authorLH+(pct!==null?barGap+barH:0);
+          let curY=y+rowH/2-blockH/2+titleFont*0.82;
+          ctx.font=`700 ${titleFont}px Inter, Arial, sans-serif`;
+          ctx.fillStyle=T.textPrimary;
+          titleLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=titleLH;});
+          curY+=10;
+          ctx.font=`500 ${authorFont}px Inter, Arial, sans-serif`;
+          ctx.fillStyle=T.textSecondary;
+          authorLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=authorLH;});
+          pageLines.forEach(ln=>{ctx.fillText(ln,textX,curY);curY+=authorLH;});
+          if(pct!==null){
+            curY+=barGap;
+            drawProgressBarBelow(textX,curY-barH,textMaxW,pct);
+          }
+        }else{
+          // Fila compacta (tamaño de lista de siempre): igual que antes — título,
+          // autor+página en una sola línea (hay ancho de sobra a este tamaño) y la
+          // barra pegada al pie de la fila.
+          ctx.fillStyle=T.textPrimary;
+          titleLines.forEach((ln,li)=>ctx.fillText(ln,textX,y+rowH/2-8+li*34-(titleLines.length>1?17:0)));
+          ctx.font=`500 ${authorFont}px Inter, Arial, sans-serif`;
+          ctx.fillStyle=T.textSecondary;
+          const pageSuffix=showPage&&b.pages&&b.curPage!=null?`  ·  Pág. ${b.curPage} de ${b.pages}`:'';
+          ctx.fillText((b.author||'')+pageSuffix,textX,y+rowH/2+28+(titleLines.length>1?10:0));
+          if(pct!==null)drawProgressBarBelow(textX,y+rowH-18,textMaxW,pct);
         }
         if(i<rowCount-1){
           ctx.strokeStyle=T.listDivider;ctx.lineWidth=1.5;
@@ -10908,7 +10926,9 @@ async function generateShelfieStoryImage(){
     } else {
       // Cuadrícula: mosaico de portadas al estilo "bookstagram"
       const cellCount=books.length+(hasMore?1:0);
-      const gap=22,cols=Math.min(3,cellCount);
+      // Con progreso se deja más aire entre filas para que la barra quede claramente
+      // separada de la portada de arriba y de la siguiente fila de abajo.
+      const gap=showProgress?54:22,cols=Math.min(3,cellCount);
       const rows=Math.ceil(cellCount/cols);
       const availH=contentBottom-contentTop;
       let colW=(availW-(cols-1)*gap)/cols;
@@ -10947,7 +10967,7 @@ async function generateShelfieStoryImage(){
         if(showProgress){
           const pct=bookProgressPercent(b);
           if(pct!==null){
-            const barW=colW*0.62,barX=x+(colW-barW)/2,barY=y+rowH+8;
+            const barW=colW*0.62,barX=x+(colW-barW)/2,barY=y+rowH+24;
             drawProgressBarBelow(barX,barY,barW,pct);
           }
         }
