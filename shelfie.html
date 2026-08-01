@@ -1983,9 +1983,26 @@ a{color:inherit}
   <h2><i class="ti ti-share-2" style="font-size:20px;color:var(--red)"></i> Vista previa para compartir</h2>
   <p class="sub" id="share-preview-sub">Así verán otros tu shelfie compartido</p>
   <div id="share-preview-content"></div>
-  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
     <button class="btn btn-ghost" onclick="closeModal('modal-share-preview')">Cancelar</button>
+    <button class="btn btn-white" id="share-preview-story-btn" onclick="generateShelfieStoryImage()"><i class="ti ti-photo"></i> Crear story</button>
     <button class="btn btn-red" onclick="confirmShareToComposer()"><i class="ti ti-send-2"></i> Compartir en el feed</button>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: STORY DE SHELFIE (imagen para Instagram/WhatsApp) ══════════════════════ -->
+<div class="overlay" id="modal-shelfie-story" style="display:none" onclick="if(event.target===this)closeModal('modal-shelfie-story')">
+<div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
+  <button class="modal-close" onclick="closeModal('modal-shelfie-story')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-photo" style="font-size:20px;color:var(--red)"></i> Tu story de shelfie</h2>
+  <p class="sub">Descárgala o compártela directamente — lista para Instagram Stories, WhatsApp y donde quieras</p>
+  <div style="background:#0f0f0f;border-radius:14px;overflow:hidden;margin-bottom:16px">
+    <img id="shelfie-story-img" style="width:100%;display:block;aspect-ratio:9/16;object-fit:contain" alt="Story de tu shelfie">
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-white w-full" onclick="downloadShelfieStoryImage()"><i class="ti ti-download"></i> Descargar</button>
+    <button class="btn btn-red w-full" id="shelfie-story-share-btn" onclick="shareShelfieStoryImage()" style="display:none"><i class="ti ti-share-2"></i> Compartir</button>
   </div>
 </div>
 </div>
@@ -10433,6 +10450,10 @@ function setShelfiePostViewMode(btn){
 // "Compartir" button in Mi shelfie: shows a preview modal before jumping to Feed composer
 let _sharePreviewBooks=[];
 let _sharePreviewViewMode='shelf';
+let _sharePreviewTabLabel='Mi shelfie';
+let _sharePreviewTabTotal=0;
+let _shelfieStoryBlob=null;
+let _shelfieStoryBlobUrl=null;
 
 function shareCurrentShelfTab(){
   let books;
@@ -10443,6 +10464,8 @@ function shareCurrentShelfTab(){
   _sharePreviewViewMode=PROFILE.shelfPublicView;
   // Show preview modal
   const tabLabels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer',dnf:'Abandonados',anio:`Shelfie ${CURRENT_SHELFIE_YEAR}`};
+  _sharePreviewTabLabel=tabLabels[currentTab]||'Mi shelfie';
+  _sharePreviewTabTotal=books.length;
   document.getElementById('share-preview-sub').textContent=`${tabLabels[currentTab]||''} · ${_sharePreviewBooks.length} libro${_sharePreviewBooks.length!==1?'s':''}`;
   renderSharePreview();
   openModal('modal-share-preview');
@@ -10496,6 +10519,214 @@ function confirmShareToComposer(){
     if(viewBtn)setShelfiePostViewMode(viewBtn);
     document.getElementById('composer-shelfiepost-text').focus();
   },120);
+}
+
+// ═══════════════════════════════════════════════
+// STORY DE SHELFIE — imagen 9:16 lista para Instagram Stories / WhatsApp
+// ═══════════════════════════════════════════════
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function wrapCanvasText(ctx,text,maxWidth){
+  const words=(text||'').split(' ');
+  const lines=[];
+  let cur='';
+  words.forEach(w=>{
+    const test=cur?cur+' '+w:w;
+    if(ctx.measureText(test).width>maxWidth&&cur){lines.push(cur);cur=w;}
+    else cur=test;
+  });
+  if(cur)lines.push(cur);
+  return lines;
+}
+// Las portadas remotas (Open Library) necesitan CORS para poder leerse desde un
+// <canvas> sin "mancharlo" — si el navegador no pudo validar el header CORS del
+// origen remoto, canvas.toBlob() explota más tarde con un SecurityError. En vez
+// de arriesgar el lienzo entero, cada portada se valida aparte en un canvas de
+// usar y tirar: si falla, esa portada concreta cae al color de reserva y el
+// resto de la imagen sigue intacta. Las portadas subidas a mano (data: URL) son
+// siempre seguras, así que pasan directas.
+function loadCoverImageSafe(url){
+  return new Promise(resolve=>{
+    if(!url){resolve(null);return;}
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    const timer=setTimeout(()=>resolve(null),6000);
+    img.onload=()=>{
+      clearTimeout(timer);
+      try{
+        const test=document.createElement('canvas');
+        test.width=1;test.height=1;
+        test.getContext('2d').drawImage(img,0,0,1,1);
+        test.toDataURL();
+        resolve(img);
+      }catch(_){resolve(null);}
+    };
+    img.onerror=()=>{clearTimeout(timer);resolve(null);};
+    img.src=url;
+  });
+}
+
+async function generateShelfieStoryImage(){
+  const books=_sharePreviewBooks.slice(0,9);
+  if(!books.length){toast('No hay libros para crear la story');return;}
+  const btn=document.getElementById('share-preview-story-btn');
+  const prevHtml=btn?.innerHTML;
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
+  try{
+    const images=await Promise.all(books.map(b=>loadCoverImageSafe(b.cover)));
+
+    const canvas=document.createElement('canvas');
+    canvas.width=1080;canvas.height=1920;
+    const ctx=canvas.getContext('2d');
+
+    // Fondo oscuro con los mismos resplandores verdes que la landing
+    ctx.fillStyle='#1A1A1A';
+    ctx.fillRect(0,0,1080,1920);
+    let glow=ctx.createRadialGradient(940,140,0,940,140,520);
+    glow.addColorStop(0,'rgba(74,124,95,0.35)');glow.addColorStop(1,'rgba(74,124,95,0)');
+    ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+    glow=ctx.createRadialGradient(120,1820,0,120,1820,560);
+    glow.addColorStop(0,'rgba(61,107,82,0.32)');glow.addColorStop(1,'rgba(61,107,82,0)');
+    ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+
+    // Logo + wordmark
+    ctx.fillStyle='#FFFFFF';
+    const logoScale=34/24;
+    SHELFIE_LOGO_BARS.forEach(([bx,by,bw,bh])=>{roundRectPath(ctx,80+bx*logoScale,86+by*logoScale,bw*logoScale,bh*logoScale,2);ctx.fill();});
+    ctx.font='700 40px Inter, Arial, sans-serif';
+    ctx.fillText('shelfie',150,132);
+    ctx.font='500 26px Inter, Arial, sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.textAlign='right';
+    ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
+    ctx.textAlign='left';
+
+    // Título
+    ctx.fillStyle='#FFFFFF';
+    ctx.font='800 54px "Playfair Display", Georgia, serif';
+    ctx.fillText(_sharePreviewTabLabel,80,260);
+    ctx.font='500 28px Inter, Arial, sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.62)';
+    ctx.fillText(`${_sharePreviewTabTotal} libro${_sharePreviewTabTotal!==1?'s':''}`,80,302);
+
+    // Cuadrícula de portadas (hasta 9, como un mosaico de "bookstagram")
+    const gridTop=350,gridBottom=1620,gap=22,margin=80,cols=Math.min(3,books.length);
+    const rows=Math.ceil(books.length/cols);
+    const availW=1080-margin*2,availH=gridBottom-gridTop;
+    let colW=(availW-(cols-1)*gap)/cols;
+    let rowH=colW*1.5;
+    if(rows*rowH+(rows-1)*gap>availH){rowH=(availH-(rows-1)*gap)/rows;colW=rowH/1.5;}
+    const gridW=cols*colW+(cols-1)*gap,gridH=rows*rowH+(rows-1)*gap;
+    const startX=(1080-gridW)/2,startY=gridTop+(availH-gridH)/2;
+
+    books.forEach((b,i)=>{
+      const col=i%cols,row=Math.floor(i/cols);
+      const x=startX+col*(colW+gap),y=startY+row*(rowH+gap);
+      ctx.save();
+      roundRectPath(ctx,x,y,colW,rowH,14);
+      ctx.clip();
+      const img=images[i];
+      if(img){
+        const s=Math.max(colW/img.width,rowH/img.height);
+        const iw=img.width*s,ih=img.height*s;
+        ctx.drawImage(img,x+(colW-iw)/2,y+(rowH-ih)/2,iw,ih);
+      }else{
+        ctx.fillStyle=b.color||'#555';
+        ctx.fillRect(x,y,colW,rowH);
+        ctx.fillStyle='rgba(255,255,255,0.95)';
+        ctx.font='700 22px Inter, Arial, sans-serif';
+        ctx.textAlign='center';
+        const lines=wrapCanvasText(ctx,b.title,colW-24).slice(0,4);
+        const lh=26,ty=y+rowH/2-((lines.length-1)*lh)/2;
+        lines.forEach((ln,li)=>ctx.fillText(ln,x+colW/2,ty+li*lh));
+        ctx.textAlign='left';
+      }
+      ctx.restore();
+      ctx.strokeStyle='rgba(255,255,255,0.1)';
+      ctx.lineWidth=2;
+      roundRectPath(ctx,x,y,colW,rowH,14);
+      ctx.stroke();
+    });
+
+    // Chips de estadísticas
+    const chipY=Math.min(startY+gridH+50,1700);
+    const chipTexts=[`📚 ${_sharePreviewTabTotal} libro${_sharePreviewTabTotal!==1?'s':''}`];
+    if(currentTab==='leidos'||currentTab==='anio'){
+      const streak=calculateCurrentStreak();
+      if(streak>0)chipTexts.push(`🔥 ${streak} día${streak!==1?'s':''} de racha`);
+    }
+    ctx.font='700 30px Inter, Arial, sans-serif';
+    const chipH=64,chipGap=18,chipPadX=32;
+    const widths=chipTexts.map(t=>ctx.measureText(t).width+chipPadX*2);
+    const totalChipW=widths.reduce((a,w)=>a+w,0)+(chipTexts.length-1)*chipGap;
+    let cx=(1080-totalChipW)/2;
+    chipTexts.forEach((t,i)=>{
+      const w=widths[i];
+      ctx.fillStyle='rgba(255,255,255,0.09)';
+      roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=2;
+      roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.stroke();
+      ctx.fillStyle='#FFFFFF';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(t,cx+w/2,chipY+chipH/2+3);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      cx+=w+chipGap;
+    });
+
+    // Pie
+    ctx.font='500 24px Inter, Arial, sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.textAlign='center';
+    ctx.fillText('Creado con shelfie · comparte tu próxima lectura',540,1870);
+    ctx.textAlign='left';
+
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png',0.95));
+    if(!blob)throw new Error('canvas.toBlob devolvió null');
+    if(_shelfieStoryBlobUrl)URL.revokeObjectURL(_shelfieStoryBlobUrl);
+    _shelfieStoryBlob=blob;
+    _shelfieStoryBlobUrl=URL.createObjectURL(blob);
+    document.getElementById('shelfie-story-img').src=_shelfieStoryBlobUrl;
+    const shareBtn=document.getElementById('shelfie-story-share-btn');
+    if(shareBtn)shareBtn.style.display=(typeof navigator.share==='function')?'inline-flex':'none';
+    closeModal('modal-share-preview');
+    openModal('modal-shelfie-story');
+  }catch(e){
+    console.error('generateShelfieStoryImage failed:',e);
+    toast('❌ No se pudo generar la imagen. Inténtalo de nuevo.');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=prevHtml;}
+  }
+}
+
+function downloadShelfieStoryImage(){
+  if(!_shelfieStoryBlobUrl)return;
+  const uname=(PROFILE?.username||'shelfie').toString().trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-')||'shelfie';
+  const a=document.createElement('a');
+  a.href=_shelfieStoryBlobUrl;
+  a.download=`shelfie-story-${uname}-${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('✅ Imagen descargada');
+}
+
+async function shareShelfieStoryImage(){
+  if(!_shelfieStoryBlob)return;
+  try{
+    const file=new File([_shelfieStoryBlob],'shelfie-story.png',{type:'image/png'});
+    if(navigator.canShare&&!navigator.canShare({files:[file]})){
+      toast('Tu navegador no admite compartir esta imagen directamente. Descárgala y compártela desde tu galería.');
+      return;
+    }
+    await navigator.share({files:[file],title:'Mi shelfie',text:'Mira mi shelfie en shelfie 📚'});
+  }catch(e){
+    if(e?.name!=='AbortError')console.error('shareShelfieStoryImage failed:',e);
+  }
 }
 
 function onShelfiePostSearch(q){
