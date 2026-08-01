@@ -1983,6 +1983,28 @@ a{color:inherit}
   <h2><i class="ti ti-share-2" style="font-size:20px;color:var(--red)"></i> Vista previa para compartir</h2>
   <p class="sub" id="share-preview-sub">Así verán otros tu shelfie compartido</p>
   <div id="share-preview-content"></div>
+  <div style="margin-top:16px">
+    <div class="option-label" style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Vista</div>
+    <div class="subject-toggle" id="share-preview-view-toggle">
+      <button type="button" class="subject-toggle-btn" data-shelfview="shelf" onclick="setSharePreviewViewMode(this)"><i class="ti ti-bookmarks"></i> Estantería</button>
+      <button type="button" class="subject-toggle-btn" data-shelfview="grid" onclick="setSharePreviewViewMode(this)"><i class="ti ti-layout-grid"></i> Cuadrícula</button>
+      <button type="button" class="subject-toggle-btn" data-shelfview="list" onclick="setSharePreviewViewMode(this)"><i class="ti ti-list"></i> Lista</button>
+    </div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="option-label" style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Tema de la story</div>
+    <div class="subject-toggle" id="share-preview-theme-toggle">
+      <button type="button" class="subject-toggle-btn" data-theme="dark" onclick="setSharePreviewStoryTheme(this)"><i class="ti ti-moon"></i> Oscuro</button>
+      <button type="button" class="subject-toggle-btn" data-theme="light" onclick="setSharePreviewStoryTheme(this)"><i class="ti ti-sun"></i> Claro</button>
+    </div>
+  </div>
+  <div id="share-preview-leyendo-opts" style="display:none;margin-top:10px">
+    <div class="option-label" style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">En la story también quiero mostrar</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-progress" checked onchange="_sharePreviewShowProgress=this.checked"> Mi progreso de lectura</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-streak" checked onchange="_sharePreviewShowStreak=this.checked"> Mi racha de lectura</label>
+    </div>
+  </div>
   <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
     <button class="btn btn-ghost" onclick="closeModal('modal-share-preview')">Cancelar</button>
     <button class="btn btn-white" id="share-preview-story-btn" onclick="generateShelfieStoryImage()"><i class="ti ti-photo"></i> Crear story</button>
@@ -1996,7 +2018,7 @@ a{color:inherit}
 <div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
   <button class="modal-close" onclick="closeModal('modal-shelfie-story')"><i class="ti ti-x"></i></button>
   <h2><i class="ti ti-photo" style="font-size:20px;color:var(--red)"></i> Tu story de shelfie</h2>
-  <p class="sub">Descárgala o compártela directamente — lista para Instagram Stories, WhatsApp y donde quieras</p>
+  <p class="sub">Descárgala o pulsa Compartir para elegir Instagram, WhatsApp o donde quieras desde el menú de tu móvil</p>
   <div style="background:#0f0f0f;border-radius:14px;overflow:hidden;margin-bottom:16px">
     <img id="shelfie-story-img" style="width:100%;display:block;aspect-ratio:9/16;object-fit:contain" alt="Story de tu shelfie">
   </div>
@@ -10452,6 +10474,10 @@ let _sharePreviewBooks=[];
 let _sharePreviewViewMode='shelf';
 let _sharePreviewTabLabel='Mi shelfie';
 let _sharePreviewTabTotal=0;
+let _sharePreviewTab='leidos';
+let _sharePreviewStoryTheme='dark';
+let _sharePreviewShowProgress=true;
+let _sharePreviewShowStreak=true;
 let _shelfieStoryBlob=null;
 let _shelfieStoryBlobUrl=null;
 
@@ -10460,15 +10486,33 @@ function shareCurrentShelfTab(){
   if(currentTab==='anio')books=allBooks().filter(b=>YEAR_GOAL_IDS.has(b.id));
   else books=[...DB[currentTab]];
   if(!books.length){toast('No hay libros en este apartado para compartir');return;}
-  _sharePreviewBooks=books.slice(0,16).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color,pages:b.pages||null}));
+  _sharePreviewBooks=books.slice(0,16).map(b=>({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color,pages:b.pages||null,curPage:b.curPage||null}));
   _sharePreviewViewMode=PROFILE.shelfPublicView;
+  _sharePreviewTab=currentTab;
   // Show preview modal
   const tabLabels={leidos:'Leídos',leyendo:'Leyendo',quiero:'Quiero leer',dnf:'Abandonados',anio:`Shelfie ${CURRENT_SHELFIE_YEAR}`};
   _sharePreviewTabLabel=tabLabels[currentTab]||'Mi shelfie';
   _sharePreviewTabTotal=books.length;
   document.getElementById('share-preview-sub').textContent=`${tabLabels[currentTab]||''} · ${_sharePreviewBooks.length} libro${_sharePreviewBooks.length!==1?'s':''}`;
+  document.querySelectorAll('#share-preview-view-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.shelfview===_sharePreviewViewMode));
+  document.querySelectorAll('#share-preview-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.theme===_sharePreviewStoryTheme));
+  const leyendoOpts=document.getElementById('share-preview-leyendo-opts');
+  if(leyendoOpts)leyendoOpts.style.display=currentTab==='leyendo'?'block':'none';
   renderSharePreview();
   openModal('modal-share-preview');
+}
+
+function setSharePreviewViewMode(btn){
+  document.querySelectorAll('#share-preview-view-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _sharePreviewViewMode=btn.dataset.shelfview;
+  renderSharePreview();
+}
+
+function setSharePreviewStoryTheme(btn){
+  document.querySelectorAll('#share-preview-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _sharePreviewStoryTheme=btn.dataset.theme;
 }
 
 function renderSharePreview(){
@@ -10573,6 +10617,33 @@ function loadCoverImageSafe(url){
   });
 }
 
+function storyThemePalette(theme){
+  return theme==='light'?{
+    bg:'#FAF6EE',glowA:'rgba(74,124,95,0.16)',glowB:'rgba(217,164,6,0.10)',
+    textPrimary:'#1A1A1A',textSecondary:'rgba(26,26,26,0.55)',textTertiary:'rgba(26,26,26,0.6)',
+    chipBg:'#FFFFFF',chipBorder:'#E4DCC8',chipText:'#1A1A1A',footer:'rgba(26,26,26,0.42)',
+    cellBorder:'rgba(26,26,26,0.1)',fallbackText:'rgba(255,255,255,0.95)',
+    shelfBack:'#F0E8D8',shelfPlank:'#D9C6A0',shelfPlankTop:'#EAE0C8',
+    progressTrack:'rgba(26,26,26,0.14)',progressFill:'#3D6B52',listDivider:'rgba(26,26,26,0.1)'
+  }:{
+    bg:'#1A1A1A',glowA:'rgba(74,124,95,0.35)',glowB:'rgba(61,107,82,0.32)',
+    textPrimary:'#FFFFFF',textSecondary:'rgba(255,255,255,0.6)',textTertiary:'rgba(255,255,255,0.62)',
+    chipBg:'rgba(255,255,255,0.09)',chipBorder:'rgba(255,255,255,0.18)',chipText:'#FFFFFF',footer:'rgba(255,255,255,0.4)',
+    cellBorder:'rgba(255,255,255,0.1)',fallbackText:'rgba(255,255,255,0.95)',
+    shelfBack:'#241C14',shelfPlank:'#3A2C1D',shelfPlankTop:'#4A3826',
+    progressTrack:'rgba(255,255,255,0.2)',progressFill:'#6FAE87',listDivider:'rgba(255,255,255,0.1)'
+  };
+}
+function bookProgressPercent(b){
+  if(!b.pages||b.curPage==null)return null;
+  return Math.max(0,Math.min(100,Math.round(b.curPage/b.pages*100)));
+}
+function avgProgressPercent(books){
+  const pcts=books.map(bookProgressPercent).filter(p=>p!==null);
+  if(!pcts.length)return null;
+  return Math.round(pcts.reduce((a,p)=>a+p,0)/pcts.length);
+}
+
 async function generateShelfieStoryImage(){
   const books=_sharePreviewBooks.slice(0,9);
   if(!books.length){toast('No hay libros para crear la story');return;}
@@ -10581,86 +10652,235 @@ async function generateShelfieStoryImage(){
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
   try{
     const images=await Promise.all(books.map(b=>loadCoverImageSafe(b.cover)));
+    const isLeyendo=_sharePreviewTab==='leyendo';
+    const showProgress=isLeyendo&&_sharePreviewShowProgress&&books.some(b=>bookProgressPercent(b)!==null);
+    const showStreakChip=isLeyendo?_sharePreviewShowStreak:(_sharePreviewTab==='leidos'||_sharePreviewTab==='anio');
+    const T=storyThemePalette(_sharePreviewStoryTheme);
 
     const canvas=document.createElement('canvas');
     canvas.width=1080;canvas.height=1920;
     const ctx=canvas.getContext('2d');
 
-    // Fondo oscuro con los mismos resplandores verdes que la landing
-    ctx.fillStyle='#1A1A1A';
+    // Fondo con los mismos resplandores de marca que la landing, adaptados al tema
+    ctx.fillStyle=T.bg;
     ctx.fillRect(0,0,1080,1920);
     let glow=ctx.createRadialGradient(940,140,0,940,140,520);
-    glow.addColorStop(0,'rgba(74,124,95,0.35)');glow.addColorStop(1,'rgba(74,124,95,0)');
+    glow.addColorStop(0,T.glowA);glow.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
     glow=ctx.createRadialGradient(120,1820,0,120,1820,560);
-    glow.addColorStop(0,'rgba(61,107,82,0.32)');glow.addColorStop(1,'rgba(61,107,82,0)');
+    glow.addColorStop(0,T.glowB);glow.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
 
     // Logo + wordmark
-    ctx.fillStyle='#FFFFFF';
+    ctx.fillStyle=T.textPrimary;
     const logoScale=34/24;
     SHELFIE_LOGO_BARS.forEach(([bx,by,bw,bh])=>{roundRectPath(ctx,80+bx*logoScale,86+by*logoScale,bw*logoScale,bh*logoScale,2);ctx.fill();});
     ctx.font='700 40px Inter, Arial, sans-serif';
     ctx.fillText('shelfie',150,132);
     ctx.font='500 26px Inter, Arial, sans-serif';
-    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.fillStyle=T.textSecondary;
     ctx.textAlign='right';
     ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
     ctx.textAlign='left';
 
     // Título
-    ctx.fillStyle='#FFFFFF';
+    ctx.fillStyle=T.textPrimary;
     ctx.font='800 54px "Playfair Display", Georgia, serif';
     ctx.fillText(_sharePreviewTabLabel,80,260);
     ctx.font='500 28px Inter, Arial, sans-serif';
-    ctx.fillStyle='rgba(255,255,255,0.62)';
+    ctx.fillStyle=T.textTertiary;
     ctx.fillText(`${_sharePreviewTabTotal} libro${_sharePreviewTabTotal!==1?'s':''}`,80,302);
 
-    // Cuadrícula de portadas (hasta 9, como un mosaico de "bookstagram")
-    const gridTop=350,gridBottom=1620,gap=22,margin=80,cols=Math.min(3,books.length);
-    const rows=Math.ceil(books.length/cols);
-    const availW=1080-margin*2,availH=gridBottom-gridTop;
-    let colW=(availW-(cols-1)*gap)/cols;
-    let rowH=colW*1.5;
-    if(rows*rowH+(rows-1)*gap>availH){rowH=(availH-(rows-1)*gap)/rows;colW=rowH/1.5;}
-    const gridW=cols*colW+(cols-1)*gap,gridH=rows*rowH+(rows-1)*gap;
-    const startX=(1080-gridW)/2,startY=gridTop+(availH-gridH)/2;
+    const contentTop=350,contentBottom=1620,margin=80;
+    const availW=1080-margin*2;
+    const drawProgressStrip=(x,y,w,h,pct)=>{
+      const stripW=Math.min(10,Math.max(6,w*0.12));
+      const sx=x+w-stripW-4,sy=y+4,sh=h-8;
+      roundRectPath(ctx,sx,sy,stripW,sh,stripW/2);ctx.fillStyle=T.progressTrack;ctx.fill();
+      const fillH=sh*(pct/100);
+      roundRectPath(ctx,sx,sy+sh-fillH,stripW,fillH,stripW/2);ctx.fillStyle=T.progressFill;ctx.fill();
+    };
+    let contentBottomUsed=contentTop;
 
-    books.forEach((b,i)=>{
-      const col=i%cols,row=Math.floor(i/cols);
-      const x=startX+col*(colW+gap),y=startY+row*(rowH+gap);
-      ctx.save();
-      roundRectPath(ctx,x,y,colW,rowH,14);
-      ctx.clip();
-      const img=images[i];
-      if(img){
-        const s=Math.max(colW/img.width,rowH/img.height);
-        const iw=img.width*s,ih=img.height*s;
-        ctx.drawImage(img,x+(colW-iw)/2,y+(rowH-ih)/2,iw,ih);
-      }else{
-        ctx.fillStyle=b.color||'#555';
-        ctx.fillRect(x,y,colW,rowH);
-        ctx.fillStyle='rgba(255,255,255,0.95)';
-        ctx.font='700 22px Inter, Arial, sans-serif';
-        ctx.textAlign='center';
-        const lines=wrapCanvasText(ctx,b.title,colW-24).slice(0,4);
-        const lh=26,ty=y+rowH/2-((lines.length-1)*lh)/2;
-        lines.forEach((ln,li)=>ctx.fillText(ln,x+colW/2,ty+li*lh));
-        ctx.textAlign='left';
+    if(_sharePreviewViewMode==='shelf'){
+      // Estantería: empaqueta lomos por fila según su ancho real (páginas), como en "Mi shelfie"
+      const dims=books.map(b=>spineDims(b));
+      const SPINE_GAP=14,PLANK_H=18,ROW_GAP=26;
+      const packRows=scale=>{
+        const rows=[];let row=[];let rowW=0;
+        books.forEach((b,i)=>{
+          const w=dims[i].widthPx*scale;
+          const addW=w+(row.length?SPINE_GAP:0);
+          if(row.length&&rowW+addW>availW){rows.push(row);row=[];rowW=0;}
+          row.push({b,i,w,h:dims[i].heightPx*scale,fontSize:dims[i].fontSize*scale});
+          rowW+=w+(row.length>1?SPINE_GAP:0);
+        });
+        if(row.length)rows.push(row);
+        return rows;
+      };
+      let rows=packRows(1);
+      let naturalH=rows.reduce((s,r)=>s+Math.max(...r.map(c=>c.h)),0)+(rows.length-1)*ROW_GAP+rows.length*PLANK_H;
+      const availH=contentBottom-contentTop;
+      if(naturalH>availH){
+        const scale=Math.max(0.45,availH/naturalH);
+        rows=packRows(scale);
+      }else if(rows.length===1&&naturalH<availH*0.55){
+        // Pocos libros/lomos finos: agranda el conjunto para que la estantería no quede diminuta en el lienzo
+        const naturalRowW=rows[0].reduce((s,c,ci)=>s+c.w+(ci?SPINE_GAP:0),0);
+        const upScale=Math.min(availW/naturalRowW,(availH*0.78)/naturalH,2.6);
+        if(upScale>1.05)rows=packRows(upScale);
       }
-      ctx.restore();
-      ctx.strokeStyle='rgba(255,255,255,0.1)';
-      ctx.lineWidth=2;
-      roundRectPath(ctx,x,y,colW,rowH,14);
-      ctx.stroke();
-    });
+      const rowHeights=rows.map(r=>Math.max(...r.map(c=>c.h)));
+      const totalH=rowHeights.reduce((a,h)=>a+h,0)+(rows.length-1)*ROW_GAP+rows.length*PLANK_H;
+      const shelfTop=contentTop+(availH-totalH)/2;
+      roundRectPath(ctx,margin-24,shelfTop-24,availW+48,totalH+48,20);
+      ctx.fillStyle=T.shelfBack;ctx.fill();
+      let rowY=shelfTop;
+      rows.forEach((row,ri)=>{
+        const rowH=rowHeights[ri];
+        const rowW=row.reduce((s,c,ci)=>s+c.w+(ci?SPINE_GAP:0),0);
+        let x=margin+(availW-rowW)/2;
+        row.forEach(cell=>{
+          const y=rowY+(rowH-cell.h);
+          ctx.save();
+          roundRectPath(ctx,x,y,cell.w,cell.h,Math.min(6,cell.w/4));
+          ctx.clip();
+          const img=images[cell.i];
+          if(img){
+            const s=Math.max(cell.w/img.width,cell.h/img.height);
+            const iw=img.width*s,ih=img.height*s;
+            ctx.drawImage(img,x+(cell.w-iw)/2,y+(cell.h-ih)/2,iw,ih);
+          }else{
+            ctx.fillStyle=cell.b.color||'#555';
+            ctx.fillRect(x,y,cell.w,cell.h);
+            ctx.save();
+            ctx.translate(x+cell.w/2,y+cell.h/2);
+            ctx.rotate(Math.PI/2);
+            ctx.fillStyle=T.fallbackText;
+            ctx.font=`700 ${Math.max(9,cell.fontSize)}px Inter, Arial, sans-serif`;
+            ctx.textAlign='center';ctx.textBaseline='middle';
+            const lines=wrapCanvasText(ctx,cell.b.title,cell.h-16).slice(0,2);
+            const lh=cell.fontSize+3,ty=-((lines.length-1)*lh)/2;
+            lines.forEach((ln,li)=>ctx.fillText(ln,0,ty+li*lh));
+            ctx.restore();
+          }
+          if(showProgress){
+            const pct=bookProgressPercent(cell.b);
+            if(pct!==null)drawProgressStrip(x,y,cell.w,cell.h,pct);
+          }
+          ctx.restore();
+          ctx.strokeStyle=T.cellBorder;ctx.lineWidth=1.5;
+          roundRectPath(ctx,x,y,cell.w,cell.h,Math.min(6,cell.w/4));ctx.stroke();
+          x+=cell.w+SPINE_GAP;
+        });
+        const plankY=rowY+rowH;
+        const plankGrad=ctx.createLinearGradient(0,plankY,0,plankY+PLANK_H);
+        plankGrad.addColorStop(0,T.shelfPlankTop);plankGrad.addColorStop(1,T.shelfPlank);
+        ctx.fillStyle=plankGrad;
+        roundRectPath(ctx,margin-24,plankY,availW+48,PLANK_H,4);ctx.fill();
+        rowY+=rowH+PLANK_H+ROW_GAP;
+      });
+      contentBottomUsed=shelfTop+totalH;
+    } else if(_sharePreviewViewMode==='list'){
+      // Lista: portada + título + autor por fila
+      const rowH=Math.min(150,(contentBottom-contentTop)/books.length);
+      const totalH=rowH*books.length;
+      const startY=contentTop+((contentBottom-contentTop)-totalH)/2;
+      books.forEach((b,i)=>{
+        const y=startY+i*rowH;
+        const coverSize=rowH-28;
+        ctx.save();
+        roundRectPath(ctx,margin,y+14,coverSize,coverSize,10);
+        ctx.clip();
+        const img=images[i];
+        if(img){
+          const s=Math.max(coverSize/img.width,coverSize/img.height);
+          const iw=img.width*s,ih=img.height*s;
+          ctx.drawImage(img,margin+(coverSize-iw)/2,y+14+(coverSize-ih)/2,iw,ih);
+        }else{
+          ctx.fillStyle=b.color||'#555';
+          ctx.fillRect(margin,y+14,coverSize,coverSize);
+        }
+        ctx.restore();
+        const textX=margin+coverSize+26;
+        ctx.fillStyle=T.textPrimary;
+        ctx.font='700 30px Inter, Arial, sans-serif';
+        ctx.textAlign='left';
+        const titleLines=wrapCanvasText(ctx,b.title,1080-margin-textX-40).slice(0,2);
+        titleLines.forEach((ln,li)=>ctx.fillText(ln,textX,y+rowH/2-8+li*34-(titleLines.length>1?17:0)));
+        ctx.font='500 24px Inter, Arial, sans-serif';
+        ctx.fillStyle=T.textSecondary;
+        ctx.fillText(b.author||'',textX,y+rowH/2+28+(titleLines.length>1?10:0));
+        if(showProgress){
+          const pct=bookProgressPercent(b);
+          if(pct!==null){
+            const barW=1080-margin-textX-40,barY=y+rowH-18,barH=8;
+            roundRectPath(ctx,textX,barY,barW,barH,4);ctx.fillStyle=T.progressTrack;ctx.fill();
+            roundRectPath(ctx,textX,barY,barW*(pct/100),barH,4);ctx.fillStyle=T.progressFill;ctx.fill();
+          }
+        }
+        if(i<books.length-1){
+          ctx.strokeStyle=T.listDivider;ctx.lineWidth=1.5;
+          ctx.beginPath();ctx.moveTo(margin,y+rowH);ctx.lineTo(1080-margin,y+rowH);ctx.stroke();
+        }
+      });
+      contentBottomUsed=startY+totalH;
+    } else {
+      // Cuadrícula: mosaico de portadas al estilo "bookstagram"
+      const gap=22,cols=Math.min(3,books.length);
+      const rows=Math.ceil(books.length/cols);
+      const availH=contentBottom-contentTop;
+      let colW=(availW-(cols-1)*gap)/cols;
+      let rowH=colW*1.5;
+      if(rows*rowH+(rows-1)*gap>availH){rowH=(availH-(rows-1)*gap)/rows;colW=rowH/1.5;}
+      const gridW=cols*colW+(cols-1)*gap,gridH=rows*rowH+(rows-1)*gap;
+      const startX=(1080-gridW)/2,startY=contentTop+(availH-gridH)/2;
+
+      books.forEach((b,i)=>{
+        const col=i%cols,row=Math.floor(i/cols);
+        const x=startX+col*(colW+gap),y=startY+row*(rowH+gap);
+        ctx.save();
+        roundRectPath(ctx,x,y,colW,rowH,14);
+        ctx.clip();
+        const img=images[i];
+        if(img){
+          const s=Math.max(colW/img.width,rowH/img.height);
+          const iw=img.width*s,ih=img.height*s;
+          ctx.drawImage(img,x+(colW-iw)/2,y+(rowH-ih)/2,iw,ih);
+        }else{
+          ctx.fillStyle=b.color||'#555';
+          ctx.fillRect(x,y,colW,rowH);
+          ctx.fillStyle=T.fallbackText;
+          ctx.font='700 22px Inter, Arial, sans-serif';
+          ctx.textAlign='center';
+          const lines=wrapCanvasText(ctx,b.title,colW-24).slice(0,4);
+          const lh=26,ty=y+rowH/2-((lines.length-1)*lh)/2;
+          lines.forEach((ln,li)=>ctx.fillText(ln,x+colW/2,ty+li*lh));
+          ctx.textAlign='left';
+        }
+        if(showProgress){
+          const pct=bookProgressPercent(b);
+          if(pct!==null)drawProgressStrip(x,y,colW,rowH,pct);
+        }
+        ctx.restore();
+        ctx.strokeStyle=T.cellBorder;
+        ctx.lineWidth=2;
+        roundRectPath(ctx,x,y,colW,rowH,14);
+        ctx.stroke();
+      });
+      contentBottomUsed=startY+gridH;
+    }
 
     // Chips de estadísticas
-    const chipY=Math.min(startY+gridH+50,1700);
+    const chipY=Math.min(contentBottomUsed+50,1700);
     const chipTexts=[`📚 ${_sharePreviewTabTotal} libro${_sharePreviewTabTotal!==1?'s':''}`];
-    if(currentTab==='leidos'||currentTab==='anio'){
+    if(showStreakChip){
       const streak=calculateCurrentStreak();
       if(streak>0)chipTexts.push(`🔥 ${streak} día${streak!==1?'s':''} de racha`);
+    }
+    if(showProgress){
+      const avg=avgProgressPercent(books);
+      if(avg!==null)chipTexts.push(`📖 ${avg}% de media`);
     }
     ctx.font='700 30px Inter, Arial, sans-serif';
     const chipH=64,chipGap=18,chipPadX=32;
@@ -10669,11 +10889,11 @@ async function generateShelfieStoryImage(){
     let cx=(1080-totalChipW)/2;
     chipTexts.forEach((t,i)=>{
       const w=widths[i];
-      ctx.fillStyle='rgba(255,255,255,0.09)';
+      ctx.fillStyle=T.chipBg;
       roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=2;
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
       roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.stroke();
-      ctx.fillStyle='#FFFFFF';
+      ctx.fillStyle=T.chipText;
       ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(t,cx+w/2,chipY+chipH/2+3);
       ctx.textAlign='left';ctx.textBaseline='alphabetic';
@@ -10682,7 +10902,7 @@ async function generateShelfieStoryImage(){
 
     // Pie
     ctx.font='500 24px Inter, Arial, sans-serif';
-    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.fillStyle=T.footer;
     ctx.textAlign='center';
     ctx.fillText('Creado con shelfie · comparte tu próxima lectura',540,1870);
     ctx.textAlign='left';
