@@ -8500,7 +8500,10 @@ function setStatsYear(year){
 // ── Exportar Estadísticas: PDF y Excel con marca propia ──
 function statsExportFilename(ext){
   const uname=(PROFILE?.username||'usuario').toString().trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'usuario';
-  const yearPart=_statsYear==='all'?'general':_statsYear;
+  // El PDF es una foto de lo que tengas seleccionado en pantalla (año o general);
+  // el Excel siempre lleva el historial completo (para eso es una hoja de
+  // cálculo), así que su nombre no debe sugerir que está recortado a un año.
+  const yearPart=ext==='xlsx'?'completo':(_statsYear==='all'?'general':_statsYear);
   const date=new Date().toISOString().slice(0,10);
   return `shelfie-estadisticas-${uname}-${yearPart}-${date}.${ext}`;
 }
@@ -8695,80 +8698,172 @@ async function exportStatsPDF(){
   }
 }
 
+const MESES_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// 'DD/M/YYYY' o 'DD/MM/YYYY' (como guarda toLocaleDateString('es-ES')) → Date real.
+function parseEsDate(str){
+  if(!str)return null;
+  const parts=String(str).split('/');
+  if(parts.length!==3)return null;
+  const day=parseInt(parts[0],10),month=parseInt(parts[1],10),year=parseInt(parts[2],10);
+  if(!day||!month||!year)return null;
+  return new Date(year,month-1,day);
+}
+
+// Un libro releído tiene una entrada en readHistory por cada vez que se terminó
+// —con su propia valoración, que puede ser distinta cada vez—, así que el
+// registro tiene una fila por LECTURA, no por libro. Ordenado del más reciente
+// al más antiguo, que es como se suele mirar un diario de lectura.
+function collectReadingLogRows(){
+  const rows=[];
+  DB.leidos.forEach(b=>{
+    const history=(b.readHistory&&b.readHistory.length)?b.readHistory:[{stars:b.stars||0,finishedAt:b.finishedAt||null}];
+    history.forEach(h=>{
+      rows.push({
+        date:parseEsDate(h.finishedAt),title:b.title,author:b.author,pages:b.pages||null,stars:h.stars||0,
+        genres:b.genres||[],publisher:b.publisher||'',editionYear:b.editionYear||b.year||'',
+        favorite:!!b.isFavorite,review:b.review||'',
+      });
+    });
+  });
+  rows.sort((a,b)=>{
+    if(!a.date&&!b.date)return 0;
+    if(!a.date)return 1;
+    if(!b.date)return -1;
+    return b.date-a.date;
+  });
+  return rows;
+}
+
+function xlsxStyleHeaderRow(row,greenArgb){
+  row.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:greenArgb}};});
+}
+function xlsxDataBar(ws,ref,colorArgb){
+  ws.addConditionalFormatting({ref,rules:[{type:'dataBar',minLength:0,maxLength:100,gradient:false,color:{argb:colorArgb},cfvo:[{type:'min'},{type:'max'}],priority:1}]});
+}
+
 async function exportStatsExcel(){
   const btn=document.getElementById('stats-export-xlsx-btn');
   if(!window.ExcelJS){toast('❌ No se pudo cargar el generador de Excel. Comprueba tu conexión e inténtalo de nuevo.');return;}
   const prevHtml=btn?.innerHTML;
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
   try{
-    const filterYear=_statsYear==='all'?null:parseInt(_statsYear);
-    const d=computeStatsData(filterYear);
     const GREEN='FF3D6B52';
-
     const wb=new ExcelJS.Workbook();
     wb.creator='Shelfie';
     wb.created=new Date();
     wb.title=`Estadísticas de lectura de @${PROFILE?.username||'lector'}`;
 
+    // El Excel es el "archivo oficial" completo: a diferencia del PDF (que es una
+    // foto de la pestaña de año que tengas abierta), aquí siempre sale el
+    // historial entero — para eso sirve tener una hoja de cálculo de verdad.
+    const logRows=collectReadingLogRows();
+
     // ── Hoja Resumen ──
     const ws=wb.addWorksheet('Resumen',{properties:{tabColor:{argb:GREEN}}});
-    ws.columns=[{width:28},{width:20},{width:16}];
+    ws.columns=[{width:28},{width:22},{width:16}];
     const logoId=wb.addImage({base64:shelfieLogoDataUrl(96,'#3D6B52'),extension:'png'});
     ws.addImage(logoId,{tl:{col:0,row:0.1},ext:{width:34,height:34}});
     ws.mergeCells('B1:C1');
     ws.getCell('B1').value='shelfie — Estadísticas de lectura';
     ws.getCell('B1').font={bold:true,size:15,color:{argb:GREEN}};
     ws.mergeCells('B2:C2');
-    ws.getCell('B2').value=`@${PROFILE?.username||'lector'}  ·  ${filterYear?filterYear:'General'}  ·  ${new Date().toLocaleDateString('es-ES')}`;
+    ws.getCell('B2').value=`@${PROFILE?.username||'lector'}  ·  Historial completo  ·  ${new Date().toLocaleDateString('es-ES')}`;
     ws.getCell('B2').font={size:10,color:{argb:'FF999999'}};
     ws.getRow(1).height=22;ws.getRow(2).height=16;
 
     let r=5;
     const sectionTitle=text=>{ws.getCell(`A${r}`).value=text;ws.getCell(`A${r}`).font={bold:true,size:12,color:{argb:'FF1A1A1A'}};r++;};
-    const dataRow=(cells,opts)=>{
-      cells.forEach((val,i)=>{
-        const c=ws.getCell(r,1+i);
-        c.value=val;
-        if(opts?.header){c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:GREEN}};}
-        else if(opts?.boldFirst&&i===0)c.font={bold:true};
-      });
-      r++;
-    };
-    const addTable=(title,headers,rows)=>{
-      sectionTitle(title);
-      dataRow(headers,{header:true});
-      (rows.length?rows:[['Sin datos','']]).forEach(row=>dataRow(row,{boldFirst:true}));
-      r++;
-    };
 
-    sectionTitle('Resumen general');
-    [['Libros leídos',d.leidos.length],['Páginas leídas',d.totalPages],['Valoración media',d.avgStarsVal],
-     ['Autores distintos',d.autoresDistintos],['Racha actual (días)',d.streak],['Mejor racha (días)',d.bestStreak],
-     ['Libros marcados para este año',d.librosEsteAnio]].forEach(row=>dataRow(row,{boldFirst:true}));
+    sectionTitle('Resumen general (los tres primeros se recalculan solos si editas el Registro de lectura)');
+    const kv=(label,val)=>{ws.getCell(`A${r}`).value=label;ws.getCell(`A${r}`).font={bold:true};ws.getCell(`B${r}`).value=val;r++;};
+    kv('Libros leídos',{formula:`COUNT('Registro de lectura'!A2:A9999)`});
+    kv('Páginas leídas',{formula:`SUM('Registro de lectura'!G2:G9999)`});
+    kv('Valoración media',{formula:`IFERROR(ROUND(AVERAGEIF('Registro de lectura'!H2:H9999,">0"),2),0)`});
+    kv('Autores distintos',new Set(logRows.map(x=>x.author)).size);
+    kv('Racha actual (días)',calculateCurrentStreak());
+    kv('Leyendo ahora',DB.leyendo.length);
+    kv('Quiero leer',DB.quiero.length);
+    kv('Abandonados',DB.dnf.length);
     r++;
 
-    addTable('Libros terminados por mes',['Mes','Libros'],d.monthNames.map((m,i)=>[m,d.monthCounts[i]]));
-    addTable('Mis géneros',['Género','Libros'],d.genreEntries.map(([n,c])=>[n,c]));
-    addTable('Autores más leídos',['Autor','Libros'],d.topAuthors.map(([n,c])=>[n,c]));
-    addTable('Mis valoraciones',['Estrellas','Libros'],d.starDist.map(s=>[`${s.stars}/5`,s.n]));
-    addTable('Distribución del shelfie',['Estado','Libros'],d.distStates.map(s=>[s.label,s.n]));
-    addTable('Récords',['Récord','Valor','Libro'],d.records.map(x=>[x.label,x.val,x.detail||'']));
-    if(d.progresos.length)addTable('Leyendo ahora',['Título','Autor','Progreso'],d.progresos.map(p=>[p.title,p.author,p.pct!=null?p.pct+'%':'—']));
+    sectionTitle('Libros terminados por mes (todos los años)');
+    const monthHead=ws.getRow(r);['Mes','Libros'].forEach((h,i)=>{monthHead.getCell(1+i).value=h;});
+    xlsxStyleHeaderRow(monthHead,GREEN);r++;
+    const monthStart=r;
+    const monthCounts=Array(12).fill(0);
+    logRows.forEach(row=>{if(row.date)monthCounts[row.date.getMonth()]++;});
+    MESES_ES.forEach((m,i)=>{ws.getCell(`A${r}`).value=m;ws.getCell(`B${r}`).value=monthCounts[i];r++;});
+    if(monthCounts.some(n=>n>0))xlsxDataBar(ws,`B${monthStart}:B${r-1}`,GREEN);
+    r++;
 
-    // ── Hoja Mi shelfie: listado completo ──
-    const ws2=wb.addWorksheet('Mi shelfie');
-    ws2.columns=[
-      {header:'Título',key:'title',width:38},{header:'Autor',key:'author',width:26},
-      {header:'Estado',key:'status',width:14},{header:'Valoración',key:'stars',width:12},
-      {header:'Páginas',key:'pages',width:10},{header:'Año',key:'year',width:8},{header:'Género(s)',key:'genres',width:26},
+    // ── Registro de lectura: una fila por CADA lectura (las relecturas cuentan aparte) ──
+    const wsLog=wb.addWorksheet('Registro de lectura',{properties:{tabColor:{argb:GREEN}}});
+    wsLog.columns=[
+      {header:'#',key:'n',width:6},{header:'Fecha de fin',key:'date',width:14,style:{numFmt:'dd/mm/yyyy'}},
+      {header:'Mes',key:'month',width:12},{header:'Año',key:'year',width:8},
+      {header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},
+      {header:'Páginas',key:'pages',width:10},{header:'Valoración',key:'stars',width:12},
+      {header:'Género 1',key:'g1',width:16},{header:'Género 2',key:'g2',width:16},
+      {header:'Editorial',key:'publisher',width:20},{header:'Año publicación',key:'editionYear',width:14},
+      {header:'Favorito',key:'favorite',width:10},{header:'Reseña',key:'review',width:40},
     ];
-    ws2.getRow(1).eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:GREEN}};});
-    const statusLabels={leidos:'Leído',leyendo:'Leyendo',quiero:'Quiero leer',dnf:'Abandonado'};
-    allBooks().forEach(b=>{
-      ws2.addRow({title:b.title,author:b.author,status:statusLabels[b.status]||b.status,
-        stars:b.stars?`${b.stars}/5`:'',pages:b.pages||'',year:b.year||'',genres:(b.genres||[]).join(', ')});
-    });
-    ws2.autoFilter={from:'A1',to:'G1'};
+    xlsxStyleHeaderRow(wsLog.getRow(1),GREEN);
+    wsLog.views=[{state:'frozen',ySplit:1}];
+    logRows.forEach((row,i)=>wsLog.addRow({
+      n:i+1,date:row.date,month:row.date?MESES_ES[row.date.getMonth()]:'',year:row.date?row.date.getFullYear():'',
+      title:row.title,author:row.author,pages:row.pages,stars:row.stars||'',g1:row.genres[0]||'',g2:row.genres[1]||'',
+      publisher:row.publisher,editionYear:row.editionYear,favorite:row.favorite?'Sí':'',review:row.review,
+    }));
+    wsLog.autoFilter={from:'A1',to:'N1'};
+    if(logRows.length)xlsxDataBar(wsLog,`H2:H${logRows.length+1}`,GREEN);
+
+    // ── Quiero leer ──
+    const wsWant=wb.addWorksheet('Quiero leer');
+    wsWant.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Año',key:'year',width:8},{header:'Género(s)',key:'genres',width:26},{header:'Añadido el',key:'added',width:14,style:{numFmt:'dd/mm/yyyy'}}];
+    xlsxStyleHeaderRow(wsWant.getRow(1),GREEN);
+    DB.quiero.forEach(b=>wsWant.addRow({title:b.title,author:b.author,year:b.year||'',genres:(b.genres||[]).join(', '),added:parseEsDate(b.addedAt)}));
+    if(DB.quiero.length)wsWant.autoFilter={from:'A1',to:'E1'};
+
+    // ── Leyendo ahora ──
+    const wsReading=wb.addWorksheet('Leyendo ahora');
+    wsReading.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Páginas',key:'pages',width:10},{header:'Página actual',key:'cur',width:14},{header:'Progreso',key:'pct',width:12,style:{numFmt:'0%'}}];
+    xlsxStyleHeaderRow(wsReading.getRow(1),GREEN);
+    DB.leyendo.forEach(b=>wsReading.addRow({title:b.title,author:b.author,pages:b.pages||'',cur:b.curPage||0,pct:b.pages?(b.curPage||0)/b.pages:null}));
+
+    // ── Abandonados ──
+    const wsDnf=wb.addWorksheet('Abandonados');
+    wsDnf.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Páginas',key:'pages',width:10},{header:'Se quedó en',key:'cur',width:14},{header:'Notas',key:'review',width:40}];
+    xlsxStyleHeaderRow(wsDnf.getRow(1),GREEN);
+    DB.dnf.forEach(b=>wsDnf.addRow({title:b.title,author:b.author,pages:b.pages||'',cur:b.curPage||'',review:b.review||''}));
+
+    // ── Autores ──
+    const wsAuthors=wb.addWorksheet('Autores');
+    wsAuthors.columns=[{header:'Autor',key:'author',width:26},{header:'Libros leídos',key:'n',width:14},{header:'Páginas totales',key:'pages',width:16},{header:'Valoración media',key:'avg',width:16}];
+    xlsxStyleHeaderRow(wsAuthors.getRow(1),GREEN);
+    const byAuthor={};
+    logRows.forEach(row=>{const a=byAuthor[row.author]=byAuthor[row.author]||{n:0,pages:0,starsSum:0,starsN:0};a.n++;a.pages+=row.pages||0;if(row.stars){a.starsSum+=row.stars;a.starsN++;}});
+    const authorEntries=Object.entries(byAuthor).sort((a,b)=>b[1].n-a[1].n);
+    authorEntries.forEach(([name,a])=>wsAuthors.addRow({author:name,n:a.n,pages:a.pages,avg:a.starsN?Math.round((a.starsSum/a.starsN)*100)/100:null}));
+    if(authorEntries.length){wsAuthors.autoFilter={from:'A1',to:'D1'};xlsxDataBar(wsAuthors,`B2:B${authorEntries.length+1}`,GREEN);}
+
+    // ── Géneros ──
+    const wsGenres=wb.addWorksheet('Géneros');
+    wsGenres.columns=[{header:'Género',key:'genre',width:22},{header:'Libros',key:'n',width:12},{header:'Valoración media',key:'avg',width:16}];
+    xlsxStyleHeaderRow(wsGenres.getRow(1),GREEN);
+    const byGenre={};
+    logRows.forEach(row=>{(row.genres||[]).forEach(g=>{const e=byGenre[g]=byGenre[g]||{n:0,starsSum:0,starsN:0};e.n++;if(row.stars){e.starsSum+=row.stars;e.starsN++;}});});
+    const genreEntries=Object.entries(byGenre).sort((a,b)=>b[1].n-a[1].n);
+    genreEntries.forEach(([name,e])=>wsGenres.addRow({genre:name,n:e.n,avg:e.starsN?Math.round((e.starsSum/e.starsN)*100)/100:null}));
+    if(genreEntries.length)xlsxDataBar(wsGenres,`B2:B${genreEntries.length+1}`,GREEN);
+
+    // ── Por año ──
+    const wsYears=wb.addWorksheet('Por año');
+    wsYears.columns=[{header:'Año',key:'year',width:10},{header:'Libros',key:'n',width:10},{header:'Páginas',key:'pages',width:12},{header:'Valoración media',key:'avg',width:16},{header:'Autores distintos',key:'authors',width:16}];
+    xlsxStyleHeaderRow(wsYears.getRow(1),GREEN);
+    const byYear={};
+    logRows.forEach(row=>{if(!row.date)return;const y=row.date.getFullYear();const e=byYear[y]=byYear[y]||{n:0,pages:0,starsSum:0,starsN:0,authors:new Set()};e.n++;e.pages+=row.pages||0;if(row.stars){e.starsSum+=row.stars;e.starsN++;}e.authors.add(row.author);});
+    Object.entries(byYear).sort((a,b)=>b[0]-a[0]).forEach(([year,e])=>wsYears.addRow({year:parseInt(year),n:e.n,pages:e.pages,avg:e.starsN?Math.round((e.starsSum/e.starsN)*100)/100:null,authors:e.authors.size}));
 
     const buf=await wb.xlsx.writeBuffer();
     const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
