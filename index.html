@@ -844,6 +844,13 @@ a{color:inherit}
 .ach-badge-sm .ach-badge-icon{font-size:17px}
 .ach-badge.locked{background:#F1F1EF;border-color:#DDD;filter:grayscale(1)}
 .ach-badge.locked .ach-badge-icon{opacity:0.4}
+/* nivel "cósmico" — el techo de cada escalera, pensado para toda una vida
+   leyendo, se gana un tratamiento distinto al resto (degradado animado) en
+   vez de un simple color sólido más */
+.ach-badge.tier-cosmico{background:linear-gradient(135deg,#1E1B4B,#4C1D95,#DB2777,#1E1B4B);background-size:300% 300%;animation:cosmicShift 4s ease infinite;border-color:transparent}
+.ach-badge.tier-cosmico.locked{background:#F1F1EF;animation:none}
+.ach-badge.tier-cosmico .ach-badge-icon{filter:drop-shadow(0 0 4px rgba(255,255,255,0.7))}
+@keyframes cosmicShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .ach-badge-progress{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);width:70%;height:4px;background:#E5E5E5;border-radius:3px;overflow:hidden}
 .ach-badge-progress-fill{height:100%;background:var(--ach-color);border-radius:3px}
 .ach-modal-list{max-height:60vh;overflow-y:auto;margin-top:8px}
@@ -10814,75 +10821,206 @@ const ACHIEVEMENT_TIERS={
   plata:{label:'Plata',color:'#64748B',light:'#F1F5F9'},
   oro:{label:'Oro',color:'#D97706',light:'#FFFBEB'},
   platino:{label:'Platino',color:'#7C3AED',light:'#F5F3FF'},
+  diamante:{label:'Diamante',color:'#0EA5E9',light:'#E0F2FE'},
+  maestro:{label:'Maestro',color:'#DB2777',light:'#FDF2F8'},
   leyenda:{label:'Leyenda',color:'#DC2626',light:'#FEF2F2'},
+  mitico:{label:'Mítico',color:'#059669',light:'#ECFDF5'},
+  inmortal:{label:'Inmortal',color:'#CA8A04',light:'#FEFCE8'},
+  cosmico:{label:'Cósmico',color:'#4C1D95',light:'#F5F3FF'},
 };
+// Construye una escalera de logros sobre el mismo dato (p.ej. libros leídos)
+// sin repetir get/icon/id a mano en cada peldaño — con escaleras de hasta
+// 15-17 pasos (pensadas para toda una vida leyendo, no solo el primer año)
+// escribirlo a mano habría sido enorme y propenso a errores de copia.
+function ladder(prefix,icon,getFn,steps){
+  return steps.map(([target,tier,name,desc],i)=>({id:`${prefix}${i+1}`,tier,icon,name,desc,get:getFn,target}));
+}
 const ACHIEVEMENT_CATALOG=[
-  {cat:'Volumen',items:[
-    {id:'vol1',tier:'bronce',icon:'📖',name:'Primeras páginas',desc:'Termina tu primer libro',get:c=>c.totalLeidos,target:1},
-    {id:'vol2',tier:'plata',icon:'📚',name:'Ritmo constante',desc:'Termina 10 libros',get:c=>c.totalLeidos,target:10},
-    {id:'vol3',tier:'oro',icon:'🏛️',name:'Devorador de libros',desc:'Termina 25 libros',get:c=>c.totalLeidos,target:25},
-    {id:'vol4',tier:'platino',icon:'🗼',name:'Bibliófilo',desc:'Termina 50 libros',get:c=>c.totalLeidos,target:50},
-    {id:'vol5',tier:'leyenda',icon:'👑',name:'Leyenda lectora',desc:'Termina 100 libros',get:c=>c.totalLeidos,target:100},
-  ]},
-  {cat:'Páginas',items:[
-    {id:'pag1',tier:'bronce',icon:'📄',name:'Calentando motores',desc:'Lee 1.000 páginas en total',get:c=>c.totalPages,target:1000},
-    {id:'pag2',tier:'plata',icon:'📃',name:'Página tras página',desc:'Lee 5.000 páginas en total',get:c=>c.totalPages,target:5000},
-    {id:'pag3',tier:'oro',icon:'📜',name:'Maratón de papel',desc:'Lee 15.000 páginas en total',get:c=>c.totalPages,target:15000},
-    {id:'pag4',tier:'platino',icon:'🗞️',name:'Sin fondo',desc:'Lee 30.000 páginas en total',get:c=>c.totalPages,target:30000},
-    {id:'pag5',tier:'leyenda',icon:'🧾',name:'Biblioteca ambulante',desc:'Lee 50.000 páginas en total',get:c=>c.totalPages,target:50000},
-  ]},
-  {cat:'Racha de lectura',items:[
-    {id:'rac1',tier:'bronce',icon:'🔥',name:'Prendiendo la mecha',desc:'Racha de 3 días seguidos',get:c=>c.bestStreak,target:3},
-    {id:'rac2',tier:'plata',icon:'🔥',name:'Una semana entera',desc:'Racha de 7 días seguidos',get:c=>c.bestStreak,target:7},
-    {id:'rac3',tier:'oro',icon:'🔥',name:'Sin fallar ni un día',desc:'Racha de 30 días seguidos',get:c=>c.bestStreak,target:30},
-    {id:'rac4',tier:'platino',icon:'🔥',name:'Imparable',desc:'Racha de 100 días seguidos',get:c=>c.bestStreak,target:100},
-    {id:'rac5',tier:'leyenda',icon:'🔥',name:'Todo un año',desc:'Racha de 365 días seguidos',get:c=>c.bestStreak,target:365},
-  ]},
-  {cat:'Autores',items:[
-    {id:'aut1',tier:'bronce',icon:'✍️',name:'Curioso',desc:'Lee libros de 5 autores distintos',get:c=>c.distinctAuthors,target:5},
-    {id:'aut2',tier:'plata',icon:'🖋️',name:'Explorador de voces',desc:'Lee libros de 15 autores distintos',get:c=>c.distinctAuthors,target:15},
-    {id:'aut3',tier:'oro',icon:'🖊️',name:'Sin autor favorito',desc:'Lee libros de 30 autores distintos',get:c=>c.distinctAuthors,target:30},
-    {id:'aut4',tier:'plata',icon:'💚',name:'Fan incondicional',desc:'Lee 3 libros del mismo autor',get:c=>c.maxByAuthor,target:3},
-    {id:'aut5',tier:'oro',icon:'💎',name:'Coleccionista',desc:'Lee 5 libros del mismo autor',get:c=>c.maxByAuthor,target:5},
-  ]},
-  {cat:'Géneros',items:[
-    {id:'gen1',tier:'bronce',icon:'🎭',name:'Mente abierta',desc:'Lee libros de 3 géneros distintos',get:c=>c.distinctGenres,target:3},
-    {id:'gen2',tier:'plata',icon:'🌈',name:'Todoterreno',desc:'Lee libros de 6 géneros distintos',get:c=>c.distinctGenres,target:6},
-    {id:'gen3',tier:'oro',icon:'🧭',name:'Explorador literario',desc:'Lee libros de 10 géneros distintos',get:c=>c.distinctGenres,target:10},
-    {id:'gen4',tier:'oro',icon:'🎯',name:'Especialista',desc:'Lee 10 libros de un mismo género',get:c=>c.maxByGenre,target:10},
-  ]},
-  {cat:'Tomos',items:[
-    {id:'tom1',tier:'bronce',icon:'📗',name:'Buen tocho',desc:'Termina un libro de 400+ páginas',get:c=>c.longestBook,target:400},
-    {id:'tom2',tier:'plata',icon:'📘',name:'Ladrillo literario',desc:'Termina un libro de 600+ páginas',get:c=>c.longestBook,target:600},
-    {id:'tom3',tier:'oro',icon:'📙',name:'Gigante de papel',desc:'Termina un libro de 900+ páginas',get:c=>c.longestBook,target:900},
-  ]},
-  {cat:'Valoraciones',items:[
-    {id:'val1',tier:'bronce',icon:'⭐',name:'Obra maestra',desc:'Valora un libro con 5 estrellas',get:c=>c.fiveStarCount,target:1},
-    {id:'val2',tier:'oro',icon:'🌟',name:'Solo lo mejor',desc:'Valora 10 libros con 5 estrellas',get:c=>c.fiveStarCount,target:10},
-  ]},
-  {cat:'Constancia',items:[
-    {id:'con1',tier:'plata',icon:'🍂',name:'Lector de temporada',desc:'Termina libros en 3 meses distintos de un mismo año',get:c=>c.maxMonthsCoverage,target:3},
-    {id:'con2',tier:'leyenda',icon:'🗓️',name:'Constancia de hierro',desc:'Termina al menos un libro cada mes del año',get:c=>c.maxMonthsCoverage,target:12},
-  ]},
-  {cat:'Exploración',items:[
-    {id:'exp1',tier:'bronce',icon:'🔖',name:'Planificador',desc:'Ten 10 libros en tu lista de "Quiero leer"',get:c=>c.quieroCount,target:10},
-    {id:'exp2',tier:'plata',icon:'🗂️',name:'Coleccionista de deseos',desc:'Ten 30 libros en tu lista de "Quiero leer"',get:c=>c.quieroCount,target:30},
-  ]},
-  {cat:'Honestidad',items:[
-    {id:'hon1',tier:'bronce',icon:'🚪',name:'Saber cuándo parar',desc:'Abandona tu primer libro (no pasa nada)',get:c=>c.dnfCount,target:1},
-    {id:'hon2',tier:'plata',icon:'🧹',name:'Criba sin piedad',desc:'Abandona 5 libros',get:c=>c.dnfCount,target:5},
-  ]},
-  {cat:'Metas y retos',items:[
-    {id:'met1',tier:'oro',icon:'🎯',name:'Objetivo anual',desc:'Marca 12 libros en tu Shelfie de este año',get:c=>c.yearGoalCount,target:12},
-    {id:'ret1',tier:'bronce',icon:'🚩',name:'Organizador',desc:'Crea tu primer reto de lectura',get:c=>c.retosCreated,target:1},
-    {id:'ret2',tier:'bronce',icon:'🎯',name:'Retador',desc:'Únete a un reto de otra persona',get:c=>c.retosJoined,target:1},
-    {id:'ret3',tier:'oro',icon:'🏁',name:'Meta cumplida',desc:'Completa un reto de lectura',get:c=>c.retosCompleted,target:1},
-  ]},
-  {cat:'Comunidad',items:[
-    {id:'com1',tier:'bronce',icon:'👥',name:'Se une al club',desc:'Únete a tu primer club de lectura',get:c=>c.clubsCount,target:1},
-    {id:'com2',tier:'plata',icon:'🏘️',name:'Muy sociable',desc:'Sé miembro de 3 clubes de lectura',get:c=>c.clubsCount,target:3},
-    {id:'com3',tier:'bronce',icon:'📍',name:'Presencial',desc:'Apúntate a tu primer evento Shelfie',get:c=>c.eventsCount,target:1},
-  ]},
+  {cat:'Volumen',items:ladder('vol','📖',c=>c.totalLeidos,[
+    [1,'bronce','Primeras páginas','Termina tu primer libro'],
+    [5,'bronce','Cogiendo carrerilla','Termina 5 libros'],
+    [10,'plata','Ritmo constante','Termina 10 libros'],
+    [25,'plata','Ratón de biblioteca','Termina 25 libros'],
+    [50,'oro','Devorador de libros','Termina 50 libros'],
+    [75,'oro','Insaciable','Termina 75 libros'],
+    [100,'platino','Bibliófilo','Termina 100 libros'],
+    [150,'platino','Erudito','Termina 150 libros'],
+    [200,'diamante','Sabio de las estanterías','Termina 200 libros'],
+    [300,'diamante','Archivo viviente','Termina 300 libros'],
+    [500,'maestro','Maestro lector','Termina 500 libros'],
+    [750,'maestro','Fuera de serie','Termina 750 libros'],
+    [1000,'leyenda','Leyenda lectora','Termina 1.000 libros'],
+    [1500,'mitico','Mítico entre lectores','Termina 1.500 libros'],
+    [2000,'inmortal','Inmortal de las letras','Termina 2.000 libros'],
+    [3000,'cosmico','Devorador de universos','Termina 3.000 libros'],
+    [5000,'cosmico','Sin límites','Termina 5.000 libros'],
+  ])},
+  {cat:'Páginas',items:ladder('pag','📄',c=>c.totalPages,[
+    [1000,'bronce','Calentando motores','Lee 1.000 páginas en total'],
+    [5000,'bronce','Página tras página','Lee 5.000 páginas en total'],
+    [15000,'plata','Maratón de papel','Lee 15.000 páginas en total'],
+    [30000,'plata','Sin fondo','Lee 30.000 páginas en total'],
+    [50000,'oro','Biblioteca ambulante','Lee 50.000 páginas en total'],
+    [100000,'oro','Cien mil y contando','Lee 100.000 páginas en total'],
+    [200000,'platino','Devoralibros profesional','Lee 200.000 páginas en total'],
+    [350000,'platino','Sin descanso','Lee 350.000 páginas en total'],
+    [500000,'diamante','Medio millón de páginas','Lee 500.000 páginas en total'],
+    [750000,'diamante','Casi imposible','Lee 750.000 páginas en total'],
+    [1000000,'maestro','El millón de páginas','Lee 1.000.000 de páginas en total'],
+    [1500000,'leyenda','Más allá del millón','Lee 1.500.000 páginas en total'],
+    [2000000,'mitico','Dos millones','Lee 2.000.000 páginas en total'],
+    [3000000,'inmortal','Sin precedentes','Lee 3.000.000 páginas en total'],
+    [5000000,'cosmico','Toda una vida de papel','Lee 5.000.000 páginas en total'],
+  ])},
+  {cat:'Racha de lectura',items:ladder('rac','🔥',c=>c.bestStreak,[
+    [3,'bronce','Prendiendo la mecha','Racha de 3 días seguidos'],
+    [7,'bronce','Una semana entera','Racha de 7 días seguidos'],
+    [14,'plata','Dos semanas sin fallar','Racha de 14 días seguidos'],
+    [30,'plata','Sin fallar ni un día','Racha de 30 días seguidos'],
+    [60,'oro','Dos meses de fuego','Racha de 60 días seguidos'],
+    [100,'oro','Imparable','Racha de 100 días seguidos'],
+    [180,'platino','Medio año seguido','Racha de 180 días seguidos'],
+    [365,'platino','Todo un año','Racha de 365 días seguidos'],
+    [500,'diamante','Más de un año','Racha de 500 días seguidos'],
+    [730,'diamante','Dos años sin fallar','Racha de 730 días seguidos'],
+    [1000,'maestro','Cuatro cifras','Racha de 1.000 días seguidos'],
+    [1825,'leyenda','Cinco años de fuego','Racha de 1.825 días seguidos'],
+    [3650,'mitico','Una década entera','Racha de 3.650 días seguidos'],
+    [5475,'inmortal','Quince años sin fallar','Racha de 5.475 días seguidos'],
+    [7300,'cosmico','Toda una vida leyendo','Racha de 7.300 días seguidos'],
+  ])},
+  {cat:'Autores',items:ladder('aut','✍️',c=>c.distinctAuthors,[
+    [5,'bronce','Curioso','Lee libros de 5 autores distintos'],
+    [15,'bronce','Explorador de voces','Lee libros de 15 autores distintos'],
+    [30,'plata','Sin autor favorito','Lee libros de 30 autores distintos'],
+    [50,'plata','Coro de voces','Lee libros de 50 autores distintos'],
+    [75,'oro','Políglota literario','Lee libros de 75 autores distintos'],
+    [100,'oro','Cien firmas','Lee libros de 100 autores distintos'],
+    [150,'platino','Enciclopedia andante','Lee libros de 150 autores distintos'],
+    [250,'diamante','Todas las plumas','Lee libros de 250 autores distintos'],
+    [400,'maestro','Cuatrocientas voces','Lee libros de 400 autores distintos'],
+    [600,'leyenda','Ningún nombre repetido','Lee libros de 600 autores distintos'],
+  ])},
+  {cat:'Fidelidad a un autor',items:ladder('fid','💚',c=>c.maxByAuthor,[
+    [3,'plata','Fan incondicional','Lee 3 libros del mismo autor'],
+    [5,'oro','Coleccionista','Lee 5 libros del mismo autor'],
+    [10,'platino','Adicto confeso','Lee 10 libros del mismo autor'],
+    [15,'diamante','Su mayor fan','Lee 15 libros del mismo autor'],
+    [25,'maestro','Obra completa','Lee 25 libros del mismo autor'],
+  ])},
+  {cat:'Géneros',items:ladder('gen','🎭',c=>c.distinctGenres,[
+    [3,'bronce','Mente abierta','Lee libros de 3 géneros distintos'],
+    [6,'bronce','Todoterreno','Lee libros de 6 géneros distintos'],
+    [10,'plata','Explorador literario','Lee libros de 10 géneros distintos'],
+    [15,'oro','Sin fronteras','Lee libros de 15 géneros distintos'],
+    [20,'platino','Catálogo completo','Lee libros de 20 géneros distintos'],
+    [25,'diamante','Nada se le resiste','Lee libros de 25 géneros distintos'],
+  ])},
+  {cat:'Especialista de género',items:ladder('esp','🎯',c=>c.maxByGenre,[
+    [10,'oro','Especialista','Lee 10 libros de un mismo género'],
+    [25,'platino','Autoridad del género','Lee 25 libros de un mismo género'],
+    [50,'diamante','Referente absoluto','Lee 50 libros de un mismo género'],
+    [100,'maestro','El género es tu casa','Lee 100 libros de un mismo género'],
+  ])},
+  {cat:'Tomos',items:ladder('tom','📗',c=>c.longestBook,[
+    [400,'bronce','Buen tocho','Termina un libro de 400+ páginas'],
+    [600,'plata','Ladrillo literario','Termina un libro de 600+ páginas'],
+    [900,'oro','Gigante de papel','Termina un libro de 900+ páginas'],
+    [1200,'platino','Tocho brutal','Termina un libro de 1.200+ páginas'],
+    [1600,'diamante','En busca del tiempo perdido','Termina un libro de 1.600+ páginas'],
+  ])},
+  {cat:'Valoraciones',items:ladder('val','⭐',c=>c.fiveStarCount,[
+    [1,'bronce','Obra maestra','Valora un libro con 5 estrellas'],
+    [10,'oro','Solo lo mejor','Valora 10 libros con 5 estrellas'],
+    [25,'platino','Exigente pero justo','Valora 25 libros con 5 estrellas'],
+    [50,'diamante','Buen gusto probado','Valora 50 libros con 5 estrellas'],
+    [100,'maestro','Cien obras maestras','Valora 100 libros con 5 estrellas'],
+  ])},
+  {cat:'Constancia',items:ladder('con','🍂',c=>c.maxMonthsCoverage,[
+    [3,'plata','Lector de temporada','Termina libros en 3 meses distintos de un mismo año'],
+    [6,'oro','Medio año seguido','Termina libros en 6 meses distintos de un mismo año'],
+    [9,'platino','Casi todo el año','Termina libros en 9 meses distintos de un mismo año'],
+    [12,'leyenda','Constancia de hierro','Termina al menos un libro cada mes del año'],
+  ])},
+  {cat:'Constancia de por vida',items:ladder('cvi','🗓️',c=>c.fullCoverageYears,[
+    [1,'mitico','Un año redondo','Consigue un año con lectura en sus 12 meses'],
+    [3,'inmortal','Tres años redondos','Consigue 3 años con lectura en sus 12 meses'],
+    [5,'cosmico','Cinco años redondos','Consigue 5 años con lectura en sus 12 meses'],
+  ])},
+  {cat:'Exploración',items:ladder('exp','🔖',c=>c.quieroCount,[
+    [10,'bronce','Planificador','Ten 10 libros en tu lista de "Quiero leer"'],
+    [30,'plata','Coleccionista de deseos','Ten 30 libros en tu lista de "Quiero leer"'],
+    [75,'oro','Wishlist infinita','Ten 75 libros en tu lista de "Quiero leer"'],
+    [150,'platino','Nunca te quedarás sin nada que leer','Ten 150 libros en tu lista de "Quiero leer"'],
+  ])},
+  {cat:'Relecturas',items:ladder('rel','🔄',c=>c.rereadCount,[
+    [1,'bronce','Merece la pena repetir','Relee tu primer libro'],
+    [5,'plata','Viejos amigos','Relee 5 libros'],
+    [15,'oro','Los clásicos nunca mueren','Relee 15 libros'],
+    [30,'platino','Coleccionista de segundas vueltas','Relee 30 libros'],
+  ])},
+  {cat:'Favoritos',items:ladder('fav','🏆',c=>c.favCount,[
+    [1,'bronce','Tu primer favorito','Marca tu primer libro como favorito'],
+    [10,'oro','Top completo','Completa tus 10 libros favoritos'],
+  ])},
+  {cat:'Honestidad',items:ladder('hon','🚪',c=>c.dnfCount,[
+    [1,'bronce','Saber cuándo parar','Abandona tu primer libro (no pasa nada)'],
+    [5,'plata','Criba sin piedad','Abandona 5 libros'],
+    [15,'oro','Sabes lo que no quieres leer','Abandona 15 libros'],
+    [30,'platino','Ningún libro te obliga a terminarlo','Abandona 30 libros'],
+  ])},
+  {cat:'Metas anuales',items:ladder('met','🎯',c=>c.yearGoalCount,[
+    [12,'oro','Objetivo anual','Marca 12 libros en tu Shelfie de este año'],
+  ])},
+  {cat:'Retos creados',items:ladder('retc','🚩',c=>c.retosCreated,[
+    [1,'bronce','Organizador','Crea tu primer reto de lectura'],
+    [5,'plata','Siempre proponiendo retos','Crea 5 retos de lectura'],
+  ])},
+  {cat:'Retos en los que participas',items:ladder('retj','🎯',c=>c.retosJoined,[
+    [1,'bronce','Retador','Únete a un reto de otra persona'],
+    [5,'plata','Coleccionista de retos','Únete a 5 retos de otras personas'],
+  ])},
+  {cat:'Retos completados',items:ladder('retf','🏁',c=>c.retosCompleted,[
+    [1,'oro','Meta cumplida','Completa un reto de lectura'],
+    [5,'platino','Cumplidor en serie','Completa 5 retos de lectura'],
+    [10,'diamante','Ningún reto se te resiste','Completa 10 retos de lectura'],
+  ])},
+  {cat:'Clubes de lectura',items:ladder('clb','👥',c=>c.clubsCount,[
+    [1,'bronce','Se une al club','Únete a tu primer club de lectura'],
+    [3,'plata','Muy sociable','Sé miembro de 3 clubes de lectura'],
+    [5,'oro','Club tras club','Sé miembro de 5 clubes de lectura'],
+    [10,'platino','Alma de todos los clubes','Sé miembro de 10 clubes de lectura'],
+  ])},
+  {cat:'Eventos Shelfie',items:ladder('evt','📍',c=>c.eventsCount,[
+    [1,'bronce','Presencial','Apúntate a tu primer evento Shelfie'],
+    [5,'plata','Habitual de los encuentros','Apúntate a 5 eventos Shelfie'],
+    [10,'oro','Se te ve en todas partes','Apúntate a 10 eventos Shelfie'],
+  ])},
+  {cat:'Publicaciones',items:ladder('pub','📝',c=>c.postsCount,[
+    [1,'bronce','Tu primera reseña','Publica tu primera publicación'],
+    [10,'plata','Voz activa','Publica 10 veces'],
+    [50,'oro','Referente de la comunidad','Publica 50 veces'],
+  ])},
+  {cat:'Me gusta recibidos',items:ladder('lik','❤️',c=>c.likesReceived,[
+    [10,'bronce','Gustas','Recibe 10 me gusta en tus publicaciones'],
+    [50,'plata','Cae bien lo que dices','Recibe 50 me gusta en tus publicaciones'],
+    [200,'oro','Popular','Recibe 200 me gusta en tus publicaciones'],
+    [1000,'platino','Viral entre lectores','Recibe 1.000 me gusta en tus publicaciones'],
+  ])},
+  {cat:'Comentarios recibidos',items:ladder('cmt','💬',c=>c.commentsReceived,[
+    [10,'bronce','Da que hablar','Recibe 10 comentarios en tus publicaciones'],
+    [50,'plata','Genera conversación','Recibe 50 comentarios en tus publicaciones'],
+  ])},
+  {cat:'Comunidad',items:ladder('flw','👤',c=>c.followersCount,[
+    [10,'bronce','Empiezas a sonar','Ten 10 seguidores'],
+    [50,'plata','Te siguen de cerca','Ten 50 seguidores'],
+    [200,'oro','Referente lector','Ten 200 seguidores'],
+    [1000,'platino','Influencer lector','Ten 1.000 seguidores'],
+  ])},
+  {cat:'Siguiendo',items:ladder('flg','🔗',c=>c.followingCount,[
+    [10,'bronce','Ampliando tu círculo','Sigue a 10 personas'],
+    [50,'plata','Bien conectado','Sigue a 50 personas'],
+  ])},
 ];
 
 function computeAchievementContext(){
@@ -10899,6 +11037,9 @@ function computeAchievementContext(){
     (monthsByYear[y]=monthsByYear[y]||new Set()).add(row.date.getMonth());
   });
   const maxMonthsCoverage=Object.values(monthsByYear).reduce((max,s)=>Math.max(max,s.size),0);
+  const fullCoverageYears=Object.values(monthsByYear).filter(s=>s.size>=12).length;
+  const myId=SUPA_USER?SUPA_USER.id:'local';
+  const myPosts=USER_POSTS.filter(p=>(p.author?p.author.id:myId)===myId);
   return{
     totalLeidos:DB.leidos.length,
     totalPages,
@@ -10910,7 +11051,10 @@ function computeAchievementContext(){
     longestBook:DB.leidos.reduce((m,b)=>Math.max(m,b.pages||0),0),
     fiveStarCount:DB.leidos.filter(b=>b.stars===5).length,
     maxMonthsCoverage,
+    fullCoverageYears,
     quieroCount:DB.quiero.length,
+    rereadCount:DB.leidos.filter(b=>b.readHistory&&b.readHistory.length>1).length,
+    favCount:DB.leidos.filter(b=>b.isFavorite).length,
     dnfCount:DB.dnf.length,
     yearGoalCount:YEAR_GOAL_IDS.size,
     retosCreated:RETOS.filter(r=>r.createdByMe).length,
@@ -10918,6 +11062,11 @@ function computeAchievementContext(){
     retosCompleted:RETOS.filter(r=>r.goal&&r.progress>=r.goal).length,
     clubsCount:CLUBS.length,
     eventsCount:MY_EVENT_SIGNUPS.size,
+    postsCount:myPosts.length,
+    likesReceived:myPosts.reduce((s,p)=>s+(p.likes||0),0),
+    commentsReceived:myPosts.reduce((s,p)=>s+(p.comments?p.comments.length:0),0),
+    followersCount:FOLLOWERS.length,
+    followingCount:FRIENDS.length,
   };
 }
 
@@ -10946,7 +11095,7 @@ function renderProfileAchievements(){
   // Vista previa: los conseguidos primero (los de más nivel delante, para
   // presumir), luego los más cerca de conseguirse — así la tira siempre
   // enseña algo relevante aunque tengas pocos logros todavía.
-  const tierOrder=['leyenda','platino','oro','plata','bronce'];
+  const tierOrder=['cosmico','inmortal','mitico','leyenda','maestro','diamante','platino','oro','plata','bronce'];
   const preview=[...all].sort((a,b)=>{
     if(a.earned!==b.earned)return a.earned?-1:1;
     if(a.earned)return tierOrder.indexOf(a.tier)-tierOrder.indexOf(b.tier);
@@ -10955,10 +11104,13 @@ function renderProfileAchievements(){
   stripEl.innerHTML=preview.map(achievementBadgeHtml).join('');
 }
 
+function achievementBadgeClass(a,extra){
+  return`ach-badge ${a.earned?'':'locked'}${a.tier==='cosmico'?' tier-cosmico':''}${extra?' '+extra:''}`;
+}
 function achievementBadgeHtml(a){
   const t=ACHIEVEMENT_TIERS[a.tier];
   const pct=Math.round(a.progress/a.target*100);
-  return `<div class="ach-badge ${a.earned?'':'locked'}" title="${escapeHtml(a.name)} — ${escapeHtml(a.desc)}" style="--ach-color:${t.color};--ach-light:${t.light}">
+  return `<div class="${achievementBadgeClass(a)}" title="${escapeHtml(a.name)} — ${escapeHtml(a.desc)}" style="--ach-color:${t.color};--ach-light:${t.light}">
     <div class="ach-badge-icon">${a.icon}</div>
     ${!a.earned?`<div class="ach-badge-progress"><div class="ach-badge-progress-fill" style="width:${pct}%"></div></div>`:''}
   </div>`;
@@ -10976,11 +11128,11 @@ function openAchievementsModal(){
       const t=ACHIEVEMENT_TIERS[a.tier];
       const pct=Math.round(a.progress/a.target*100);
       return `<div class="ach-modal-row ${a.earned?'earned':''}">
-        <div class="ach-badge ${a.earned?'':'locked'} ach-badge-sm" style="--ach-color:${t.color};--ach-light:${t.light}"><div class="ach-badge-icon">${a.icon}</div></div>
+        <div class="${achievementBadgeClass(a,'ach-badge-sm')}" style="--ach-color:${t.color};--ach-light:${t.light}"><div class="ach-badge-icon">${a.icon}</div></div>
         <div class="ach-modal-info">
           <div class="ach-modal-name">${escapeHtml(a.name)} <span class="ach-modal-tier" style="color:${t.color}">${t.label}</span></div>
           <div class="ach-modal-desc">${escapeHtml(a.desc)}</div>
-          ${!a.earned?`<div class="bar-track" style="margin-top:5px"><div class="bar-fill" style="width:${pct}%;background:${t.color}"></div></div><div class="ach-modal-pct">${a.progress}/${a.target}</div>`:'<div class="ach-modal-pct earned">✓ Conseguido</div>'}
+          ${!a.earned?`<div class="bar-track" style="margin-top:5px"><div class="bar-fill" style="width:${pct}%;background:${t.color}"></div></div><div class="ach-modal-pct">${a.progress.toLocaleString('es-ES')}/${a.target.toLocaleString('es-ES')}</div>`:'<div class="ach-modal-pct earned">✓ Conseguido</div>'}
         </div>
       </div>`;
     }).join('')}
