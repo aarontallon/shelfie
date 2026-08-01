@@ -1443,9 +1443,9 @@ a{color:inherit}
           <rect x="40" y="34" width="40" height="40" rx="8" fill="#2563EB"/>
           <text x="60" y="55" font-family="Inter,sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">14</text>
           <text x="60" y="67" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,0.85)" text-anchor="middle">MAYO</text>
-          <rect x="208" y="30" width="48" height="18" rx="9" fill="#ECFDF5"/>
-          <text x="232" y="42.5" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#166534" text-anchor="middle">✓ Activo</text>
-          <text x="92" y="46" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1A1A1A">Presentación: Ana Ruiz</text>
+          <rect x="212" y="30" width="44" height="18" rx="9" fill="#ECFDF5"/>
+          <text x="234" y="42.5" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#166534" text-anchor="middle">✓ Activo</text>
+          <text x="92" y="46" font-family="Inter,sans-serif" font-size="11.5" font-weight="700" fill="#1A1A1A">Firma de libros</text>
           <text x="92" y="60" font-family="Inter,sans-serif" font-size="10" fill="#999">Librería Central</text>
           <rect x="40" y="82" width="220" height="1" fill="#F0F0F0"/>
           <text x="40" y="101" font-family="Inter,sans-serif" font-size="11">📍</text>
@@ -3165,7 +3165,18 @@ a{color:inherit}
       <button class="retos-tab on" data-tab="proximos" onclick="setOrganizerEventsTab(this,'proximos')">Próximos</button>
       <button class="retos-tab" data-tab="pasados" onclick="setOrganizerEventsTab(this,'pasados')">Pasados</button>
     </div>
-    <div id="organizer-events-list"></div>
+    <div class="srch-wrap" style="max-width:420px;margin-bottom:16px">
+      <i class="ti ti-search srch-ico"></i>
+      <input class="srch-inp" id="organizer-events-search-inp" placeholder="Buscar por título, dirección o ciudad..." oninput="setOrganizerEventsSearch(this.value)" autocomplete="off">
+    </div>
+    <div class="events-layout">
+      <div class="events-list-col">
+        <div id="organizer-events-list"></div>
+      </div>
+      <div class="events-map-col">
+        <div id="organizer-events-map" style="display:none"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3197,6 +3208,15 @@ a{color:inherit}
     <div class="f-row" style="flex:1"><label class="f-label">Fecha y hora</label><input class="f-input" id="ev-datetime" type="datetime-local"></div>
     <div class="f-row" style="flex:1"><label class="f-label">Aforo <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><input class="f-input" id="ev-capacity" type="number" min="1" placeholder="Sin límite"></div>
   </div>
+  <div class="f-row">
+    <label class="f-label">Libro relacionado <span style="color:var(--ink3);font-weight:400">(opcional — su portada se usará en la story del evento)</span></label>
+    <div id="ev-book-selected" style="display:none"></div>
+    <div class="srch-wrap" id="ev-book-search-wrap">
+      <i class="ti ti-search srch-ico"></i>
+      <input class="srch-inp" id="ev-book-srch" placeholder="Buscar un libro en Open Library..." oninput="onEventBookSearch(this.value)" autocomplete="off">
+      <div class="srch-drop" id="ev-book-drop" style="display:none"></div>
+    </div>
+  </div>
   <button class="btn btn-red w-full" id="create-event-btn" onclick="saveNewEvent()"><i class="ti ti-check"></i> Publicar evento</button>
 </div>
 </div>
@@ -3211,6 +3231,27 @@ a{color:inherit}
   </div>
   <div id="event-attendees-capacity"></div>
   <div id="event-attendees-list"></div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: STORY DEL EVENTO ══════════════════════ -->
+<div class="overlay" id="modal-event-story" style="display:none" onclick="if(event.target===this)closeModal('modal-event-story')">
+<div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
+  <button class="modal-close" onclick="closeModal('modal-event-story')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-photo" style="font-size:20px;color:var(--red)"></i> Story del evento</h2>
+  <p class="sub">Descárgala o compártela — lista para Instagram Stories, WhatsApp y donde quieras</p>
+  <div class="subject-toggle" id="event-story-theme-toggle" style="margin-bottom:12px">
+    <button type="button" class="subject-toggle-btn on" data-theme="dark" onclick="setEventStoryTheme(this)"><i class="ti ti-moon"></i> Oscuro</button>
+    <button type="button" class="subject-toggle-btn" data-theme="light" onclick="setEventStoryTheme(this)"><i class="ti ti-sun"></i> Claro</button>
+  </div>
+  <div style="background:#0f0f0f;border-radius:14px;overflow:hidden;margin-bottom:16px;position:relative">
+    <img id="event-story-img" style="width:100%;display:block;aspect-ratio:9/16;object-fit:contain" alt="Story del evento">
+    <div id="event-story-loading" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);color:white;font-size:24px"><i class="ti ti-loader-2 spin"></i></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-white w-full" onclick="downloadEventStoryImage()"><i class="ti ti-download"></i> Descargar</button>
+    <button class="btn btn-red w-full" id="event-story-share-btn" onclick="shareEventStoryImage()" style="display:none"><i class="ti ti-share-2"></i> Compartir</button>
+  </div>
 </div>
 </div>
 
@@ -3837,6 +3878,9 @@ async function _supaEnterApp(){
 let ORGANIZER=null; // {id,venue_name,city,description,contact_email}
 let ORGANIZER_EVENTS=[];
 let ORGANIZER_EVENTS_TAB='proximos';
+let ORGANIZER_EVENTS_SEARCH='';
+let ORGANIZER_EVENTS_MAP_INSTANCE=null;
+let ORGANIZER_EVENTS_MAP_MARKERS=[];
 let EDITING_EVENT_ID=null;
 let ORGANIZER_ATTENDEE_CACHE={}; // event_id -> signups[], filled lazily by openEventAttendees
 
@@ -3948,6 +3992,43 @@ function setOrganizerEventsTab(btn,tab){
   renderOrganizerEvents();
 }
 
+function setOrganizerEventsSearch(v){
+  ORGANIZER_EVENTS_SEARCH=v.trim().toLowerCase();
+  renderOrganizerEvents();
+}
+
+function scrollToOrgEventCard(id){
+  const card=document.getElementById('org-event-card-'+id);
+  if(!card)return;
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+  card.classList.remove('event-card-highlight');
+  void card.offsetWidth;
+  card.classList.add('event-card-highlight');
+}
+
+function renderOrganizerEventsMap(events){
+  const mapEl=document.getElementById('organizer-events-map');
+  if(!mapEl)return;
+  const withCoords=(typeof L!=='undefined')?events.filter(e=>e.lat!=null&&e.lng!=null):[];
+  if(!withCoords.length){mapEl.style.display='none';return;}
+  mapEl.style.display='block';
+  if(!ORGANIZER_EVENTS_MAP_INSTANCE){
+    ORGANIZER_EVENTS_MAP_INSTANCE=L.map('organizer-events-map',{scrollWheelZoom:true});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(ORGANIZER_EVENTS_MAP_INSTANCE);
+  }
+  ORGANIZER_EVENTS_MAP_MARKERS.forEach(m=>ORGANIZER_EVENTS_MAP_INSTANCE.removeLayer(m));
+  ORGANIZER_EVENTS_MAP_MARKERS=withCoords.map(e=>L.marker([e.lat,e.lng])
+    .addTo(ORGANIZER_EVENTS_MAP_INSTANCE)
+    .bindPopup(`<b>${escapeHtml(e.title)}</b><br>${formatEventDate(e.starts_at)}`)
+    .on('click',()=>scrollToOrgEventCard(e.id)));
+  setTimeout(()=>ORGANIZER_EVENTS_MAP_INSTANCE.invalidateSize(),50);
+  if(withCoords.length===1){
+    ORGANIZER_EVENTS_MAP_INSTANCE.setView([withCoords[0].lat,withCoords[0].lng],13);
+  }else{
+    ORGANIZER_EVENTS_MAP_INSTANCE.fitBounds(L.latLngBounds(withCoords.map(e=>[e.lat,e.lng])),{padding:[30,30]});
+  }
+}
+
 function renderOrganizerStats(){
   const el=document.getElementById('organizer-stats-row');
   if(!el)return;
@@ -3970,17 +4051,33 @@ async function loadOrganizerSignupCounts(){
   ORGANIZER_EVENTS.forEach(e=>{e._signupCount=counts[e.id]||0;});
 }
 
+function getVisibleOrganizerEvents(){
+  const now=new Date();
+  let events=ORGANIZER_EVENTS
+    .filter(e=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(e.starts_at)>=now:new Date(e.starts_at)<now)
+    .sort((a,b)=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(a.starts_at)-new Date(b.starts_at):new Date(b.starts_at)-new Date(a.starts_at));
+  if(ORGANIZER_EVENTS_SEARCH){
+    events=events.filter(e=>
+      (e.title||'').toLowerCase().includes(ORGANIZER_EVENTS_SEARCH)||
+      (e.address||'').toLowerCase().includes(ORGANIZER_EVENTS_SEARCH)||
+      (e.city||'').toLowerCase().includes(ORGANIZER_EVENTS_SEARCH)
+    );
+  }
+  return events;
+}
+
 function renderOrganizerEvents(){
   const el=document.getElementById('organizer-events-list');
   if(!el)return;
   renderOrganizerStats();
-  const now=new Date();
-  const events=ORGANIZER_EVENTS
-    .filter(e=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(e.starts_at)>=now:new Date(e.starts_at)<now)
-    .sort((a,b)=>ORGANIZER_EVENTS_TAB==='proximos'?new Date(a.starts_at)-new Date(b.starts_at):new Date(b.starts_at)-new Date(a.starts_at));
-  if(!events.length){el.innerHTML=`<div class="empty card"><i class="ti ti-calendar-event"></i><p>${ORGANIZER_EVENTS_TAB==='proximos'?'No tienes eventos próximos. ¡Crea uno!':'Todavía no hay eventos pasados'}</p></div>`;return;}
+  const events=getVisibleOrganizerEvents();
+  renderOrganizerEventsMap(events);
+  if(!events.length){
+    el.innerHTML=`<div class="empty card"><i class="ti ti-calendar-event"></i><p>${ORGANIZER_EVENTS_SEARCH?'Ningún evento coincide con tu búsqueda':(ORGANIZER_EVENTS_TAB==='proximos'?'No tienes eventos próximos. ¡Crea uno!':'Todavía no hay eventos pasados')}</p></div>`;
+    return;
+  }
   el.innerHTML=events.map(e=>`
-    <div class="organizer-event-card">
+    <div class="organizer-event-card" id="org-event-card-${e.id}">
       <div class="organizer-event-top">
         <div>
           <div class="organizer-event-title">${escapeHtml(e.title)}</div>
@@ -3999,8 +4096,61 @@ function renderOrganizerEvents(){
       ${capacityBarHtml(e._signupCount||0,e.capacity)}
       <div class="organizer-event-actions">
         <button class="btn btn-white btn-sm" onclick="openEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos</button>
+        <button class="btn btn-white btn-sm" onclick="openEventStoryPreview('${e.id}')"><i class="ti ti-photo"></i> Crear story</button>
       </div>
     </div>`).join('');
+}
+
+// ── Libro vinculado al evento (opcional) — búsqueda directa en Open Library,
+// ya que un organizador no tiene una shelfie propia de la que tirar. ──
+let EVENT_LINKED_BOOK=null;
+let _eventBookSearchTimer=null;
+let _eventBookSearchGen=0;
+function onEventBookSearch(q){
+  clearTimeout(_eventBookSearchTimer);
+  const drop=document.getElementById('ev-book-drop');
+  if(!q||!q.trim()){drop.style.display='none';return;}
+  _eventBookSearchTimer=setTimeout(()=>runEventBookSearch(q.trim()),350);
+}
+async function runEventBookSearch(q){
+  const drop=document.getElementById('ev-book-drop');
+  drop.style.display='block';
+  drop.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando...</div>';
+  const myGen=(_eventBookSearchGen=_eventBookSearchGen+1);
+  try{
+    const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=8&fields=title,author_name,first_publish_year,cover_i`);
+    const data=await res.json();
+    if(myGen!==_eventBookSearchGen)return;
+    const books=(data.docs||[]).map(olDocToDiscoverBook);
+    if(!books.length){drop.innerHTML='<div class="s-loading">Sin resultados.</div>';return;}
+    drop.innerHTML='';
+    books.forEach(b=>{
+      const row=document.createElement('div');
+      row.className='s-item';
+      const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+      row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div>`;
+      row.addEventListener('click',()=>selectEventBook(b));
+      drop.appendChild(row);
+    });
+  }catch(err){
+    console.error('runEventBookSearch failed:',err);
+    if(myGen===_eventBookSearchGen)drop.innerHTML='<div class="s-loading">No se pudo buscar. Inténtalo de nuevo.</div>';
+  }
+}
+function selectEventBook(book){
+  EVENT_LINKED_BOOK={title:book.title,author:book.author,cover:book.cover||null,color:book.color};
+  document.getElementById('ev-book-drop').style.display='none';
+  document.getElementById('ev-book-search-wrap').style.display='none';
+  document.getElementById('ev-book-srch').value='';
+  const sel=document.getElementById('ev-book-selected');
+  sel.style.display='block';
+  sel.innerHTML=`<div class="composer-book-chip">${cvr(EVENT_LINKED_BOOK,'mini')}<div><div class="composer-book-chip-title">${escapeHtml(book.title)}</div><div class="composer-book-chip-author">${escapeHtml(book.author)}</div></div><button onclick="clearEventBook()"><i class="ti ti-x"></i></button></div>`;
+}
+function clearEventBook(){
+  EVENT_LINKED_BOOK=null;
+  document.getElementById('ev-book-selected').style.display='none';
+  document.getElementById('ev-book-selected').innerHTML='';
+  document.getElementById('ev-book-search-wrap').style.display='flex';
 }
 
 function openCreateEventModal(){
@@ -4009,6 +4159,7 @@ function openCreateEventModal(){
   document.getElementById('ev-city').value=ORGANIZER?.city||'';
   document.getElementById('ev-type').value='presentacion';
   document.getElementById('ev-geocode-status').textContent='';
+  clearEventBook();
   document.getElementById('create-event-title').textContent='Crear evento';
   document.getElementById('create-event-sub').textContent='Se publica al instante, visible para lectores de tu ciudad';
   document.getElementById('create-event-btn').innerHTML='<i class="ti ti-check"></i> Publicar evento';
@@ -4027,6 +4178,7 @@ function openEditEventModal(id){
   document.getElementById('ev-datetime').value=e.starts_at?new Date(new Date(e.starts_at).getTime()-new Date(e.starts_at).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   document.getElementById('ev-capacity').value=e.capacity||'';
   document.getElementById('ev-geocode-status').textContent='';
+  if(e.book_title){selectEventBook({title:e.book_title,author:e.book_author||'',cover:e.book_cover||null,color:'#555'});}else{clearEventBook();}
   document.getElementById('create-event-title').textContent='Editar evento';
   document.getElementById('create-event-sub').textContent='Los cambios se publican al instante';
   document.getElementById('create-event-btn').innerHTML='<i class="ti ti-check"></i> Guardar cambios';
@@ -4050,7 +4202,7 @@ async function saveNewEvent(){
   statusEl.textContent='Localizando la dirección en el mapa…';
   const coords=address?await geocodeAddress(address,city):null;
   statusEl.textContent=coords?'':(address?'No se ha podido localizar la dirección exacta; el evento se guardará sin marcador en el mapa.':'');
-  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity,lat:coords?.lat??null,lng:coords?.lng??null};
+  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity,lat:coords?.lat??null,lng:coords?.lng??null,book_title:EVENT_LINKED_BOOK?.title??null,book_author:EVENT_LINKED_BOOK?.author??null,book_cover:EVENT_LINKED_BOOK?.cover??null};
   if(EDITING_EVENT_ID){
     const{data,error}=await supa.from('events').update(row).eq('id',EDITING_EVENT_ID).select().single();
     btn.disabled=false;
@@ -11300,6 +11452,199 @@ async function shareShelfieStoryImage(){
     await navigator.share({files:[file],title:'Mi shelfie',text:'Mira mi shelfie en shelfie 📚'});
   }catch(e){
     if(e?.name!=='AbortError')console.error('shareShelfieStoryImage failed:',e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// STORY DE EVENTO (organizador) — imagen 9:16 con el libro vinculado (si lo
+// hay) y una llamada a la acción explícita para que quede claro que la
+// inscripción se hace desde la app shelfie, no por otra vía.
+// ═══════════════════════════════════════════════
+let _eventStoryTheme='dark';
+let _eventStoryEventId=null;
+let _eventStoryBlob=null;
+let _eventStoryBlobUrl=null;
+
+function setEventStoryTheme(btn){
+  document.querySelectorAll('#event-story-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _eventStoryTheme=btn.dataset.theme;
+  generateEventStoryImage();
+}
+
+function openEventStoryPreview(id){
+  _eventStoryEventId=id;
+  document.querySelectorAll('#event-story-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.theme===_eventStoryTheme));
+  openModal('modal-event-story');
+  generateEventStoryImage();
+}
+
+async function generateEventStoryImage(){
+  const e=ORGANIZER_EVENTS.find(ev=>ev.id===_eventStoryEventId);
+  if(!e)return;
+  const loadingEl=document.getElementById('event-story-loading');
+  if(loadingEl)loadingEl.style.display='flex';
+  try{
+    const img=e.book_cover?await loadCoverImageSafe(e.book_cover):null;
+    const T=storyThemePalette(_eventStoryTheme);
+
+    const canvas=document.createElement('canvas');
+    canvas.width=1080;canvas.height=1920;
+    const ctx=canvas.getContext('2d');
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+
+    // Fondo con los mismos resplandores de marca que el resto de stories
+    ctx.fillStyle=T.bg;
+    ctx.fillRect(0,0,1080,1920);
+    let glow=ctx.createRadialGradient(940,140,0,940,140,520);
+    glow.addColorStop(0,T.glowA);glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+    glow=ctx.createRadialGradient(120,1820,0,120,1820,560);
+    glow.addColorStop(0,T.glowB);glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+
+    // Logo + wordmark + local
+    ctx.fillStyle=T.textPrimary;
+    const logoScale=34/24;
+    SHELFIE_LOGO_BARS.forEach(([bx,by,bw,bh])=>{roundRectPath(ctx,80+bx*logoScale,86+by*logoScale,bw*logoScale,bh*logoScale,2);ctx.fill();});
+    ctx.font='700 40px Inter, Arial, sans-serif';
+    ctx.fillText('shelfie',150,132);
+    ctx.font='500 24px Inter, Arial, sans-serif';
+    ctx.fillStyle=T.textSecondary;
+    ctx.textAlign='right';
+    ctx.fillText(wrapCanvasText(ctx,ORGANIZER?.venue_name||'',280)[0]||'',1000,120);
+    ctx.textAlign='left';
+
+    const margin=80,availW=1080-margin*2;
+    let y=230;
+
+    // Etiqueta del tipo de evento
+    const typeLabel=EVENT_TYPE_LABELS[e.event_type]||'Evento';
+    ctx.font='700 24px Inter, Arial, sans-serif';
+    const typeW=ctx.measureText(typeLabel).width+40;
+    roundRectPath(ctx,margin,y,typeW,42,21);
+    ctx.fillStyle=T.chipBg;ctx.fill();
+    ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+    roundRectPath(ctx,margin,y,typeW,42,21);ctx.stroke();
+    ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(typeLabel,margin+typeW/2,y+22);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    y+=70;
+
+    // Título del evento
+    ctx.fillStyle=T.textPrimary;
+    ctx.font='800 54px "Playfair Display", Georgia, serif';
+    const titleLines=wrapCanvasText(ctx,e.title,availW).slice(0,3);
+    titleLines.forEach(ln=>{ctx.fillText(ln,margin,y+42);y+=60;});
+    y+=16;
+
+    // Fecha y ubicación
+    ctx.font='500 27px Inter, Arial, sans-serif';
+    ctx.fillStyle=T.textTertiary;
+    ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,margin,y+22);
+    y+=42;
+    if(e.address||e.city){
+      const locLines=wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW).slice(0,2);
+      locLines.forEach(ln=>{ctx.fillText(ln,margin,y+22);y+=34;});
+    }
+    y+=26;
+
+    const visualTop=y,visualBottom=1500;
+    const visualH=Math.max(220,visualBottom-visualTop);
+
+    if(img){
+      // Portada del libro vinculado, en formato retrato, sin recortar
+      const coverH=Math.min(visualH,(availW)/0.68);
+      const coverW=coverH*0.68;
+      const cx=540-coverW/2,cy=visualTop+(visualH-coverH)/2;
+      ctx.save();
+      roundRectPath(ctx,cx,cy,coverW,coverH,16);
+      ctx.clip();
+      ctx.fillStyle='#555';ctx.fillRect(cx,cy,coverW,coverH);
+      const s=Math.min(coverW/img.width,coverH/img.height);
+      const iw=img.width*s,ih=img.height*s;
+      ctx.drawImage(img,cx+(coverW-iw)/2,cy+(coverH-ih)/2,iw,ih);
+      ctx.restore();
+      ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
+    }else{
+      // Sin libro vinculado: tarjeta decorativa
+      const cardH=Math.min(visualH,460);
+      const cardY=visualTop+(visualH-cardH)/2;
+      roundRectPath(ctx,margin,cardY,availW,cardH,20);
+      ctx.fillStyle=T.shelfBack;ctx.fill();
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,margin,cardY,availW,cardH,20);ctx.stroke();
+      ctx.font='84px Inter, Arial, sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('📚',540,cardY+cardH/2);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }
+
+    // CTA — deja claro que la inscripción es a través de shelfie
+    const ctaY=1550,ctaH=70;
+    roundRectPath(ctx,margin,ctaY,availW,ctaH,ctaH/2);
+    ctx.fillStyle=T.progressFill;
+    ctx.fill();
+    ctx.fillStyle='#FFFFFF';
+    ctx.font='700 30px Inter, Arial, sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('📖 Apúntate en shelfie',540,ctaY+ctaH/2+2);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
+    ctx.font='500 22px Inter, Arial, sans-serif';
+    ctx.fillStyle=T.textTertiary;
+    ctx.textAlign='center';
+    ctx.fillText(e.capacity?`${e.capacity} plazas`:'Aforo libre',540,ctaY+ctaH+36);
+    ctx.textAlign='left';
+
+    // Pie
+    ctx.font='500 22px Inter, Arial, sans-serif';
+    ctx.fillStyle=T.footer;
+    ctx.textAlign='center';
+    ctx.fillText('Búscalo en la app shelfie para apuntarte',540,1870);
+    ctx.textAlign='left';
+
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png',0.95));
+    if(!blob)throw new Error('canvas.toBlob devolvió null');
+    if(_eventStoryBlobUrl)URL.revokeObjectURL(_eventStoryBlobUrl);
+    _eventStoryBlob=blob;
+    _eventStoryBlobUrl=URL.createObjectURL(blob);
+    document.getElementById('event-story-img').src=_eventStoryBlobUrl;
+    const shareBtn=document.getElementById('event-story-share-btn');
+    if(shareBtn)shareBtn.style.display=(typeof navigator.share==='function')?'inline-flex':'none';
+  }catch(err){
+    console.error('generateEventStoryImage failed:',err);
+    toast('❌ No se pudo generar la imagen. Inténtalo de nuevo.');
+  }finally{
+    if(loadingEl)loadingEl.style.display='none';
+  }
+}
+
+function downloadEventStoryImage(){
+  if(!_eventStoryBlobUrl)return;
+  const e=ORGANIZER_EVENTS.find(ev=>ev.id===_eventStoryEventId);
+  const slug=(e?.title||'evento').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'evento';
+  const a=document.createElement('a');
+  a.href=_eventStoryBlobUrl;
+  a.download=`shelfie-evento-${slug}-${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  toast('✅ Imagen descargada');
+}
+
+async function shareEventStoryImage(){
+  if(!_eventStoryBlob)return;
+  const e=ORGANIZER_EVENTS.find(ev=>ev.id===_eventStoryEventId);
+  try{
+    const file=new File([_eventStoryBlob],'evento-shelfie.png',{type:'image/png'});
+    if(navigator.canShare&&!navigator.canShare({files:[file]})){
+      toast('Tu navegador no admite compartir esta imagen directamente. Descárgala y compártela desde tu galería.');
+      return;
+    }
+    await navigator.share({files:[file],title:e?.title||'Evento en shelfie',text:`Apúntate en shelfie: ${e?.title||'nuestro próximo evento'} 📚`});
+  }catch(err){
+    if(err?.name!=='AbortError')console.error('shareEventStoryImage failed:',err);
   }
 }
 
