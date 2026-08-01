@@ -2204,6 +2204,17 @@ a{color:inherit}
 <div id="p-discover" class="page">
   <div class="tb"><div><h1>Descubrir</h1><p>Encuentra tu próxima lectura</p></div></div>
 
+  <div class="disc-search-wrap">
+    <i class="ti ti-search disc-search-icon"></i>
+    <input class="disc-search" id="disc-search-inp" placeholder="Busca cualquier libro o autor en Open Library..." oninput="onDiscoverSearch(this.value)" autocomplete="off">
+  </div>
+
+  <!-- Resultados de búsqueda (sustituyen a las secciones de abajo mientras hay una consulta) -->
+  <div id="disc-search-results" style="display:none">
+    <div class="disc-section-head"><span class="disc-section-title" id="disc-search-label"></span></div>
+    <div class="disc-grid" id="disc-search-grid"></div>
+  </div>
+
   <!-- Genre tabs -->
   <div class="disc-genres">
     <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
@@ -2212,17 +2223,25 @@ a{color:inherit}
     <button class="dg-tab" data-genre="Latinoamérica" onclick="setDiscoverGenre(this,'Latinoamérica')">Latinoamérica</button>
     <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
     <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
+    <button class="dg-tab" data-genre="Poesía" onclick="setDiscoverGenre(this,'Poesía')">Poesía</button>
     <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
+    <button class="dg-tab" data-genre="Misterio" onclick="setDiscoverGenre(this,'Misterio')">Misterio</button>
   </div>
 
   <!-- Main sections -->
   <div id="disc-main-sections">
 
+    <!-- Tendencias: datos reales de la comunidad de shelfie -->
+    <div class="disc-section">
+      <div class="disc-section-head"><span class="disc-section-title">🔥 Tendencias en la comunidad</span></div>
+      <div class="disc-grid" id="disc-trending"><div class="s-loading"><i class="ti ti-loader-2 spin"></i> Cargando tendencias...</div></div>
+    </div>
+
     <!-- Recomendador: libros similares -->
     <div class="disc-section">
       <div class="disc-section-head"><span class="disc-section-title">🔍 Libros similares a uno que te gustó</span></div>
       <div class="card" style="padding:14px 16px;margin-bottom:0">
-        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">Elige un libro de tu shelfie y te recomendamos lecturas parecidas</div>
+        <div style="font-size:12px;color:var(--ink3);margin-bottom:8px">Elige un libro de tu shelfie y te recomendamos lecturas parecidas, buscando en Open Library por materia</div>
         <select id="disc-similar-sel" class="disc-similar-sel" onchange="showSimilarBooks(this.value)">
           <option value="">Elige un libro que te haya gustado…</option>
         </select>
@@ -2233,10 +2252,10 @@ a{color:inherit}
       </div>
     </div>
 
-    <!-- Tendencias -->
+    <!-- Explora por género: Open Library en vivo, controlado por las pestañas de arriba -->
     <div class="disc-section">
-      <div class="disc-section-head"><span class="disc-section-title">🔥 Tendencias en la comunidad</span></div>
-      <div class="disc-grid" id="disc-trending"></div>
+      <div class="disc-section-head"><span class="disc-section-title" id="disc-genre-title">📖 Explora: Todo</span></div>
+      <div class="disc-grid" id="disc-genre-grid"></div>
     </div>
 
     <!-- Listas curadas -->
@@ -4365,39 +4384,13 @@ const STATIC_RECS=[
   {title:'Kokoro',author:'Natsume Soseki',year:'1914',pages:248,why:'Para tu preparación del JLPT N4',pct:88},
   {title:'La vorágine',author:'José Eustasio Rivera',year:'1924',pages:312,why:'Narrativa latinoamericana selvática, única',pct:85},
 ];
-const DISCOVER_CATALOG=[
-  {title:'El nombre de la rosa',author:'Umberto Eco',year:1980,pages:502,genre:'Ficción',stars:4.7,readers:1240,color:'#6B4226'},
-  {title:'La insoportable levedad del ser',author:'Milan Kundera',year:1984,pages:314,genre:'Ficción',stars:4.5,readers:983,color:'#2D4A3E'},
-  {title:'El maestro y Margarita',author:'Mijaíl Bulgákov',year:1967,pages:372,genre:'Ficción',stars:4.8,readers:1102,color:'#1A237E'},
-  {title:'Beloved',author:'Toni Morrison',year:1987,pages:324,genre:'Ficción',stars:4.6,readers:876,color:'#4A1942'},
-  {title:'El proceso',author:'Franz Kafka',year:1925,pages:264,genre:'Ficción',stars:4.4,readers:1345,color:'#263238'},
-  {title:'Don Quijote de la Mancha',author:'Miguel de Cervantes',year:1605,pages:863,genre:'Clásicos',stars:4.5,readers:2100,color:'#7B3F00'},
-  {title:'Crimen y castigo',author:'Fiódor Dostoievski',year:1866,pages:608,genre:'Clásicos',stars:4.7,readers:1890,color:'#1B1B2F'},
-  {title:'Ana Karenina',author:'León Tolstói',year:1877,pages:864,genre:'Clásicos',stars:4.6,readers:1560,color:'#880E4F'},
-  {title:'Madame Bovary',author:'Gustave Flaubert',year:1857,pages:392,genre:'Clásicos',stars:4.3,readers:1230,color:'#1A3C34'},
-  {title:'Middlemarch',author:'George Eliot',year:1871,pages:904,genre:'Clásicos',stars:4.5,readers:870,color:'#3E2723'},
-  {title:'Los detectives salvajes',author:'Roberto Bolaño',year:1998,pages:609,genre:'Latinoamérica',stars:4.6,readers:940,color:'#1B5E20'},
-  {title:'La casa de los espíritus',author:'Isabel Allende',year:1982,pages:467,genre:'Latinoamérica',stars:4.5,readers:1340,color:'#4A148C'},
-  {title:'Ficciones',author:'Jorge Luis Borges',year:1944,pages:174,genre:'Latinoamérica',stars:4.8,readers:1670,color:'#E65100'},
-  {title:'El coronel no tiene quien le escriba',author:'García Márquez',year:1961,pages:124,genre:'Latinoamérica',stars:4.7,readers:1450,color:'#006064'},
-  {title:'La ciudad y los perros',author:'Mario Vargas Llosa',year:1963,pages:400,genre:'Latinoamérica',stars:4.4,readers:780,color:'#37474F'},
-  {title:'El mundo de ayer',author:'Stefan Zweig',year:1942,pages:400,genre:'Historia',stars:4.8,readers:1120,color:'#BF360C'},
-  {title:'Sapiens',author:'Yuval Noah Harari',year:2011,pages:443,genre:'Historia',stars:4.4,readers:3200,color:'#0D47A1'},
-  {title:'El nombre de la rosa',author:'Umberto Eco',year:1980,pages:502,genre:'Historia',stars:4.7,readers:1240,color:'#6B4226'},
-  {title:'Una habitación propia',author:'Virginia Woolf',year:1929,pages:112,genre:'Ensayo',stars:4.6,readers:1890,color:'#4527A0'},
-  {title:'Ensayos',author:'Michel de Montaigne',year:1580,pages:1296,genre:'Ensayo',stars:4.4,readers:560,color:'#2E7D32'},
-  {title:'Cartas a un joven poeta',author:'Rainer Maria Rilke',year:1929,pages:84,genre:'Ensayo',stars:4.7,readers:2100,color:'#795548'},
-  {title:'Dune',author:'Frank Herbert',year:1965,pages:688,genre:'Sci-Fi',stars:4.7,readers:2340,color:'#F57F17'},
-  {title:'Solaris',author:'Stanisław Lem',year:1961,pages:205,genre:'Sci-Fi',stars:4.5,readers:980,color:'#01579B'},
-  {title:'El cuento de la criada',author:'Margaret Atwood',year:1985,pages:311,genre:'Sci-Fi',stars:4.6,readers:2100,color:'#B71C1C'},
-  {title:'Neuromante',author:'William Gibson',year:1984,pages:271,genre:'Sci-Fi',stars:4.3,readers:1100,color:'#1A237E'},
-  {title:'Fahrenheit 451',author:'Ray Bradbury',year:1953,pages:256,genre:'Sci-Fi',stars:4.6,readers:2890,color:'#B71C1C'},
-  {title:'¿Sueñan los androides con ovejas eléctricas?',author:'Philip K. Dick',year:1968,pages:244,genre:'Sci-Fi',stars:4.4,readers:1560,color:'#212121'},
-  {title:'El fin de la eternidad',author:'Isaac Asimov',year:1955,pages:192,genre:'Sci-Fi',stars:4.3,readers:980,color:'#1565C0'},
-  {title:'Don Quijote de la Mancha',author:'Miguel de Cervantes',year:1605,pages:863,genre:'Clásicos',stars:4.5,readers:2100,color:'#7B3F00'},
-  {title:'2666',author:'Roberto Bolaño',year:2004,pages:898,genre:'Latinoamérica',stars:4.6,readers:870,color:'#212121'},
-  {title:'Rayuela',author:'Julio Cortázar',year:1963,pages:736,genre:'Latinoamérica',stars:4.5,readers:1120,color:'#1B5E20'},
-];
+// Mapa de las pestañas de género (en español, cara al usuario) a materias reales
+// de Open Library, para poder pedirle libros de verdad en vivo en vez de tirar
+// siempre de un catálogo local fijo de ~30 libros.
+const DISCOVER_GENRE_SUBJECTS={
+  'Ficción':'fiction','Clásicos':'classic_literature','Latinoamérica':'latin_american_literature',
+  'Historia':'history','Ensayo':'essays','Poesía':'poetry','Sci-Fi':'science_fiction','Misterio':'mystery',
+};
 const DISCOVER_LISTS=[
   {emoji:'🏆',name:'Premios Nobel',desc:'Lo mejor de la literatura mundial',books:['Cien años de soledad','Beloved','El maestro y Margarita','La casa de los espíritus','Ana Karenina','El nombre de la rosa','Pedro Páramo','Middlemarch']},
   {emoji:'🌎',name:'Boom Latinoamericano',desc:'Los imprescindibles del continente',books:['Rayuela','Los detectives salvajes','Ficciones','Pedro Páramo','La ciudad y los perros','El coronel no tiene quien le escriba','2666','La casa de los espíritus','La vorágine']},
@@ -4408,6 +4401,35 @@ const DISCOVER_LISTS=[
 ];
 let _discoverGenre='all';
 let _discoverQuery='';
+let _discoverReg={}; // id -> book object, so onclick handlers never embed raw titles/URLs
+let _discoverRegId=0;
+let _discoverGenreGen=0;
+let _discoverSimilarGen=0;
+let _discoverSearchGen=0;
+let _discoverSearchTimer=null;
+let _discoverListCache={}; // idx -> resolved books, so reopening a curated list doesn't re-fetch
+function registerDiscoverBook(b){
+  const id='db'+(_discoverRegId++);
+  _discoverReg[id]=b;
+  return id;
+}
+function olDocToDiscoverBook(d){
+  return{
+    title:d.title||'Sin título',author:d.author_name?.[0]||'Desconocido',
+    year:d.first_publish_year||'',pages:d.number_of_pages_median||null,
+    cover:d.cover_i?`https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`:null,
+    olKey:d.key||null,color:COLORS[(d.title?.charCodeAt(0)||0)%COLORS.length],
+  };
+}
+function olSubjectWorkToDiscoverBook(w){
+  return{
+    title:w.title||'Sin título',author:w.authors?.[0]?.name||'Desconocido',
+    year:w.first_publish_year||'',pages:null,
+    cover:w.cover_id?`https://covers.openlibrary.org/b/id/${w.cover_id}-M.jpg`:null,
+    olKey:w.key||null,color:COLORS[(w.title?.charCodeAt(0)||0)%COLORS.length],
+  };
+}
+function subjectToSlug(s){return String(s).toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'_');}
 const ALL_READERS=[
   {name:'María López',username:'marialibros',initials:'ML',bg:'#EFF6FF',tc:'#1E3A8A',stat:'234 libros · Ficción'},
   {name:'Ramón García',username:'ramonreads',initials:'RG',bg:'#ECFDF5',tc:'#065F46',stat:'189 libros · Clásicos'},
@@ -5943,13 +5965,16 @@ function saveManual(){
   toast(`✅ «${title}» añadido a tu shelfie`);
 }
 
-function quickAddDirect(title,author,status,olKey){
+function quickAddDirect(title,author,status,olKey,cover,color){
   if(Object.values(DB).flat().find(b=>b.title.toLowerCase()===title.toLowerCase())){toast(`«${title}» ya está en tu shelfie`);return;}
   // Carry the Open Library work key through when the caller already knows it (a
   // generic ficha, an author's work list) so the new local copy keeps the exact
   // same canonical identity as the page you quick-added it from, instead of
   // silently forking into a separate title-keyed "ficha" for the same work.
-  const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null,olKey:olKey||null};
+  // cover/color are likewise optional — callers with real Open Library data
+  // (Discover) pass them through so the added copy keeps its real cover art
+  // instead of falling back to a plain color block.
+  const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:cover||null,color:color||COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null,olKey:olKey||null};
   DB[status].unshift(book);
   saveSupaBook(book);
   updateAll();
@@ -7968,28 +7993,28 @@ function inferDiscoverGenre(book){
   return'Ficción';
 }
 
-function discoverUniqCatalog(genre){
-  let cat=genre==='all'?DISCOVER_CATALOG:DISCOVER_CATALOG.filter(b=>b.genre===genre);
-  const seen=new Set();
-  return cat.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
-}
-
 function discoverBookCard(b){
+  const id=registerDiscoverBook(b);
   const inShelf=!!allBooks().find(x=>x.title.toLowerCase()===b.title.toLowerCase());
-  const starsN=Math.round(b.stars||0);
-  const stars='★'.repeat(starsN)+'☆'.repeat(5-starsN);
-  const t=b.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const a=(b.author||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const initials=b.title.split(/\s+/).filter(w=>/^[A-Za-záéíóúüñÁÉÍÓÚÜÑ]/.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+  // <img> + onerror fallback rather than a CSS background-image: real Open
+  // Library cover URLs 404 often enough (cover_id present but file missing)
+  // that a background-image would just silently show nothing on failure.
+  const coverHtml=b.cover
+    ?`<img class="disc-cover" src="${b.cover}" alt="" style="object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="disc-cover" style="background:${b.color||'#555'};display:none">${initials||'?'}</div>`
+    :`<div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>`;
+  const metaBits=[];
+  if(b.stars)metaBits.push(`<span class="disc-stars">${'★'.repeat(Math.round(b.stars))}${'☆'.repeat(5-Math.round(b.stars))}</span>`);
+  if(b.readers)metaBits.push(`<span class="disc-readers">${b.readers.toLocaleString('es-ES')} en shelfie</span>`);
   const addBtn=inShelf
     ?`<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>`
-    :`<button class="disc-add-btn" onclick="event.stopPropagation();quickAddDirect('${t}','${a}','quiero');this.outerHTML='<button class=\\'disc-add-btn added\\' disabled>✓ En tu shelfie</button>'">+ Quiero leer</button>`;
-  return`<div class="disc-book-card" onclick="openDiscoverBookCard('${t}','${a}')">
-    <div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>
+    :`<button class="disc-add-btn" onclick="event.stopPropagation();discoverQuickAdd('${id}',this)">+ Quiero leer</button>`;
+  return`<div class="disc-book-card" onclick="openDiscoverBookCardById('${id}')">
+    ${coverHtml}
     <div class="disc-book-info">
       <div class="disc-book-title">${escapeHtml(b.title)}</div>
       <div class="disc-book-author">${escapeHtml(b.author||'')}${b.year?' · '+b.year:''}</div>
-      <div class="disc-book-meta"><span class="disc-stars">${stars}</span><span class="disc-readers">${b.readers?(b.readers).toLocaleString('es-ES')+' lectores':''}</span></div>
+      ${metaBits.length?`<div class="disc-book-meta">${metaBits.join('')}</div>`:''}
       ${addBtn}
     </div>
   </div>`;
@@ -7998,26 +8023,34 @@ function discoverBookCard(b){
 // Clicking a Discover card now always opens a real ficha — your own copy's if
 // you already added it, otherwise the generic not-yet-owned ficha (which offers
 // its own "Quiero leer" / "Elegir edición" actions instead of silently guessing).
-function openDiscoverBookCard(title,author){
-  const existing=allBooks().find(b=>b.title.toLowerCase()===title.toLowerCase());
-  const key=existing?bookWorkKey(existing):bookWorkKey({title,author});
+// Cards are looked up by registry id instead of embedding title/author/URLs
+// straight into the onclick attribute, since live Open Library data can contain
+// quotes, backslashes and other characters that are awkward to escape safely.
+function openDiscoverBookCardById(id){
+  const b=_discoverReg[id];
+  if(!b)return;
+  const existing=allBooks().find(x=>x.title.toLowerCase()===b.title.toLowerCase());
+  const key=existing?bookWorkKey(existing):bookWorkKey({title:b.title,author:b.author,olKey:b.olKey});
   go('bookdetail',null,key);
+}
+
+function discoverQuickAdd(id,btnEl){
+  const b=_discoverReg[id];
+  if(!b)return;
+  quickAddDirect(b.title,b.author,'quiero',b.olKey,b.cover,b.color);
+  if(btnEl)btnEl.outerHTML='<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>';
 }
 
 function renderDiscover(){
   _discoverQuery='';
+  const searchInp=document.getElementById('disc-search-inp');
+  if(searchInp)searchInp.value='';
+  document.getElementById('disc-search-results').style.display='none';
   document.getElementById('disc-main-sections').style.display='';
   document.getElementById('disc-similar-results').style.display='none';
 
-  const genre=_discoverGenre;
-  const catalog=discoverUniqCatalog(genre);
-  const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
-
-  // ── Tendencias ──
-  const trending=catalog.filter(b=>!shelfTitles.has(b.title.toLowerCase())).sort((a,b2)=>b2.readers-a.readers).slice(0,6);
-  document.getElementById('disc-trending').innerHTML=trending.length
-    ?trending.map(b=>discoverBookCard(b)).join('')
-    :'<div class="disc-no-results">Ya tienes los más populares de este género</div>';
+  loadDiscoverTrending();
+  loadDiscoverGenre(_discoverGenre);
 
   // ── Selector similares: libros leídos por el usuario ──
   const sel=document.getElementById('disc-similar-sel');
@@ -8038,53 +8071,196 @@ function renderDiscover(){
       <div class="disc-list-emoji">${l.emoji}</div>
       <div class="disc-list-name">${escapeHtml(l.name)}</div>
       <div class="disc-list-count">${escapeHtml(l.desc)}</div>
-      <div style="font-size:11px;color:var(--red);margin-top:6px">${l.count} libros →</div>
+      <div style="font-size:11px;color:var(--red);margin-top:6px">${l.books.length} libros →</div>
     </div>`).join('');
 }
 
-function showSimilarBooks(title){
-  const res=document.getElementById('disc-similar-results');
-  if(!title){res.style.display='none';return;}
-  const book=allBooks().find(b=>b.title===title)||{title,author:'',stars:0};
-  const genre=inferDiscoverGenre(book);
-  const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
-  // Same genre first, then other genres
-  const seen=new Set();
-  let similar=DISCOVER_CATALOG.filter(b=>b.genre===genre&&!shelfTitles.has(b.title.toLowerCase()));
-  similar=[...similar,...DISCOVER_CATALOG.filter(b=>b.genre!==genre&&!shelfTitles.has(b.title.toLowerCase()))];
-  similar=similar.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;}).slice(0,6);
-  document.getElementById('disc-similar-label').textContent=`Porque leíste "${title}"`;
-  document.getElementById('disc-similar-grid').innerHTML=similar.length
-    ?similar.map(b=>discoverBookCard(b)).join('')
-    :'<div class="disc-no-results">No encontramos más libros similares en el catálogo</div>';
-  res.style.display='';
+// Tendencias reales: agregadas a partir de lo que la comunidad de shelfie tiene
+// de verdad en su shelfie (public por RLS), no un número inventado. Cuenta
+// cuántos lectores tienen cada título y promedia sus valoraciones reales.
+async function loadDiscoverTrending(){
+  const el=document.getElementById('disc-trending');
+  el.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Cargando tendencias...</div>';
+  if(!SUPA_USER){el.innerHTML='<div class="disc-no-results">Inicia sesión para ver qué está leyendo la comunidad</div>';return;}
+  try{
+    const{data,error}=await supa.from('user_books').select('title,author,cover,color,ol_key,stars').neq('status','dnf').limit(3000);
+    if(error)throw error;
+    const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
+    const counts={};
+    (data||[]).forEach(r=>{
+      const key=(r.title||'').toLowerCase();
+      if(!key)return;
+      if(!counts[key])counts[key]={title:r.title,author:r.author,cover:r.cover,color:r.color,olKey:r.ol_key,readers:0,starsSum:0,starsCount:0};
+      const c=counts[key];
+      c.readers++;
+      if(r.stars){c.starsSum+=r.stars;c.starsCount++;}
+      if(!c.cover&&r.cover)c.cover=r.cover;
+    });
+    const trending=Object.values(counts)
+      .filter(b=>!shelfTitles.has(b.title.toLowerCase()))
+      .map(b=>({...b,stars:b.starsCount?b.starsSum/b.starsCount:0}))
+      .sort((a,b2)=>b2.readers-a.readers)
+      .slice(0,8);
+    el.innerHTML=trending.length
+      ?trending.map(b=>discoverBookCard(b)).join('')
+      :'<div class="disc-no-results">Todavía no hay suficiente actividad de la comunidad para mostrar tendencias</div>';
+  }catch(e){
+    console.error('loadDiscoverTrending failed:',e);
+    el.innerHTML='<div class="disc-no-results">No se pudieron cargar las tendencias</div>';
+  }
 }
 
-function openDiscoverList(idx){
+// Explorar por género: en vivo contra Open Library (openlibrary.org/subjects),
+// en vez de un catálogo local fijo de ~30 libros que siempre enseñaba lo mismo.
+async function loadDiscoverGenre(genre){
+  const grid=document.getElementById('disc-genre-grid');
+  document.getElementById('disc-genre-title').textContent='📖 Explora: '+(genre==='all'?'Todo':genre);
+  grid.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Cargando de Open Library...</div>';
+  const subject=genre==='all'?'fiction':(DISCOVER_GENRE_SUBJECTS[genre]||'fiction');
+  const myGen=(_discoverGenreGen=_discoverGenreGen+1);
+  try{
+    const res=await fetch(`https://openlibrary.org/subjects/${subject}.json?limit=16`);
+    const data=await res.json();
+    if(myGen!==_discoverGenreGen)return; // el usuario ya cambió de pestaña
+    const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
+    const seen=new Set();
+    const books=(data.works||[]).map(olSubjectWorkToDiscoverBook).filter(b=>{
+      const k=b.title.toLowerCase();
+      if(shelfTitles.has(k)||seen.has(k))return false;
+      seen.add(k);return true;
+    }).slice(0,12);
+    grid.innerHTML=books.length?books.map(b=>discoverBookCard(b)).join(''):'<div class="disc-no-results">Ya tienes los más populares de este género</div>';
+  }catch(e){
+    if(myGen!==_discoverGenreGen)return;
+    console.error('loadDiscoverGenre failed:',e);
+    grid.innerHTML='<div class="disc-no-results">No se pudo conectar con Open Library</div>';
+  }
+}
+
+// Libros similares: si el libro elegido tiene un olKey (la mayoría de los
+// añadidos por búsqueda sí), pedimos su ficha real a Open Library para sacar
+// su primera materia y buscamos parecidos por ahí. Si no, caemos al género
+// inferido por autor/título de siempre.
+async function showSimilarBooks(title){
+  const res=document.getElementById('disc-similar-results');
+  if(!title){res.style.display='none';return;}
+  const grid=document.getElementById('disc-similar-grid');
+  document.getElementById('disc-similar-label').textContent=`Porque leíste "${title}"`;
+  grid.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando libros parecidos...</div>';
+  res.style.display='';
+  const book=allBooks().find(b=>b.title===title)||{title,author:''};
+  const shelfTitles=new Set(allBooks().map(b=>b.title.toLowerCase()));
+  const myGen=(_discoverSimilarGen=_discoverSimilarGen+1);
+  let subject=null;
+  if(book.olKey){
+    try{
+      const wres=await fetch(`https://openlibrary.org${book.olKey}.json`);
+      const wdata=await wres.json();
+      if(wdata.subjects?.length)subject=subjectToSlug(wdata.subjects[0]);
+    }catch(_){/* seguimos con el género inferido */}
+  }
+  if(myGen!==_discoverSimilarGen)return;
+  if(!subject)subject=DISCOVER_GENRE_SUBJECTS[inferDiscoverGenre(book)]||'fiction';
+  try{
+    const sres=await fetch(`https://openlibrary.org/subjects/${subject}.json?limit=16`);
+    const sdata=await sres.json();
+    if(myGen!==_discoverSimilarGen)return;
+    const seen=new Set();
+    const similar=(sdata.works||[]).map(olSubjectWorkToDiscoverBook).filter(b=>{
+      const k=b.title.toLowerCase();
+      if(k===title.toLowerCase()||shelfTitles.has(k)||seen.has(k))return false;
+      seen.add(k);return true;
+    }).slice(0,6);
+    grid.innerHTML=similar.length?similar.map(b=>discoverBookCard(b)).join(''):'<div class="disc-no-results">No encontramos libros parecidos</div>';
+  }catch(e){
+    if(myGen!==_discoverSimilarGen)return;
+    grid.innerHTML='<div class="disc-no-results">No se pudo conectar con Open Library</div>';
+  }
+}
+
+// Listas curadas: los títulos son fijos (la selección editorial), pero ya no
+// se cruzan contra un catálogo local que solo cubría un tercio de ellos —
+// ahora se resuelven en vivo contra Open Library (portada, autor y año reales)
+// la primera vez que se abren, y se cachean para no repetir la búsqueda.
+async function openDiscoverList(idx){
   const l=DISCOVER_LISTS[idx];
   document.getElementById('disc-list-modal-title').textContent=l.emoji+' '+l.name;
   document.getElementById('disc-list-modal-desc').textContent=l.desc;
-  // Find catalog books matching list.books titles; fill missing ones with minimal cards
-  const catalogMap=Object.fromEntries(DISCOVER_CATALOG.map(b=>[b.title.toLowerCase(),b]));
-  const books=l.books.map(t=>{
-    const found=catalogMap[t.toLowerCase()];
-    if(found)return found;
-    // Minimal fallback for books in list but not in catalog
-    return{title:t,author:'',year:null,pages:null,genre:'Ficción',stars:4.5,readers:0,color:'#555'};
-  });
-  // Dedupe
-  const seen=new Set();
-  const uniq=books.filter(b=>{if(seen.has(b.title))return false;seen.add(b.title);return true;});
-  document.getElementById('disc-list-modal-body').innerHTML=uniq.map(b=>discoverBookCard(b)).join('');
+  const bodyEl=document.getElementById('disc-list-modal-body');
   openModal('modal-disc-list');
+  if(_discoverListCache[idx]){
+    bodyEl.innerHTML=_discoverListCache[idx].map(b=>discoverBookCard(b)).join('');
+    return;
+  }
+  bodyEl.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Cargando libros...</div>';
+  try{
+    const results=await Promise.all(l.books.map(async t=>{
+      try{
+        const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(t)}&limit=1&fields=title,author_name,first_publish_year,cover_i,key`);
+        const data=await res.json();
+        const d=data.docs?.[0];
+        return d?olDocToDiscoverBook(d):{title:t,author:'',year:'',pages:null,cover:null,olKey:null,color:'#555'};
+      }catch(_){
+        return{title:t,author:'',year:'',pages:null,cover:null,olKey:null,color:'#555'};
+      }
+    }));
+    const seen=new Set();
+    const uniq=results.filter(b=>{const k=b.title.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+    _discoverListCache[idx]=uniq;
+    bodyEl.innerHTML=uniq.map(b=>discoverBookCard(b)).join('');
+  }catch(e){
+    bodyEl.innerHTML='<div class="disc-no-results">No se pudieron cargar los libros de esta lista</div>';
+  }
 }
-
 
 function setDiscoverGenre(btn,genre){
   document.querySelectorAll('.dg-tab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   _discoverGenre=genre;
-  renderDiscover();
+  if(_discoverQuery){ // un género nuevo tiene sentido más que una búsqueda activa
+    const inp=document.getElementById('disc-search-inp');
+    if(inp)inp.value='';
+    onDiscoverSearch('');
+  }
+  loadDiscoverGenre(genre);
+}
+
+// Buscador de Descubrir: contra Open Library en vivo, igual que el resto de la
+// app — antes existía el CSS (.disc-search) pero no había ningún <input> real
+// conectado a él.
+function onDiscoverSearch(v){
+  _discoverQuery=v.trim();
+  clearTimeout(_discoverSearchTimer);
+  if(!_discoverQuery){
+    document.getElementById('disc-search-results').style.display='none';
+    document.getElementById('disc-main-sections').style.display='';
+    return;
+  }
+  _discoverSearchTimer=setTimeout(()=>runDiscoverSearch(_discoverQuery),350);
+}
+async function runDiscoverSearch(q){
+  document.getElementById('disc-main-sections').style.display='none';
+  const resWrap=document.getElementById('disc-search-results');
+  resWrap.style.display='';
+  document.getElementById('disc-search-label').textContent=`Resultados para "${q}"`;
+  const grid=document.getElementById('disc-search-grid');
+  grid.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando en Open Library...</div>';
+  const myGen=(_discoverSearchGen=_discoverSearchGen+1);
+  try{
+    const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=18&fields=title,author_name,first_publish_year,cover_i,number_of_pages_median,key`);
+    const data=await res.json();
+    if(myGen!==_discoverSearchGen)return;
+    const seen=new Set();
+    const books=(data.docs||[]).map(olDocToDiscoverBook).filter(b=>{
+      const k=b.title.toLowerCase();
+      if(seen.has(k))return false;
+      seen.add(k);return true;
+    });
+    grid.innerHTML=books.length?books.map(b=>discoverBookCard(b)).join(''):'<div class="disc-no-results">Sin resultados</div>';
+  }catch(e){
+    if(myGen!==_discoverSearchGen)return;
+    grid.innerHTML='<div class="disc-no-results">Error de red</div>';
+  }
 }
 
 // ═══════════════════════════════════════════════
