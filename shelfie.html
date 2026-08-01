@@ -10554,21 +10554,18 @@ function renderSharePreview(){
   };
   let html='';
   if(_sharePreviewViewMode==='shelf'){
-    // Mini multi-row shelf preview — sin portadas, igual que la estantería real de "Mi shelfie"
-    const rowSize=8;
+    // Mini multi-row shelf preview — lomos de igual tamaño (no varían con las páginas),
+    // agrupados en filas de tamaño fijo, igual que en la story generada.
+    const rowSize=9;
     const rows=[];
     for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
     const rowsHtml=rows.map(rowBooks=>`
       <div>
-        <div class="real-shelf" style="min-height:130px;padding:12px 10px 0;gap:2px">
+        <div class="real-shelf" style="min-height:130px;padding:12px 10px 0;gap:3px">
           ${rowBooks.map(b=>{
-            const pages=b.pages||240;
-            const w=Math.max(14,Math.min(46,Math.round(10+pages/20)));
-            const h=Math.max(110,Math.min(175,110+Math.round(pages/12)));
-            const fs=b.title.length>30?6:b.title.length>18?7:8;
             const pct=(showProgress||showPage)?bookProgressPercent(b):null;
-            return `<div style="width:${w}px;height:${h}px;background:${b.color};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
-              <div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>
+            return `<div style="width:30px;height:150px;background:${b.color};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
+              <div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:8px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>
               ${pct!==null?`<div style="position:absolute;right:2px;top:4px;bottom:4px;width:3px;border-radius:2px;background:${T.barTrack}"><div style="position:absolute;bottom:0;left:0;right:0;height:${pct}%;border-radius:2px;background:${T.barFill}"></div></div>`:''}
             </div>`;
           }).join('')}
@@ -10757,81 +10754,62 @@ async function generateShelfieStoryImage(){
     let contentBottomUsed=contentTop;
 
     if(_sharePreviewViewMode==='shelf'){
-      // Estantería: empaqueta lomos por fila según su ancho real (páginas), como en "Mi shelfie".
-      // Como una estantería real tiene varias baldas, se fuerza a un máximo de lomos por
-      // fila en vez de esperar a que el ancho se desborde, para repartir muchos libros en
-      // varias filas legibles en lugar de una sola fila apretada.
-      const shelfBooks=hasMore?[...books,{title:`+${notShownCount} más`,color:T.moreTileBg||T.shelfPlank,pages:520,isMore:true}]:books;
-      const dims=shelfBooks.map(b=>spineDims(b));
-      const SPINE_GAP=14,PLANK_H=18,ROW_GAP=26,ROW_MAX_COUNT=9;
-      const packRows=scale=>{
-        const rows=[];let row=[];let rowW=0;
-        shelfBooks.forEach((b,i)=>{
-          const w=dims[i].widthPx*scale;
-          const addW=w+(row.length?SPINE_GAP:0);
-          if(row.length&&(rowW+addW>availW||row.length>=ROW_MAX_COUNT)){rows.push(row);row=[];rowW=0;}
-          row.push({b,i,w,h:dims[i].heightPx*scale,fontSize:dims[i].fontSize*scale});
-          rowW+=w+(row.length>1?SPINE_GAP:0);
-        });
-        if(row.length)rows.push(row);
-        return rows;
-      };
-      let rows=packRows(1);
-      let naturalH=rows.reduce((s,r)=>s+Math.max(...r.map(c=>c.h)),0)+(rows.length-1)*ROW_GAP+rows.length*PLANK_H;
+      // Estantería: NO se intenta imitar el ancho real de cada libro (eso, con muchos
+      // libros, da lomos desiguales y filas descompensadas y feas). En su lugar, todos
+      // los lomos miden igual y se agrupan en filas balanceadas, priorizando que se
+      // vean grandes, ordenados y legibles — como una foto de estantería bien puesta,
+      // no una simulación exacta de "Mi shelfie".
+      const shelfBooks=hasMore?[...books,{title:`+${notShownCount} más`,color:T.moreTileBg||T.shelfPlank,isMore:true}]:books;
+      const N=shelfBooks.length;
+      const SPINE_GAP=16,PLANK_H=18,ROW_GAP=28,MAX_PER_ROW=9;
+      const rowCount=Math.max(1,Math.ceil(N/MAX_PER_ROW));
+      const cols=Math.ceil(N/rowCount);
       const availH=contentBottom-contentTop;
-      if(naturalH>availH){
-        const scale=Math.max(0.4,availH/naturalH);
-        rows=packRows(scale);
-      }else if(naturalH<availH*0.55){
-        // Pocos libros/lomos finos: agranda el conjunto para que la estantería no quede diminuta en el lienzo
-        const naturalRowW=Math.max(...rows.map(r=>r.reduce((s,c,ci)=>s+c.w+(ci?SPINE_GAP:0),0)));
-        const upScale=Math.min(availW/naturalRowW,(availH*0.78)/naturalH,2.6);
-        if(upScale>1.05)rows=packRows(upScale);
-      }
-      const rowHeights=rows.map(r=>Math.max(...r.map(c=>c.h)));
-      const totalH=rowHeights.reduce((a,h)=>a+h,0)+(rows.length-1)*ROW_GAP+rows.length*PLANK_H;
+      const rowH=Math.min(360,Math.max(190,(availH-rowCount*PLANK_H-(rowCount-1)*ROW_GAP)/rowCount));
+      const spineW=Math.min(150,Math.max(72,(availW-(cols-1)*SPINE_GAP)/cols));
+      const fontSize=Math.max(13,Math.min(22,Math.round(spineW/3.4)));
+      const totalH=rowCount*rowH+rowCount*PLANK_H+(rowCount-1)*ROW_GAP;
       const shelfTop=contentTop+(availH-totalH)/2;
       roundRectPath(ctx,margin-24,shelfTop-24,availW+48,totalH+48,20);
       ctx.fillStyle=T.shelfBack;ctx.fill();
-      let rowY=shelfTop;
-      rows.forEach((row,ri)=>{
-        const rowH=rowHeights[ri];
-        const rowW=row.reduce((s,c,ci)=>s+c.w+(ci?SPINE_GAP:0),0);
+      for(let row=0;row<rowCount;row++){
+        const rowStart=row*cols,rowEnd=Math.min(N,rowStart+cols);
+        const rowCells=shelfBooks.slice(rowStart,rowEnd);
+        const rowW=rowCells.length*spineW+(rowCells.length-1)*SPINE_GAP;
+        const y=shelfTop+row*(rowH+PLANK_H+ROW_GAP);
         let x=margin+(availW-rowW)/2;
-        row.forEach(cell=>{
-          const y=rowY+(rowH-cell.h);
+        rowCells.forEach(b=>{
           ctx.save();
-          roundRectPath(ctx,x,y,cell.w,cell.h,Math.min(6,cell.w/4));
+          roundRectPath(ctx,x,y,spineW,rowH,8);
           ctx.clip();
-          // Lomo de color + título, igual que la estantería real (nunca portadas)
-          ctx.fillStyle=cell.b.color||'#555';
-          ctx.fillRect(x,y,cell.w,cell.h);
+          // Lomo de color + título — nunca portadas, igual que la estantería real
+          ctx.fillStyle=b.color||'#555';
+          ctx.fillRect(x,y,spineW,rowH);
           ctx.save();
-          ctx.translate(x+cell.w/2,y+cell.h/2);
+          ctx.translate(x+spineW/2,y+rowH/2);
           ctx.rotate(Math.PI/2);
           ctx.fillStyle=T.fallbackText;
-          ctx.font=`700 ${Math.max(9,cell.fontSize)}px Inter, Arial, sans-serif`;
+          ctx.font=`700 ${fontSize}px Inter, Arial, sans-serif`;
           ctx.textAlign='center';ctx.textBaseline='middle';
-          const lines=wrapCanvasText(ctx,cell.b.title,cell.h-16).slice(0,2);
-          const lh=cell.fontSize+3,ty=-((lines.length-1)*lh)/2;
+          const lines=wrapCanvasText(ctx,b.title,rowH-20).slice(0,3);
+          const lh=fontSize+4,ty=-((lines.length-1)*lh)/2;
           lines.forEach((ln,li)=>ctx.fillText(ln,0,ty+li*lh));
           ctx.restore();
           if(showProgress){
-            const pct=bookProgressPercent(cell.b);
-            if(pct!==null)drawProgressStrip(x,y,cell.w,cell.h,pct);
+            const pct=bookProgressPercent(b);
+            if(pct!==null)drawProgressStrip(x,y,spineW,rowH,pct);
           }
           ctx.restore();
           ctx.strokeStyle=T.cellBorder;ctx.lineWidth=1.5;
-          roundRectPath(ctx,x,y,cell.w,cell.h,Math.min(6,cell.w/4));ctx.stroke();
-          x+=cell.w+SPINE_GAP;
+          roundRectPath(ctx,x,y,spineW,rowH,8);ctx.stroke();
+          x+=spineW+SPINE_GAP;
         });
-        const plankY=rowY+rowH;
+        const plankY=y+rowH;
         const plankGrad=ctx.createLinearGradient(0,plankY,0,plankY+PLANK_H);
         plankGrad.addColorStop(0,T.shelfPlankTop);plankGrad.addColorStop(1,T.shelfPlank);
         ctx.fillStyle=plankGrad;
         roundRectPath(ctx,margin-24,plankY,availW+48,PLANK_H,4);ctx.fill();
-        rowY+=rowH+PLANK_H+ROW_GAP;
-      });
+      }
       contentBottomUsed=shelfTop+totalH;
     } else if(_sharePreviewViewMode==='list'){
       // Lista: portada + título + autor por fila
