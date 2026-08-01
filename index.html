@@ -3441,6 +3441,7 @@ async function loadSupaBooks(){
       authorOlKey:row.author_ol_key||null,
       synopsis:row.synopsis||null,
       addedAt:row.added_at?new Date(row.added_at).toLocaleDateString('es-ES'):new Date().toLocaleDateString('es-ES'),
+      cameFromQuiero:row.came_from_quiero||false,
     });
   });
 }
@@ -3479,6 +3480,7 @@ async function saveSupaBook(book,attempt){
     ol_key:book.olKey||null,
     author_ol_key:book.authorOlKey||null,
     synopsis:book.synopsis||null,
+    came_from_quiero:!!book.cameFromQuiero,
   };
   const{error}=await supa.from('user_books').upsert(row,{onConflict:'id'});
   if(error){
@@ -7065,6 +7067,11 @@ function confirmFinishBook(){
   const idx=DB[from].findIndex(b=>b.id===pendingFinishId);
   if(idx<0){closeModal('modal-finish-book');return;}
   const book=DB[from].splice(idx,1)[0];
+  // Punto único donde de verdad se sabe si el libro pasó por "Quiero leer" antes
+  // de terminarse — "Terminado"/"Ya lo leí" se puede pulsar desde varios sitios
+  // (shelfie, ficha del libro) sin pasar por moveBook(), así que hay que
+  // marcarlo aquí también para no perder el dato en esos caminos.
+  if(from==='quiero')book.cameFromQuiero=true;
   book.stars=finishStarVal;
   book.status='leidos';
   const finishedDate=new Date().toLocaleDateString('es-ES');
@@ -7674,6 +7681,10 @@ function moveBookUniversal(id,from,to){
 function moveBook(id,from,to){
   const idx=DB[from].findIndex(b=>b.id===id);if(idx<0)return;
   const book=DB[from][idx];
+  // Se marca aquí, no solo al terminar el libro — así el logro de "Exploración"
+  // cuenta cualquier libro que alguna vez pasó por "Quiero leer" antes de
+  // leerse, sin importar si llegó a leidos directo o pasando antes por leyendo.
+  if(from==='quiero')book.cameFromQuiero=true;
   // When starting to read a book from "quiero leer", offer edition picker if possible
   if(from==='quiero'&&to==='leyendo'&&book.olKey){
     startReadingWithEdition(book,from);
@@ -10943,21 +10954,38 @@ const ACHIEVEMENT_CATALOG=[
     [12,'leyenda','Constancia de hierro','Termina al menos un libro cada mes del año'],
   ])},
   {cat:'Constancia de por vida',items:ladder('cvi','🗓️',c=>c.fullCoverageYears,[
-    [1,'mitico','Un año redondo','Consigue un año con lectura en sus 12 meses'],
-    [3,'inmortal','Tres años redondos','Consigue 3 años con lectura en sus 12 meses'],
-    [5,'cosmico','Cinco años redondos','Consigue 5 años con lectura en sus 12 meses'],
+    [1,'oro','Un año redondo','Consigue un año con lectura en sus 12 meses'],
+    [2,'platino','Dos años redondos','Consigue 2 años (no necesariamente seguidos) con lectura en sus 12 meses'],
+    [3,'diamante','Tres años redondos','Consigue 3 años con lectura en sus 12 meses'],
+    [5,'maestro','Cinco años redondos','Consigue 5 años con lectura en sus 12 meses'],
+    [7,'leyenda','Siete años redondos','Consigue 7 años con lectura en sus 12 meses'],
+    [10,'mitico','Una década sin fallar ni un mes','Consigue 10 años con lectura en sus 12 meses'],
+    [15,'inmortal','Quince años redondos','Consigue 15 años con lectura en sus 12 meses'],
+    [20,'cosmico','Toda una vida redonda','Consigue 20 años con lectura en sus 12 meses'],
   ])},
-  {cat:'Exploración',items:ladder('exp','🔖',c=>c.quieroCount,[
-    [10,'bronce','Planificador','Ten 10 libros en tu lista de "Quiero leer"'],
-    [30,'plata','Coleccionista de deseos','Ten 30 libros en tu lista de "Quiero leer"'],
-    [75,'oro','Wishlist infinita','Ten 75 libros en tu lista de "Quiero leer"'],
-    [150,'platino','Nunca te quedarás sin nada que leer','Ten 150 libros en tu lista de "Quiero leer"'],
+  // El logro original premiaba el TAMAÑO de la lista de "Quiero leer", lo cual
+  // incentiva justo lo contrario de lo que debería: acumular una lista
+  // interminable que nunca se abre. Ahora cuenta libros que de verdad
+  // pasaron por esa lista y se terminaron — solo premia seguir leyendo lo que
+  // planeas, no planear sin más. (Libros ya leídos antes de este cambio no
+  // llevan ese dato guardado, así que el contador empieza a sumar desde
+  // ahora en adelante.)
+  {cat:'Exploración',items:ladder('exp','🔖',c=>c.wishlistFollowThrough,[
+    [1,'bronce','Del deseo a la lectura','Lee tu primer libro que había pasado por "Quiero leer"'],
+    [10,'plata','Cumples lo que prometes','Lee 10 libros que estuvieron en tu lista de "Quiero leer"'],
+    [30,'oro','Ningún libro se queda esperando','Lee 30 libros que estuvieron en tu lista de "Quiero leer"'],
+    [75,'platino','Maestro del propósito','Lee 75 libros que estuvieron en tu lista de "Quiero leer"'],
+    [150,'diamante','La lista nunca te vence','Lee 150 libros que estuvieron en tu lista de "Quiero leer"'],
   ])},
   {cat:'Relecturas',items:ladder('rel','🔄',c=>c.rereadCount,[
     [1,'bronce','Merece la pena repetir','Relee tu primer libro'],
+    [3,'bronce','Le vas cogiendo el gusto','Relee 3 libros'],
     [5,'plata','Viejos amigos','Relee 5 libros'],
+    [10,'plata','Ya tienes tus clásicos personales','Relee 10 libros'],
     [15,'oro','Los clásicos nunca mueren','Relee 15 libros'],
     [30,'platino','Coleccionista de segundas vueltas','Relee 30 libros'],
+    [50,'diamante','Nunca es un adiós definitivo','Relee 50 libros'],
+    [100,'maestro','Relees más de lo que la mayoría lee en toda su vida','Relee 100 libros'],
   ])},
   {cat:'Favoritos',items:ladder('fav','🏆',c=>c.favCount,[
     [1,'bronce','Tu primer favorito','Marca tu primer libro como favorito'],
@@ -10993,23 +11021,41 @@ const ACHIEVEMENT_CATALOG=[
   ])},
   {cat:'Eventos Shelfie',items:ladder('evt','📍',c=>c.eventsCount,[
     [1,'bronce','Presencial','Apúntate a tu primer evento Shelfie'],
+    [3,'bronce','Ya no es la primera vez','Apúntate a 3 eventos Shelfie'],
     [5,'plata','Habitual de los encuentros','Apúntate a 5 eventos Shelfie'],
     [10,'oro','Se te ve en todas partes','Apúntate a 10 eventos Shelfie'],
+    [20,'platino','Cara conocida','Apúntate a 20 eventos Shelfie'],
+    [35,'diamante','El alma de los encuentros','Apúntate a 35 eventos Shelfie'],
+    [50,'maestro','Nadie se pierde tantas quedadas como tú no te pierdes','Apúntate a 50 eventos Shelfie'],
+    [75,'leyenda','Toda una vida de quedadas lectoras','Apúntate a 75 eventos Shelfie'],
   ])},
   {cat:'Publicaciones',items:ladder('pub','📝',c=>c.postsCount,[
     [1,'bronce','Tu primera reseña','Publica tu primera publicación'],
+    [5,'bronce','Cogiendo el hábito de compartir','Publica 5 veces'],
     [10,'plata','Voz activa','Publica 10 veces'],
+    [25,'plata','Se te empieza a conocer','Publica 25 veces'],
     [50,'oro','Referente de la comunidad','Publica 50 veces'],
+    [100,'platino','Cien publicaciones','Publica 100 veces'],
+    [250,'diamante','Contenido sin parar','Publica 250 veces'],
+    [500,'maestro','Una biblioteca de opiniones propia','Publica 500 veces'],
   ])},
   {cat:'Me gusta recibidos',items:ladder('lik','❤️',c=>c.likesReceived,[
     [10,'bronce','Gustas','Recibe 10 me gusta en tus publicaciones'],
     [50,'plata','Cae bien lo que dices','Recibe 50 me gusta en tus publicaciones'],
-    [200,'oro','Popular','Recibe 200 me gusta en tus publicaciones'],
-    [1000,'platino','Viral entre lectores','Recibe 1.000 me gusta en tus publicaciones'],
+    [150,'oro','Popular','Recibe 150 me gusta en tus publicaciones'],
+    [300,'platino','Muy querido en la comunidad','Recibe 300 me gusta en tus publicaciones'],
+    [600,'diamante','Referente de opinión','Recibe 600 me gusta en tus publicaciones'],
+    [1000,'maestro','Viral entre lectores','Recibe 1.000 me gusta en tus publicaciones'],
+    [2500,'leyenda','Fenómeno lector','Recibe 2.500 me gusta en tus publicaciones'],
+    [5000,'cosmico','Icono de Shelfie','Recibe 5.000 me gusta en tus publicaciones'],
   ])},
   {cat:'Comentarios recibidos',items:ladder('cmt','💬',c=>c.commentsReceived,[
     [10,'bronce','Da que hablar','Recibe 10 comentarios en tus publicaciones'],
+    [30,'bronce','Genera curiosidad','Recibe 30 comentarios en tus publicaciones'],
     [50,'plata','Genera conversación','Recibe 50 comentarios en tus publicaciones'],
+    [100,'oro','Siempre hay debate en tus publicaciones','Recibe 100 comentarios en tus publicaciones'],
+    [250,'platino','Todo el mundo tiene algo que decir','Recibe 250 comentarios en tus publicaciones'],
+    [500,'diamante','El post que no para de crecer','Recibe 500 comentarios en tus publicaciones'],
   ])},
   {cat:'Comunidad',items:ladder('flw','👤',c=>c.followersCount,[
     [10,'bronce','Empiezas a sonar','Ten 10 seguidores'],
@@ -11052,7 +11098,7 @@ function computeAchievementContext(){
     fiveStarCount:DB.leidos.filter(b=>b.stars===5).length,
     maxMonthsCoverage,
     fullCoverageYears,
-    quieroCount:DB.quiero.length,
+    wishlistFollowThrough:DB.leidos.filter(b=>b.cameFromQuiero).length,
     rereadCount:DB.leidos.filter(b=>b.readHistory&&b.readHistory.length>1).length,
     favCount:DB.leidos.filter(b=>b.isFavorite).length,
     dnfCount:DB.dnf.length,
