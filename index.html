@@ -190,7 +190,7 @@ a{color:inherit}
 .organizer-shell{display:none;min-height:100vh;background:var(--paper)}
 .organizer-shell.on{display:block}
 .organizer-topbar{background:white;border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
-.organizer-content{padding:28px;max-width:900px;margin:0 auto}
+.organizer-content{padding:28px;max-width:1400px;margin:0 auto}
 .organizer-event-card{background:white;border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px}
 .organizer-event-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
 .organizer-event-title{font-size:16px;font-weight:700;color:var(--ink)}
@@ -11531,46 +11531,58 @@ async function generateEventStoryImage(){
     ctx.textAlign='left';
 
     const margin=80,availW=1080-margin*2;
-    let y=230;
-
-    // Etiqueta del tipo de evento
     const typeLabel=EVENT_TYPE_LABELS[e.event_type]||'Evento';
-    ctx.font='700 24px Inter, Arial, sans-serif';
-    const typeW=ctx.measureText(typeLabel).width+40;
-    roundRectPath(ctx,margin,y,typeW,42,21);
-    ctx.fillStyle=T.chipBg;ctx.fill();
-    ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-    roundRectPath(ctx,margin,y,typeW,42,21);ctx.stroke();
-    ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(typeLabel,margin+typeW/2,y+22);
-    ctx.textAlign='left';ctx.textBaseline='alphabetic';
-    y+=70;
-
-    // Título del evento
-    ctx.fillStyle=T.textPrimary;
-    ctx.font='800 54px "Playfair Display", Georgia, serif';
-    const titleLines=wrapCanvasText(ctx,e.title,availW).slice(0,3);
-    titleLines.forEach(ln=>{ctx.fillText(ln,margin,y+42);y+=60;});
-    y+=16;
-
-    // Fecha y ubicación
-    ctx.font='500 27px Inter, Arial, sans-serif';
-    ctx.fillStyle=T.textTertiary;
-    ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,margin,y+22);
-    y+=42;
-    if(e.address||e.city){
-      const locLines=wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW).slice(0,2);
-      locLines.forEach(ln=>{ctx.fillText(ln,margin,y+22);y+=34;});
-    }
-    y+=26;
-
-    const visualTop=y,visualBottom=1500;
-    const visualH=Math.max(220,visualBottom-visualTop);
     const ctaH=70;
-    let ctaY=1550;
+
+    const drawEventCta=(ctaY)=>{
+      roundRectPath(ctx,margin,ctaY,availW,ctaH,ctaH/2);
+      ctx.fillStyle=T.progressFill;
+      ctx.fill();
+      ctx.fillStyle='#FFFFFF';
+      ctx.font='700 30px Inter, Arial, sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('📖 Apúntate en shelfie',540,ctaY+ctaH/2+2);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+
+      ctx.font='500 22px Inter, Arial, sans-serif';
+      ctx.fillStyle=T.textTertiary;
+      ctx.textAlign='center';
+      ctx.fillText(e.capacity?`${e.capacity} plazas`:'Aforo libre',540,ctaY+ctaH+36);
+      ctx.textAlign='left';
+    };
 
     if(img){
-      // Portada del libro vinculado, en formato retrato, sin recortar
+      // Con libro vinculado: portada arriba, texto alineado a la izquierda.
+      let y=230;
+      ctx.font='700 24px Inter, Arial, sans-serif';
+      const typeW=ctx.measureText(typeLabel).width+40;
+      roundRectPath(ctx,margin,y,typeW,42,21);
+      ctx.fillStyle=T.chipBg;ctx.fill();
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,margin,y,typeW,42,21);ctx.stroke();
+      ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(typeLabel,margin+typeW/2,y+22);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      y+=70;
+
+      ctx.fillStyle=T.textPrimary;
+      ctx.font='800 54px "Playfair Display", Georgia, serif';
+      const titleLines=wrapCanvasText(ctx,e.title,availW).slice(0,3);
+      titleLines.forEach(ln=>{ctx.fillText(ln,margin,y+42);y+=60;});
+      y+=16;
+
+      ctx.font='500 27px Inter, Arial, sans-serif';
+      ctx.fillStyle=T.textTertiary;
+      ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,margin,y+22);
+      y+=42;
+      if(e.address||e.city){
+        const locLines=wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW).slice(0,2);
+        locLines.forEach(ln=>{ctx.fillText(ln,margin,y+22);y+=34;});
+      }
+      y+=26;
+
+      const visualTop=y,visualBottom=1500;
+      const visualH=Math.max(220,visualBottom-visualTop);
       const coverH=Math.min(visualH,(availW)/0.68);
       const coverW=coverH*0.68;
       const cx=540-coverW/2,cy=visualTop+(visualH-coverH)/2;
@@ -11584,26 +11596,48 @@ async function generateEventStoryImage(){
       ctx.restore();
       ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
       roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
-    }else{
-      // Sin libro vinculado: nada que mostrar en el hueco — en vez de dejar
-      // un enorme espacio en blanco por encima del CTA fijo, centramos el
-      // botón de inscripción en el espacio disponible.
-      ctaY=Math.round(visualTop+(1780-visualTop)/2-ctaH/2);
-    }
-    roundRectPath(ctx,margin,ctaY,availW,ctaH,ctaH/2);
-    ctx.fillStyle=T.progressFill;
-    ctx.fill();
-    ctx.fillStyle='#FFFFFF';
-    ctx.font='700 30px Inter, Arial, sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('📖 Apúntate en shelfie',540,ctaY+ctaH/2+2);
-    ctx.textAlign='left';ctx.textBaseline='alphabetic';
 
-    ctx.font='500 22px Inter, Arial, sans-serif';
-    ctx.fillStyle=T.textTertiary;
-    ctx.textAlign='center';
-    ctx.fillText(e.capacity?`${e.capacity} plazas`:'Aforo libre',540,ctaY+ctaH+36);
-    ctx.textAlign='left';
+      drawEventCta(1550);
+    }else{
+      // Sin libro vinculado no hay portada que anclar arriba — en vez de un
+      // diseño top-anchored con medio lienzo vacío, todo el bloque (chip,
+      // título, fecha, ubicación y CTA) se centra como un cartel, tanto
+      // vertical como horizontalmente.
+      ctx.font='700 24px Inter, Arial, sans-serif';
+      const typeW=ctx.measureText(typeLabel).width+40;
+      ctx.font='800 54px "Playfair Display", Georgia, serif';
+      const titleLines=wrapCanvasText(ctx,e.title,availW-120).slice(0,3);
+      ctx.font='500 27px Inter, Arial, sans-serif';
+      const locLines=(e.address||e.city)?wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW-120).slice(0,2):[];
+
+      const blockH=70+titleLines.length*60+16+42+locLines.length*34+40+ctaH+58;
+      const bandTop=220,bandBottom=1780;
+      let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
+
+      roundRectPath(ctx,540-typeW/2,y,typeW,42,21);
+      ctx.fillStyle=T.chipBg;ctx.fill();
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,540-typeW/2,y,typeW,42,21);ctx.stroke();
+      ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(typeLabel,540,y+22);
+      ctx.textBaseline='alphabetic';
+      y+=70;
+
+      ctx.fillStyle=T.textPrimary;
+      ctx.font='800 54px "Playfair Display", Georgia, serif';
+      titleLines.forEach(ln=>{ctx.fillText(ln,540,y+42);y+=60;});
+      y+=16;
+
+      ctx.font='500 27px Inter, Arial, sans-serif';
+      ctx.fillStyle=T.textTertiary;
+      ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,540,y+22);
+      y+=42;
+      locLines.forEach(ln=>{ctx.fillText(ln,540,y+22);y+=34;});
+      y+=40;
+
+      ctx.textAlign='left';
+      drawEventCta(y);
+    }
 
     // Pie
     ctx.font='500 22px Inter, Arial, sans-serif';
