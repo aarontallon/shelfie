@@ -11035,128 +11035,6 @@ function wrapCanvasText(ctx,text,maxWidth){
   if(cur)lines.push(cur);
   return lines;
 }
-// Pequeñas ilustraciones dibujadas a mano en canvas (sin SVG/imágenes externas)
-// para las stories de eventos que no tienen portada de libro que enseñar —
-// mismo espíritu que los mockups de la landing, adaptado a un lienzo raster.
-function drawStorySparkle(ctx,x,y,r,color){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.fillStyle=color;
-  ctx.beginPath();
-  ctx.moveTo(0,-r);
-  ctx.quadraticCurveTo(r*0.18,-r*0.18,r,0);
-  ctx.quadraticCurveTo(r*0.18,r*0.18,0,r);
-  ctx.quadraticCurveTo(-r*0.18,r*0.18,-r,0);
-  ctx.quadraticCurveTo(-r*0.18,-r*0.18,0,-r);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-// Personitas "chibi" muy simples (cabeza + torso + brazos, sin piernas) para
-// las escenas por tipo de evento — el detalle se queda pequeño a propósito,
-// el protagonismo es de la información del evento, no del dibujo.
-function drawChibiBust(ctx,cx,cy,s,skin,shirt,pose){
-  ctx.save();
-  ctx.translate(cx,cy);
-  ctx.lineCap='round';
-  // Torso
-  ctx.fillStyle=shirt;
-  ctx.beginPath();
-  ctx.moveTo(-s*0.30,s*0.58);
-  ctx.quadraticCurveTo(-s*0.34,s*0.08,-s*0.17,-s*0.02);
-  ctx.quadraticCurveTo(0,-s*0.08,s*0.17,-s*0.02);
-  ctx.quadraticCurveTo(s*0.34,s*0.08,s*0.30,s*0.58);
-  ctx.closePath();
-  ctx.fill();
-  // Brazos según la pose
-  ctx.strokeStyle=skin;ctx.lineWidth=s*0.11;
-  if(pose==='raised'){
-    ctx.beginPath();ctx.moveTo(s*0.26,s*0.08);ctx.quadraticCurveTo(s*0.42,-s*0.06,s*0.42,-s*0.32);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-s*0.26,s*0.12);ctx.quadraticCurveTo(-s*0.36,s*0.28,-s*0.30,s*0.44);ctx.stroke();
-  }else if(pose==='reading'){
-    ctx.beginPath();ctx.moveTo(-s*0.26,s*0.12);ctx.quadraticCurveTo(-s*0.08,s*0.30,s*0.05,s*0.32);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(s*0.26,s*0.12);ctx.quadraticCurveTo(s*0.08,s*0.30,-s*0.05,s*0.32);ctx.stroke();
-  }else{
-    ctx.beginPath();ctx.moveTo(-s*0.26,s*0.12);ctx.quadraticCurveTo(-s*0.32,s*0.32,-s*0.26,s*0.50);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(s*0.26,s*0.12);ctx.quadraticCurveTo(s*0.32,s*0.32,s*0.26,s*0.50);ctx.stroke();
-  }
-  // Cabeza
-  ctx.fillStyle=skin;
-  ctx.beginPath();ctx.arc(0,-s*0.20,s*0.24,0,Math.PI*2);ctx.fill();
-  // Cara: dos puntos y una sonrisa
-  ctx.fillStyle='rgba(0,0,0,0.5)';
-  ctx.beginPath();ctx.arc(-s*0.08,-s*0.22,s*0.022,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(s*0.08,-s*0.22,s*0.022,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.45)';ctx.lineWidth=s*0.02;
-  ctx.beginPath();ctx.arc(0,-s*0.15,s*0.055,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
-  ctx.restore();
-}
-function drawSceneProp(ctx,kind,cx,cy,w,h,T,accent){
-  if(kind==='table'){
-    roundRectPath(ctx,cx-w/2,cy-h/2,w,h,8);
-    ctx.fillStyle=T.shelfPlank;ctx.fill();
-    ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-    roundRectPath(ctx,cx-w/2,cy-h/2,w,h,8);ctx.stroke();
-  }else if(kind==='book'){
-    roundRectPath(ctx,cx-w/2,cy-h/2,w,h,3);
-    ctx.fillStyle=accent;ctx.fill();
-  }else if(kind==='tent'){
-    ctx.fillStyle=accent;
-    ctx.beginPath();ctx.moveTo(cx-w/2,cy-h*0.1);ctx.lineTo(cx,cy-h*0.62);ctx.lineTo(cx+w/2,cy-h*0.1);ctx.closePath();ctx.fill();
-    roundRectPath(ctx,cx-w*0.42,cy-h*0.14,w*0.84,h*0.6,4);
-    ctx.fillStyle=T.shelfPlank;ctx.fill();
-    ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-    roundRectPath(ctx,cx-w*0.42,cy-h*0.14,w*0.84,h*0.6,4);ctx.stroke();
-  }else if(kind==='bulb'){
-    ctx.strokeStyle=accent;ctx.lineWidth=4;
-    ctx.beginPath();ctx.arc(cx,cy,w*0.34,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx-w*0.12,cy+w*0.30);ctx.lineTo(cx-w*0.12,cy+w*0.46);ctx.lineTo(cx+w*0.12,cy+w*0.46);ctx.lineTo(cx+w*0.12,cy+w*0.30);ctx.stroke();
-  }
-}
-// Escenas pequeñas y simpáticas por tipo de evento, con gente haciendo la
-// actividad — pensadas para vivir integradas en la tarjeta, no como un
-// icono grande y frío. (cx,cy) es el centro de una zona de ~420×300.
-function drawEventScene(ctx,type,cx,cy,T,accent){
-  const muted1=T.chipBorder,muted2=T.textTertiary;
-  if(type==='presentacion'){
-    drawSceneProp(ctx,'table',cx-96,cy+58,70,60,T,accent);
-    drawChibiBust(ctx,cx-96,cy-18,150,'#E0B48C',accent,'raised');
-    drawChibiBust(ctx,cx+70,cy+40,90,'#C98A5E',muted2,'rest');
-    drawChibiBust(ctx,cx+150,cy+56,78,'#E0B48C',muted1,'rest');
-  }else if(type==='firma'){
-    drawSceneProp(ctx,'table',cx-90,cy+70,170,50,T,accent);
-    drawSceneProp(ctx,'book',cx-90,cy+50,42,28,T,accent);
-    drawChibiBust(ctx,cx-98,cy-4,128,'#E0B48C',accent,'reading');
-    drawChibiBust(ctx,cx+110,cy+2,118,'#C98A5E',muted2,'raised');
-  }else if(type==='club'){
-    ctx.save();
-    ctx.beginPath();ctx.ellipse(cx,cy+62,150,32,0,0,Math.PI*2);
-    ctx.fillStyle=T.shelfPlank;ctx.fill();
-    ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;ctx.stroke();
-    ctx.restore();
-    drawSceneProp(ctx,'book',cx-70,cy+52,32,20,T,accent);
-    drawSceneProp(ctx,'book',cx,cy+42,32,20,T,muted2);
-    drawSceneProp(ctx,'book',cx+70,cy+52,32,20,T,muted1);
-    drawChibiBust(ctx,cx-140,cy+2,104,'#E0B48C',accent,'reading');
-    drawChibiBust(ctx,cx,cy-46,96,'#C98A5E',muted2,'reading');
-    drawChibiBust(ctx,cx+140,cy+2,104,'#E0B48C',muted1,'reading');
-  }else if(type==='taller'){
-    drawSceneProp(ctx,'table',cx,cy+72,190,50,T,accent);
-    drawSceneProp(ctx,'bulb',cx+78,cy-118,60,60,T,accent);
-    drawChibiBust(ctx,cx,cy-6,140,'#E0B48C',accent,'raised');
-  }else if(type==='feria'){
-    drawSceneProp(ctx,'tent',cx-140,cy+10,120,150,T,accent);
-    drawSceneProp(ctx,'tent',cx+10,cy-4,132,166,T,muted2);
-    drawSceneProp(ctx,'tent',cx+150,cy+14,116,146,T,muted1);
-    drawChibiBust(ctx,cx-40,cy+78,84,'#E0B48C',accent,'rest');
-    drawChibiBust(ctx,cx+90,cy+90,74,'#C98A5E',muted2,'rest');
-  }else{
-    drawSceneProp(ctx,'book',cx,cy+58,60,36,T,accent);
-    drawChibiBust(ctx,cx,cy-16,160,'#E0B48C',accent,'reading');
-  }
-  drawStorySparkle(ctx,cx-190,cy-130,13,accent);
-  drawStorySparkle(ctx,cx+195,cy-110,10,accent);
-}
 function drawCapacityRing(ctx,cx,cy,r,pct,T,accent){
   const lw=r*0.2;
   ctx.save();
@@ -11761,9 +11639,7 @@ async function generateEventStoryImage(){
 
       const ringR=cap?148:0;
       const ringBlockH=cap?ringR*2+34:0;
-      const illusH=340;
-      const visualH=cap?ringBlockH:illusH;
-      const blockH=54+16+visualH+titleLines.length*54+16+38+locLines.length*32+40+ctaH+58;
+      const blockH=54+16+ringBlockH+titleLines.length*54+16+38+locLines.length*32+40+ctaH+58;
       const bandTop=200,bandBottom=1800;
       let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
 
@@ -11783,9 +11659,6 @@ async function generateEventStoryImage(){
         ctx.fillText(left===1?'plaza libre':'plazas libres',540,ringCy+52);
         ctx.textAlign='left';ctx.textBaseline='alphabetic';
         y+=ringBlockH;
-      }else{
-        drawEventScene(ctx,e.event_type,540,y+illusH/2,T,T.progressFill);
-        y+=illusH;
       }
 
       ctx.fillStyle=T.textPrimary;
@@ -11805,10 +11678,8 @@ async function generateEventStoryImage(){
       y+=40;
 
       drawEventCta(y,cap&&left===0?'📖 Descúbrelo en shelfie':'📖 Apúntate en shelfie',cap?null:'Aforo libre');
-    }else{
-      // Portada del libro arriba si hay uno vinculado; si no, una tarjeta con
-      // un icono propio del tipo de evento ocupa ese mismo hueco — mismo
-      // diseño top-anchored en los dos casos, solo cambia lo que hay dentro.
+    }else if(img){
+      // Con libro vinculado: portada arriba, texto alineado a la izquierda.
       let y=230;
       drawChip(typeLabel,margin,y);
       y+=70;
@@ -11831,29 +11702,54 @@ async function generateEventStoryImage(){
 
       const visualTop=y,visualBottom=1500;
       const visualH=Math.max(220,visualBottom-visualTop);
-
-      if(img){
-        const coverH=Math.min(visualH,(availW)/0.68);
-        const coverW=coverH*0.68;
-        const cx=540-coverW/2,cy=visualTop+(visualH-coverH)/2;
-        ctx.save();
-        roundRectPath(ctx,cx,cy,coverW,coverH,16);
-        ctx.clip();
-        ctx.fillStyle='#555';ctx.fillRect(cx,cy,coverW,coverH);
-        const s=Math.min(coverW/img.width,coverH/img.height);
-        const iw=img.width*s,ih=img.height*s;
-        ctx.drawImage(img,cx+(coverW-iw)/2,cy+(coverH-ih)/2,iw,ih);
-        ctx.restore();
-        ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
-        roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
-      }else{
-        // Sin libro vinculado: una escena pequeña con gente haciendo la
-        // actividad, integrada sin caja ni borde — la información del evento
-        // sigue siendo lo principal.
-        drawEventScene(ctx,e.event_type,540,visualTop+visualH/2,T,T.progressFill);
-      }
+      const coverH=Math.min(visualH,(availW)/0.68);
+      const coverW=coverH*0.68;
+      const cx=540-coverW/2,cy=visualTop+(visualH-coverH)/2;
+      ctx.save();
+      roundRectPath(ctx,cx,cy,coverW,coverH,16);
+      ctx.clip();
+      ctx.fillStyle='#555';ctx.fillRect(cx,cy,coverW,coverH);
+      const s=Math.min(coverW/img.width,coverH/img.height);
+      const iw=img.width*s,ih=img.height*s;
+      ctx.drawImage(img,cx+(coverW-iw)/2,cy+(coverH-ih)/2,iw,ih);
+      ctx.restore();
+      ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
 
       drawEventCta(1550);
+    }else{
+      // Sin libro vinculado: nada de iconos ni escenas — todo el peso lo
+      // lleva la información del evento, centrada y a gran tamaño.
+      ctx.font='800 72px "Playfair Display", Georgia, serif';
+      const titleLines=wrapCanvasText(ctx,e.title,availW-100).slice(0,4);
+      ctx.font='500 32px Inter, Arial, sans-serif';
+      const locLines=(e.address||e.city)?wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW-100).slice(0,2):[];
+
+      const blockH=54+30+titleLines.length*80+22+46+locLines.length*40+50+ctaH+58;
+      const bandTop=210,bandBottom=1790;
+      let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
+
+      const tw=measureChipW(typeLabel);
+      drawChip(typeLabel,540-tw/2,y);
+      y+=54+30;
+
+      ctx.fillStyle=T.textPrimary;
+      ctx.font='800 72px "Playfair Display", Georgia, serif';
+      ctx.textAlign='center';
+      titleLines.forEach(ln=>{ctx.fillText(ln,540,y+54);y+=80;});
+      ctx.textAlign='left';
+      y+=22;
+
+      ctx.font='500 32px Inter, Arial, sans-serif';
+      ctx.fillStyle=T.textTertiary;
+      ctx.textAlign='center';
+      ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,540,y+24);
+      y+=46;
+      locLines.forEach(ln=>{ctx.fillText(ln,540,y+24);y+=40;});
+      ctx.textAlign='left';
+      y+=50;
+
+      drawEventCta(y);
     }
 
     // Pie
