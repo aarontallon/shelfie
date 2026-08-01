@@ -556,3 +556,16 @@ alter table public.events add column if not exists lng double precision;
 -- cualquier perfil.
 drop policy if exists "event_signups_select_authenticated" on public.event_signups;
 create policy "event_signups_select_authenticated" on public.event_signups for select using (auth.uid() is not null);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: libro vinculado al evento (opcional, para la story)
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Un organizador no tiene una shelfie propia de la que tirar, así que el
+-- libro se busca en Open Library y se guarda "plano" (título/autor/portada)
+-- en el propio evento, igual que ya se hace con otros datos de books en la
+-- app — sin tabla de libros ni claves foráneas de por medio.
+alter table public.events add column if not exists book_title text;
+alter table public.events add column if not exists book_author text;
+alter table public.events add column if not exists book_cover text;
