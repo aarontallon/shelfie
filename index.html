@@ -3245,7 +3245,11 @@ a{color:inherit}
 <div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
   <button class="modal-close" onclick="closeModal('modal-event-story')"><i class="ti ti-x"></i></button>
   <h2><i class="ti ti-photo" style="font-size:20px;color:var(--red)"></i> Story del evento</h2>
-  <p class="sub">Descárgala o compártela — lista para Instagram Stories, WhatsApp y donde quieras</p>
+  <p class="sub" id="event-story-sub">Descárgala o compártela — lista para Instagram Stories, WhatsApp y donde quieras</p>
+  <div class="subject-toggle" id="event-story-mode-toggle" style="margin-bottom:8px">
+    <button type="button" class="subject-toggle-btn on" data-mode="event" onclick="setEventStoryMode(this)"><i class="ti ti-calendar-event"></i> Evento</button>
+    <button type="button" class="subject-toggle-btn" data-mode="spots" onclick="setEventStoryMode(this)"><i class="ti ti-chart-donut-2"></i> Plazas</button>
+  </div>
   <div class="subject-toggle" id="event-story-theme-toggle" style="margin-bottom:12px">
     <button type="button" class="subject-toggle-btn on" data-theme="dark" onclick="setEventStoryTheme(this)"><i class="ti ti-moon"></i> Oscuro</button>
     <button type="button" class="subject-toggle-btn" data-theme="light" onclick="setEventStoryTheme(this)"><i class="ti ti-sun"></i> Claro</button>
@@ -11009,6 +11013,60 @@ function wrapCanvasText(ctx,text,maxWidth){
   if(cur)lines.push(cur);
   return lines;
 }
+// Pequeñas ilustraciones dibujadas a mano en canvas (sin SVG/imágenes externas)
+// para las stories de eventos que no tienen portada de libro que enseñar —
+// mismo espíritu que los mockups de la landing, adaptado a un lienzo raster.
+function drawStorySparkle(ctx,x,y,r,color){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(0,-r);
+  ctx.quadraticCurveTo(r*0.18,-r*0.18,r,0);
+  ctx.quadraticCurveTo(r*0.18,r*0.18,0,r);
+  ctx.quadraticCurveTo(-r*0.18,r*0.18,-r,0);
+  ctx.quadraticCurveTo(-r*0.18,-r*0.18,0,-r);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+function drawOpenBookDoodle(ctx,cx,cy,w,T,accent){
+  const h=w*0.62;
+  ctx.save();
+  ctx.fillStyle=T.shelfBack;
+  ctx.strokeStyle=T.chipBorder;ctx.lineWidth=3;
+  [-1,1].forEach(side=>{
+    ctx.beginPath();
+    ctx.moveTo(cx,cy-h*0.42);
+    ctx.quadraticCurveTo(cx+side*w*0.52,cy-h*0.30,cx+side*w*0.5,cy+h*0.36);
+    ctx.quadraticCurveTo(cx+side*w*0.18,cy+h*0.46,cx,cy+h*0.30);
+    ctx.closePath();
+    ctx.fill();ctx.stroke();
+  });
+  ctx.beginPath();ctx.moveTo(cx,cy-h*0.42);ctx.lineTo(cx,cy+h*0.30);ctx.stroke();
+  ctx.strokeStyle=T.textTertiary;ctx.lineWidth=2.5;ctx.globalAlpha=0.4;
+  for(let i=0;i<3;i++){
+    const ly=cy-h*0.10+i*h*0.16;
+    ctx.beginPath();ctx.moveTo(cx-w*0.34,ly);ctx.lineTo(cx-w*0.10,ly);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+w*0.10,ly);ctx.lineTo(cx+w*0.34,ly);ctx.stroke();
+  }
+  ctx.restore();
+  drawStorySparkle(ctx,cx-w*0.60,cy-h*0.56,15,accent);
+  drawStorySparkle(ctx,cx+w*0.66,cy-h*0.32,11,accent);
+  drawStorySparkle(ctx,cx+w*0.52,cy+h*0.56,13,accent);
+}
+function drawCapacityRing(ctx,cx,cy,r,pct,T,accent){
+  const lw=r*0.2;
+  ctx.save();
+  ctx.lineCap='round';ctx.lineWidth=lw;
+  ctx.strokeStyle=T.chipBorder;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  if(pct>0){
+    ctx.strokeStyle=accent;
+    ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,pct));ctx.stroke();
+  }
+  ctx.restore();
+}
 // Las portadas remotas (Open Library) necesitan CORS para poder leerse desde un
 // <canvas> sin "mancharlo" — si el navegador no pudo validar el header CORS del
 // origen remoto, canvas.toBlob() explota más tarde con un SecurityError. En vez
@@ -11475,6 +11533,7 @@ async function shareShelfieStoryImage(){
 // inscripción se hace desde la app shelfie, no por otra vía.
 // ═══════════════════════════════════════════════
 let _eventStoryTheme='dark';
+let _eventStoryMode='event';
 let _eventStoryEventId=null;
 let _eventStoryBlob=null;
 let _eventStoryBlobUrl=null;
@@ -11486,9 +11545,23 @@ function setEventStoryTheme(btn){
   generateEventStoryImage();
 }
 
+function setEventStoryMode(btn){
+  document.querySelectorAll('#event-story-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  _eventStoryMode=btn.dataset.mode;
+  document.getElementById('event-story-sub').textContent=_eventStoryMode==='spots'
+    ?'Comparte cuántas plazas quedan y anima a que se apunten antes de que se agoten'
+    :'Descárgala o compártela — lista para Instagram Stories, WhatsApp y donde quieras';
+  generateEventStoryImage();
+}
+
 function openEventStoryPreview(id){
   _eventStoryEventId=id;
+  document.querySelectorAll('#event-story-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.mode===_eventStoryMode));
   document.querySelectorAll('#event-story-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.theme===_eventStoryTheme));
+  document.getElementById('event-story-sub').textContent=_eventStoryMode==='spots'
+    ?'Comparte cuántas plazas quedan y anima a que se apunten antes de que se agoten'
+    :'Descárgala o compártela — lista para Instagram Stories, WhatsApp y donde quieras';
   openModal('modal-event-story');
   generateEventStoryImage();
 }
@@ -11499,7 +11572,7 @@ async function generateEventStoryImage(){
   const loadingEl=document.getElementById('event-story-loading');
   if(loadingEl)loadingEl.style.display='flex';
   try{
-    const img=e.book_cover?await loadCoverImageSafe(e.book_cover):null;
+    const img=(_eventStoryMode==='event'&&e.book_cover)?await loadCoverImageSafe(e.book_cover):null;
     const T=storyThemePalette(_eventStoryTheme);
 
     const canvas=document.createElement('canvas');
@@ -11534,24 +11607,103 @@ async function generateEventStoryImage(){
     const typeLabel=EVENT_TYPE_LABELS[e.event_type]||'Evento';
     const ctaH=70;
 
-    const drawEventCta=(ctaY)=>{
+    const drawEventCta=(ctaY,label,subLabel)=>{
       roundRectPath(ctx,margin,ctaY,availW,ctaH,ctaH/2);
       ctx.fillStyle=T.progressFill;
       ctx.fill();
       ctx.fillStyle='#FFFFFF';
       ctx.font='700 30px Inter, Arial, sans-serif';
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('📖 Apúntate en shelfie',540,ctaY+ctaH/2+2);
+      ctx.fillText(label||'📖 Apúntate en shelfie',540,ctaY+ctaH/2+2);
       ctx.textAlign='left';ctx.textBaseline='alphabetic';
 
       ctx.font='500 22px Inter, Arial, sans-serif';
       ctx.fillStyle=T.textTertiary;
       ctx.textAlign='center';
-      ctx.fillText(e.capacity?`${e.capacity} plazas`:'Aforo libre',540,ctaY+ctaH+36);
+      ctx.fillText(subLabel??(e.capacity?`${e.capacity} plazas`:'Aforo libre'),540,ctaY+ctaH+36);
       ctx.textAlign='left';
     };
+    const chipFont='700 24px Inter, Arial, sans-serif';
+    const measureChipW=(label)=>{ctx.font=chipFont;return ctx.measureText(label).width+40;};
+    const drawChip=(label,x0,cy)=>{
+      ctx.font=chipFont;
+      const w=measureChipW(label);
+      roundRectPath(ctx,x0,cy,w,42,21);
+      ctx.fillStyle=T.chipBg;ctx.fill();
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+      roundRectPath(ctx,x0,cy,w,42,21);ctx.stroke();
+      ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,x0+w/2,cy+22);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      return w;
+    };
 
-    if(img){
+    if(_eventStoryMode==='spots'){
+      // ── Story de "quedan plazas" — pensada para compartir en el tramo final
+      // de las inscripciones, con un mensaje de urgencia y un anillo de
+      // ocupación como pieza visual central. ──
+      const signups=e._signupCount||0;
+      const cap=e.capacity||null;
+      const left=cap?Math.max(0,cap-signups):null;
+      const pct=cap?Math.min(1,signups/cap):0;
+      let urgency;
+      if(cap&&left===0)urgency='🎉 ¡Aforo completo!';
+      else if(cap&&left<=Math.max(3,Math.round(cap*0.15)))urgency='🔥 ¡Últimas plazas!';
+      else if(cap&&left<=Math.round(cap*0.4))urgency='⚡ ¡Se están agotando!';
+      else urgency='📣 ¡No te lo pierdas!';
+
+      ctx.font='800 46px "Playfair Display", Georgia, serif';
+      const titleLines=wrapCanvasText(ctx,e.title,availW-160).slice(0,2);
+      ctx.font='500 26px Inter, Arial, sans-serif';
+      const locLines=(e.address||e.city)?wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW-160).slice(0,2):[];
+
+      const ringR=cap?148:0;
+      const ringBlockH=cap?ringR*2+34:0;
+      const illusW=220,illusH=illusW*0.62+40;
+      const visualH=cap?ringBlockH:illusH;
+      const blockH=54+16+visualH+titleLines.length*54+16+38+locLines.length*32+40+ctaH+58;
+      const bandTop=200,bandBottom=1800;
+      let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
+
+      const uw=measureChipW(urgency);
+      drawChip(urgency,540-uw/2,y);
+      y+=54+16;
+
+      if(cap){
+        const ringCy=y+ringR;
+        drawCapacityRing(ctx,540,ringCy,ringR,pct,T,T.progressFill);
+        ctx.fillStyle=T.textPrimary;
+        ctx.font='800 92px Inter, Arial, sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(String(left),540,ringCy-16);
+        ctx.font='600 26px Inter, Arial, sans-serif';
+        ctx.fillStyle=T.textTertiary;
+        ctx.fillText(left===1?'plaza libre':'plazas libres',540,ringCy+52);
+        ctx.textAlign='left';ctx.textBaseline='alphabetic';
+        y+=ringBlockH;
+      }else{
+        drawOpenBookDoodle(ctx,540,y+illusH/2,illusW,T,T.progressFill);
+        y+=illusH;
+      }
+
+      ctx.fillStyle=T.textPrimary;
+      ctx.font='800 46px "Playfair Display", Georgia, serif';
+      ctx.textAlign='center';
+      titleLines.forEach(ln=>{ctx.fillText(ln,540,y+34);y+=54;});
+      ctx.textAlign='left';
+      y+=16;
+
+      ctx.font='500 26px Inter, Arial, sans-serif';
+      ctx.fillStyle=T.textTertiary;
+      ctx.textAlign='center';
+      ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,540,y+20);
+      y+=38;
+      locLines.forEach(ln=>{ctx.fillText(ln,540,y+20);y+=32;});
+      ctx.textAlign='left';
+      y+=40;
+
+      drawEventCta(y,cap&&left===0?'📖 Descúbrelo en shelfie':'📖 Apúntate en shelfie',cap?null:'Aforo libre');
+    }else if(img){
       // Con libro vinculado: portada arriba, texto alineado a la izquierda.
       let y=230;
       ctx.font='700 24px Inter, Arial, sans-serif';
@@ -11600,42 +11752,43 @@ async function generateEventStoryImage(){
       drawEventCta(1550);
     }else{
       // Sin libro vinculado no hay portada que anclar arriba — en vez de un
-      // diseño top-anchored con medio lienzo vacío, todo el bloque (chip,
-      // título, fecha, ubicación y CTA) se centra como un cartel, tanto
-      // vertical como horizontalmente.
+      // diseño top-anchored con medio lienzo vacío, la ilustración de un libro
+      // abierto encabeza un cartel centrado (chip, título, fecha, ubicación y
+      // CTA), tanto vertical como horizontalmente.
+      const illusW=260,illusH=illusW*0.62+40;
       ctx.font='700 24px Inter, Arial, sans-serif';
-      const typeW=ctx.measureText(typeLabel).width+40;
+      const typeW=measureChipW(typeLabel);
       ctx.font='800 54px "Playfair Display", Georgia, serif';
       const titleLines=wrapCanvasText(ctx,e.title,availW-120).slice(0,3);
       ctx.font='500 27px Inter, Arial, sans-serif';
       const locLines=(e.address||e.city)?wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW-120).slice(0,2):[];
 
-      const blockH=70+titleLines.length*60+16+42+locLines.length*34+40+ctaH+58;
-      const bandTop=220,bandBottom=1780;
+      const blockH=illusH+70+titleLines.length*60+16+42+locLines.length*34+40+ctaH+58;
+      const bandTop=200,bandBottom=1800;
       let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
 
-      roundRectPath(ctx,540-typeW/2,y,typeW,42,21);
-      ctx.fillStyle=T.chipBg;ctx.fill();
-      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-      roundRectPath(ctx,540-typeW/2,y,typeW,42,21);ctx.stroke();
-      ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(typeLabel,540,y+22);
-      ctx.textBaseline='alphabetic';
+      drawOpenBookDoodle(ctx,540,y+illusH/2,illusW,T,T.progressFill);
+      y+=illusH;
+
+      drawChip(typeLabel,540-typeW/2,y);
       y+=70;
 
       ctx.fillStyle=T.textPrimary;
       ctx.font='800 54px "Playfair Display", Georgia, serif';
+      ctx.textAlign='center';
       titleLines.forEach(ln=>{ctx.fillText(ln,540,y+42);y+=60;});
+      ctx.textAlign='left';
       y+=16;
 
       ctx.font='500 27px Inter, Arial, sans-serif';
       ctx.fillStyle=T.textTertiary;
+      ctx.textAlign='center';
       ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,540,y+22);
       y+=42;
       locLines.forEach(ln=>{ctx.fillText(ln,540,y+22);y+=34;});
+      ctx.textAlign='left';
       y+=40;
 
-      ctx.textAlign='left';
       drawEventCta(y);
     }
 
