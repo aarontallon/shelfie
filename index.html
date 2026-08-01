@@ -8950,6 +8950,17 @@ function statsExportFilename(ext){
 // como vectores, para no depender de ningún archivo de imagen externo.
 const SHELFIE_LOGO_BARS=[[1.5,19,21,1.5],[2.5,9,2.5,10],[6,12.5,2,6.5],[9,7.5,2.5,11.5],[12.5,11,2,8],[15.5,9,2.5,10],[19,13,2.5,6]];
 
+// Algunos títulos/autores llegan en Unicode "descompuesto" (p.ej. una ñ
+// guardada como n + tilde combinante U+0303, en vez de la ñ precompuesta de
+// un solo carácter). El Helvetica de jsPDF no tiene glifo para las marcas
+// combinantes sueltas y las pinta como un hueco en blanco — "años" salía
+// como "an os", "Glòria" como "Glo ria". Normalizar a NFC antes de escribir
+// recompone esos pares en el carácter único que el font sí sabe dibujar.
+function pdfText(s){return s==null?'':String(s).normalize('NFC');}
+function pdfHexRgb(hex){
+  const m=String(hex||'').replace('#','').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+  return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[87,83,78];
+}
 function drawShelfieLogoPdf(doc,x,y,size,rgb){
   const s=size/24;
   doc.setFillColor(rgb[0],rgb[1],rgb[2]);
@@ -9108,11 +9119,11 @@ async function exportStatsPDF(){
     ensureRoom(45);
     const colGap=4,colW=(pageW-margin*2-colGap*2)/3;
     doc.autoTable({...tableOpts,head:[['Género','Libros']],
-      body:d.genreEntries.length?d.genreEntries.map(([n,c])=>[n,String(c)]):[['Sin datos de género','']],
+      body:d.genreEntries.length?d.genreEntries.map(([n,c])=>[pdfText(n),String(c)]):[['Sin datos de género','']],
       startY:y,margin:{left:margin,right:pageW-margin-colW},tableWidth:colW});
     const y1=doc.lastAutoTable.finalY;
     doc.autoTable({...tableOpts,head:[['Autor','Libros']],
-      body:d.topAuthors.length?d.topAuthors.map(([n,c])=>[n,String(c)]):[['Sin datos','']],
+      body:d.topAuthors.length?d.topAuthors.map(([n,c])=>[pdfText(n),String(c)]):[['Sin datos','']],
       startY:y,margin:{left:margin+colW+colGap,right:pageW-margin-colW*2-colGap},tableWidth:colW});
     const y2=doc.lastAutoTable.finalY;
     doc.autoTable({...tableOpts,head:[['Valoración','Libros']],
@@ -9131,7 +9142,7 @@ async function exportStatsPDF(){
     // Récords
     ensureRoom(45);
     doc.autoTable({...tableOpts,head:[['Récord','Detalle']],
-      body:d.records.map(r=>[r.label,r.detail?`${r.val} — ${r.detail}`:r.val]),
+      body:d.records.map(r=>[pdfText(r.label),pdfText(r.detail?`${r.val} — ${r.detail}`:r.val)]),
       startY:y,margin:{left:margin,right:margin},columnStyles:{0:{cellWidth:45,fontStyle:'bold'}}});
     y=doc.lastAutoTable.finalY+8;
 
@@ -9139,10 +9150,69 @@ async function exportStatsPDF(){
     if(d.progresos.length){
       ensureRoom(20);
       doc.autoTable({...tableOpts,head:[['Leyendo ahora','Autor','Progreso']],
-        body:d.progresos.map(p=>[p.title,p.author,p.pct!=null?`${p.pct}%`:'—']),
+        body:d.progresos.map(p=>[pdfText(p.title),pdfText(p.author),p.pct!=null?`${p.pct}%`:'—']),
         startY:y,margin:{left:margin,right:margin}});
       y=doc.lastAutoTable.finalY+8;
     }
+
+    // ── Libros por sección, con portada ──
+    // El resto del PDF es agregados (conteos, tablas, récords); esto es el
+    // shelfie entero, libro a libro, con su cover — como una versión
+    // imprimible de las pestañas Leídos/Leyendo/Quiero leer/Abandonados.
+    const shelfSections=[
+      {label:'Leídos',books:d.leidos,color:GREEN},
+      {label:'Leyendo',books:DB.leyendo,color:[37,99,235]},
+      {label:'Quiero leer',books:DB.quiero,color:[217,119,6]},
+      {label:'Abandonados',books:DB.dnf,color:[87,83,78]},
+    ];
+    if(btn)btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Cargando portadas...';
+    const coverW=21,coverH=Math.round(coverW/0.68*10)/10,cardGap=4;
+    const cardsPerRow=Math.max(1,Math.floor((pageW-margin*2+cardGap)/(coverW+cardGap)));
+    const cardW=(pageW-margin*2-cardGap*(cardsPerRow-1))/cardsPerRow;
+    const cardH=coverH+9;
+    for(const section of shelfSections){
+      if(!section.books.length)continue;
+      ensureRoom(cardH+13);
+      doc.setFillColor(...section.color);
+      doc.rect(margin,y,pageW-margin*2,7,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+      doc.text(pdfText(`${section.label}  ·  ${section.books.length}`),margin+2,y+5);
+      y+=11;
+
+      // Todas las portadas de la sección, en paralelo — doc.addImage necesita
+      // el Image ya resuelto, así que no puede ir dentro del bucle de dibujo.
+      const covers=await Promise.all(section.books.map(b=>loadCoverImageSafe(b.cover)));
+
+      let col=0;
+      section.books.forEach((b,i)=>{
+        if(col===0)ensureRoom(cardH+2);
+        const cx=margin+col*(cardW+cardGap);
+        const img=covers[i];
+        doc.setDrawColor(...BORDER);
+        if(img){
+          try{doc.addImage(img,'JPEG',cx,y,cardW,coverH,undefined,'FAST');}
+          catch(_){doc.setFillColor(230,230,230);doc.rect(cx,y,cardW,coverH,'F');}
+        }else{
+          doc.setFillColor(...pdfHexRgb(b.color));
+          doc.rect(cx,y,cardW,coverH,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
+          const fbLines=doc.splitTextToSize(pdfText(b.title),cardW-3).slice(0,4);
+          doc.text(fbLines,cx+cardW/2,y+coverH/2-(fbLines.length-1)*1.4,{align:'center'});
+        }
+        doc.rect(cx,y,cardW,coverH);
+        doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(...INK);
+        const titleLines=doc.splitTextToSize(pdfText(b.title),cardW).slice(0,2);
+        doc.text(titleLines,cx,y+coverH+3);
+        doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...INK3);
+        doc.text(doc.splitTextToSize(pdfText(b.author||''),cardW).slice(0,1),cx,y+coverH+3+titleLines.length*2.6);
+
+        col++;
+        if(col>=cardsPerRow){col=0;y+=cardH;}
+      });
+      if(col!==0)y+=cardH;
+      y+=6;
+    }
+    if(btn)btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';
 
     // Pie de página en todas las páginas
     const pageCount=doc.internal.getNumberOfPages();
