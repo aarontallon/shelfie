@@ -9041,8 +9041,29 @@ async function exportStatsPDF(){
     y+=4;
     const startPad=(new Date(d.hmYear,0,1).getDay()+6)%7;
     const totalWeeks=Math.ceil((d.heatmapDays.length+startPad)/7);
-    const cell=Math.min(3,(pageW-margin*2)/totalWeeks);
+    const dowLabelW=5;
+    const cell=Math.min(3,(pageW-margin*2-dowLabelW)/totalWeeks);
+    const gridX=margin+dowLabelW;
+
+    // Etiquetas de mes — una por semana en la que empieza un mes nuevo, igual
+    // que en el heatmap de la app. Sin esto la cuadrícula es ilegible: no hay
+    // forma de saber qué periodo representa cada columna.
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(...INK3);
+    let lastMonth=-1;
+    for(let w=0;w<totalWeeks;w++){
+      const dt=new Date(d.hmYear,0,1+Math.max(0,w*7-startPad));
+      const m=dt.getMonth();
+      if(m!==lastMonth){doc.text(d.monthNames[m],gridX+w*cell,y);lastMonth=m;}
+    }
+    y+=3;
     const hmTop=y;
+
+    // Etiquetas de día de la semana (lunes/miércoles/viernes) a la izquierda
+    doc.setFontSize(5.5);
+    [['L',0],['X',2],['V',4]].forEach(([lbl,row])=>{
+      doc.text(lbl,margin,hmTop+row*cell+cell*0.8);
+    });
+
     for(let w=0;w<totalWeeks;w++){
       for(let row=0;row<7;row++){
         const idx=w*7+row-startPad;
@@ -9050,10 +9071,18 @@ async function exportStatsPDF(){
         const day=d.heatmapDays[idx];
         if(day.isFuture)continue;
         doc.setFillColor(...(day.isRead?[220,38,38]:[237,237,237]));
-        doc.rect(margin+w*cell,hmTop+row*cell,cell-0.5,cell-0.5,'F');
+        doc.rect(gridX+w*cell,hmTop+row*cell,cell-0.5,cell-0.5,'F');
       }
     }
-    y=hmTop+7*cell+7;
+    y=hmTop+7*cell+4;
+
+    // Leyenda de color — en la app se ve al pasar el ratón, aquí no hay hover
+    doc.setFillColor(220,38,38);doc.rect(margin,y,3,3,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...INK3);
+    doc.text('Día con lectura',margin+4.5,y+2.6);
+    doc.setFillColor(237,237,237);doc.rect(margin+34,y,3,3,'F');
+    doc.text('Sin lectura',margin+38.5,y+2.6);
+    y+=7;
 
     // Libros por mes
     doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...INK);
