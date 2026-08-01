@@ -1983,6 +1983,7 @@ a{color:inherit}
   <h2><i class="ti ti-share-2" style="font-size:20px;color:var(--red)"></i> Vista previa para compartir</h2>
   <p class="sub" id="share-preview-sub">Así verán otros tu shelfie compartido</p>
   <div id="share-preview-content"></div>
+  <div id="share-preview-cap-note" style="margin-top:8px;font-size:11.5px;color:var(--ink3)"></div>
   <div style="margin-top:16px">
     <div class="option-label" style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Vista</div>
     <div class="subject-toggle" id="share-preview-view-toggle">
@@ -2001,8 +2002,9 @@ a{color:inherit}
   <div id="share-preview-leyendo-opts" style="display:none;margin-top:10px">
     <div class="option-label" style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">En la story también quiero mostrar</div>
     <div style="display:flex;flex-direction:column;gap:6px">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-progress" checked onchange="_sharePreviewShowProgress=this.checked"> Mi progreso de lectura</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-streak" checked onchange="_sharePreviewShowStreak=this.checked"> Mi racha de lectura</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-progress" checked onchange="_sharePreviewShowProgress=this.checked;renderSharePreview()"> Mi % leído</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-page" checked onchange="_sharePreviewShowPage=this.checked;renderSharePreview()"> Mi página actual (ej. Pág. 185 de 1046)</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);cursor:pointer"><input type="checkbox" id="share-story-show-streak" checked onchange="_sharePreviewShowStreak=this.checked;renderSharePreview()"> Mi racha de lectura</label>
     </div>
   </div>
   <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
@@ -10477,9 +10479,14 @@ let _sharePreviewTabTotal=0;
 let _sharePreviewTab='leidos';
 let _sharePreviewStoryTheme='dark';
 let _sharePreviewShowProgress=true;
+let _sharePreviewShowPage=true;
 let _sharePreviewShowStreak=true;
 let _shelfieStoryBlob=null;
 let _shelfieStoryBlobUrl=null;
+// Máximo de libros que caben legibles en cada tipo de vista de la story:
+// la estantería empaqueta lomos finos y admite bastantes más que un mosaico de portadas.
+const STORY_VIEW_CAPS={shelf:16,grid:9,list:10};
+function storyBookCapForView(view){return STORY_VIEW_CAPS[view]||9;}
 
 function shareCurrentShelfTab(){
   let books;
@@ -10513,15 +10520,35 @@ function setSharePreviewStoryTheme(btn){
   document.querySelectorAll('#share-preview-theme-toggle .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   _sharePreviewStoryTheme=btn.dataset.theme;
+  renderSharePreview();
 }
 
 function renderSharePreview(){
   const el=document.getElementById('share-preview-content');
   if(!el)return;
-  const books=_sharePreviewBooks;
+  const cap=storyBookCapForView(_sharePreviewViewMode);
+  const books=_sharePreviewBooks.slice(0,cap);
+  const isLeyendo=_sharePreviewTab==='leyendo';
+  const showProgress=isLeyendo&&_sharePreviewShowProgress;
+  const showPage=isLeyendo&&_sharePreviewShowPage;
+  const dark=_sharePreviewStoryTheme==='dark';
+  const T={
+    bg:dark?'#1A1A1A':'#FAF6EE',ink:dark?'#FFFFFF':'#1A1A1A',ink2:dark?'rgba(255,255,255,0.6)':'rgba(26,26,26,0.55)',
+    shelfBack:dark?'#241C14':'#F0E8D8',plank:dark?'#3A2C1D':'#D9C6A0',
+    barTrack:dark?'rgba(255,255,255,0.18)':'rgba(26,26,26,0.14)',barFill:dark?'#6FAE87':'#3D6B52'
+  };
+  const progressBadge=b=>{
+    const pct=bookProgressPercent(b);
+    if(pct===null)return '';
+    let txt=[];
+    if(showProgress)txt.push(`${pct}%`);
+    if(showPage&&b.pages&&b.curPage!=null)txt.push(`pág. ${b.curPage}/${b.pages}`);
+    if(!txt.length)return '';
+    return `<div style="font-size:9.5px;font-weight:700;color:${T.ink};background:${T.bg};border:1px solid ${T.barTrack};border-radius:8px;padding:1px 5px;position:absolute;bottom:3px;left:3px;right:3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${txt.join(' · ')}</div>`;
+  };
   let html='';
   if(_sharePreviewViewMode==='shelf'){
-    // Mini multi-row shelf preview
+    // Mini multi-row shelf preview — sin portadas, igual que la estantería real de "Mi shelfie"
     const rowSize=8;
     const rows=[];
     for(let i=0;i<books.length;i+=rowSize)rows.push(books.slice(i,i+rowSize));
@@ -10533,19 +10560,29 @@ function renderSharePreview(){
             const w=Math.max(14,Math.min(46,Math.round(10+pages/20)));
             const h=Math.max(110,Math.min(175,110+Math.round(pages/12)));
             const fs=b.title.length>30?6:b.title.length>18?7:8;
-            const bg=b.cover?`background-image:url(${b.cover});background-size:cover;background-position:center;background-color:${b.color}`:`background:${b.color}`;
-            return `<div style="width:${w}px;height:${h}px;${bg};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
-              ${b.cover?'':`<div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>`}
+            const pct=(showProgress||showPage)?bookProgressPercent(b):null;
+            return `<div style="width:${w}px;height:${h}px;background:${b.color};border-radius:2px 2px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-shadow:1px 0 3px rgba(0,0,0,0.25);position:relative;flex-shrink:0" title="${escapeHtml(b.title)}">
+              <div style="writing-mode:vertical-rl;color:rgba(255,255,255,0.9);font-weight:700;font-size:${fs}px;text-shadow:0 1px 2px rgba(0,0,0,0.5);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-height:85%">${escapeHtml(b.title)}</div>
+              ${pct!==null?`<div style="position:absolute;right:2px;top:4px;bottom:4px;width:3px;border-radius:2px;background:${T.barTrack}"><div style="position:absolute;bottom:0;left:0;right:0;height:${pct}%;border-radius:2px;background:${T.barFill}"></div></div>`:''}
             </div>`;
           }).join('')}
         </div>
         <div class="shelf-plank"></div>
       </div>`).join('');
-    html=`<div style="background:#f0e8d8;border-radius:10px;padding:12px;overflow:hidden">${rowsHtml}</div>`;
+    html=`<div style="background:${T.shelfBack};border-radius:10px;padding:12px;overflow:hidden">${rowsHtml}</div>`;
   } else if(_sharePreviewViewMode==='grid'){
-    html=`<div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));max-height:280px;overflow-y:auto">${books.map(b=>`<div class="grid-item">${cvr(b,'grid')}<div class="grid-t" style="font-size:10px">${escapeHtml(b.title)}</div></div>`).join('')}</div>`;
+    html=`<div style="background:${T.bg};border-radius:10px;padding:12px"><div class="books-grid" style="grid-template-columns:repeat(auto-fill,minmax(80px,1fr));max-height:280px;overflow-y:auto">${books.map(b=>`<div class="grid-item" style="position:relative">${cvr(b,'grid')}<div class="grid-t" style="font-size:10px;color:${T.ink}">${escapeHtml(b.title)}</div>${progressBadge(b)}</div>`).join('')}</div></div>`;
   } else {
-    html=`<div style="max-height:300px;overflow-y:auto">${books.map(b=>`<div class="book-list-row">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${escapeHtml(b.title)}</div><div class="book-list-author">${escapeHtml(b.author)}</div></div></div>`).join('')}</div>`;
+    html=`<div style="background:${T.bg};border-radius:10px;padding:12px"><div style="max-height:300px;overflow-y:auto">${books.map(b=>{
+      const pct=(showProgress||showPage)?bookProgressPercent(b):null;
+      const capt=pct!==null?`<div style="font-size:11px;color:${T.ink2};margin-top:2px">${[showProgress?`${pct}% leído`:null,showPage&&b.pages&&b.curPage!=null?`pág. ${b.curPage}/${b.pages}`:null].filter(Boolean).join(' · ')}</div>`:'';
+      return `<div class="book-list-row">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title" style="color:${T.ink}">${escapeHtml(b.title)}</div><div class="book-list-author" style="color:${T.ink2}">${escapeHtml(b.author)}</div>${capt}</div></div>`;
+    }).join('')}</div></div>`;
+  }
+  const noteEl=document.getElementById('share-preview-cap-note');
+  if(noteEl){
+    const total=_sharePreviewTabTotal||_sharePreviewBooks.length;
+    noteEl.textContent=total>cap?`Mostrando los primeros ${cap} de ${total} libros en la story — el resto no aparecerá.`:`Se incluyen hasta ${cap} libros en esta vista.`;
   }
   el.innerHTML=html;
 }
@@ -10645,15 +10682,19 @@ function avgProgressPercent(books){
 }
 
 async function generateShelfieStoryImage(){
-  const books=_sharePreviewBooks.slice(0,9);
+  const cap=storyBookCapForView(_sharePreviewViewMode);
+  const books=_sharePreviewBooks.slice(0,cap);
   if(!books.length){toast('No hay libros para crear la story');return;}
   const btn=document.getElementById('share-preview-story-btn');
   const prevHtml=btn?.innerHTML;
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
   try{
-    const images=await Promise.all(books.map(b=>loadCoverImageSafe(b.cover)));
+    // La estantería nunca muestra portadas en el resto de la app (siempre lomo de
+    // color + título), así que aquí tampoco cargamos imágenes para ese modo.
+    const images=_sharePreviewViewMode==='shelf'?[]:await Promise.all(books.map(b=>loadCoverImageSafe(b.cover)));
     const isLeyendo=_sharePreviewTab==='leyendo';
     const showProgress=isLeyendo&&_sharePreviewShowProgress&&books.some(b=>bookProgressPercent(b)!==null);
+    const showPage=isLeyendo&&_sharePreviewShowPage&&books.some(b=>bookProgressPercent(b)!==null);
     const showStreakChip=isLeyendo?_sharePreviewShowStreak:(_sharePreviewTab==='leidos'||_sharePreviewTab==='anio');
     const T=storyThemePalette(_sharePreviewStoryTheme);
 
@@ -10745,25 +10786,19 @@ async function generateShelfieStoryImage(){
           ctx.save();
           roundRectPath(ctx,x,y,cell.w,cell.h,Math.min(6,cell.w/4));
           ctx.clip();
-          const img=images[cell.i];
-          if(img){
-            const s=Math.max(cell.w/img.width,cell.h/img.height);
-            const iw=img.width*s,ih=img.height*s;
-            ctx.drawImage(img,x+(cell.w-iw)/2,y+(cell.h-ih)/2,iw,ih);
-          }else{
-            ctx.fillStyle=cell.b.color||'#555';
-            ctx.fillRect(x,y,cell.w,cell.h);
-            ctx.save();
-            ctx.translate(x+cell.w/2,y+cell.h/2);
-            ctx.rotate(Math.PI/2);
-            ctx.fillStyle=T.fallbackText;
-            ctx.font=`700 ${Math.max(9,cell.fontSize)}px Inter, Arial, sans-serif`;
-            ctx.textAlign='center';ctx.textBaseline='middle';
-            const lines=wrapCanvasText(ctx,cell.b.title,cell.h-16).slice(0,2);
-            const lh=cell.fontSize+3,ty=-((lines.length-1)*lh)/2;
-            lines.forEach((ln,li)=>ctx.fillText(ln,0,ty+li*lh));
-            ctx.restore();
-          }
+          // Lomo de color + título, igual que la estantería real (nunca portadas)
+          ctx.fillStyle=cell.b.color||'#555';
+          ctx.fillRect(x,y,cell.w,cell.h);
+          ctx.save();
+          ctx.translate(x+cell.w/2,y+cell.h/2);
+          ctx.rotate(Math.PI/2);
+          ctx.fillStyle=T.fallbackText;
+          ctx.font=`700 ${Math.max(9,cell.fontSize)}px Inter, Arial, sans-serif`;
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          const lines=wrapCanvasText(ctx,cell.b.title,cell.h-16).slice(0,2);
+          const lh=cell.fontSize+3,ty=-((lines.length-1)*lh)/2;
+          lines.forEach((ln,li)=>ctx.fillText(ln,0,ty+li*lh));
+          ctx.restore();
           if(showProgress){
             const pct=bookProgressPercent(cell.b);
             if(pct!==null)drawProgressStrip(x,y,cell.w,cell.h,pct);
@@ -10810,7 +10845,8 @@ async function generateShelfieStoryImage(){
         titleLines.forEach((ln,li)=>ctx.fillText(ln,textX,y+rowH/2-8+li*34-(titleLines.length>1?17:0)));
         ctx.font='500 24px Inter, Arial, sans-serif';
         ctx.fillStyle=T.textSecondary;
-        ctx.fillText(b.author||'',textX,y+rowH/2+28+(titleLines.length>1?10:0));
+        const pageSuffix=showPage&&b.pages&&b.curPage!=null?`  ·  Pág. ${b.curPage} de ${b.pages}`:'';
+        ctx.fillText((b.author||'')+pageSuffix,textX,y+rowH/2+28+(titleLines.length>1?10:0));
         if(showProgress){
           const pct=bookProgressPercent(b);
           if(pct!==null){
@@ -10872,32 +10908,53 @@ async function generateShelfieStoryImage(){
     }
 
     // Chips de estadísticas
-    const chipY=Math.min(contentBottomUsed+50,1700);
     const chipTexts=[`📚 ${_sharePreviewTabTotal} libro${_sharePreviewTabTotal!==1?'s':''}`];
     if(showStreakChip){
       const streak=calculateCurrentStreak();
       if(streak>0)chipTexts.push(`🔥 ${streak} día${streak!==1?'s':''} de racha`);
     }
-    if(showProgress){
-      const avg=avgProgressPercent(books);
-      if(avg!==null)chipTexts.push(`📖 ${avg}% de media`);
+    if(showProgress||showPage){
+      const withProgress=books.filter(b=>bookProgressPercent(b)!==null);
+      if(withProgress.length===1){
+        const b=withProgress[0];
+        if(showProgress)chipTexts.push(`📖 ${bookProgressPercent(b)}% leído`);
+        if(showPage&&b.pages&&b.curPage!=null)chipTexts.push(`📄 Pág. ${b.curPage} de ${b.pages}`);
+      }else if(withProgress.length>1&&showProgress){
+        const avg=avgProgressPercent(books);
+        if(avg!==null)chipTexts.push(`📖 ${avg}% leído de media`);
+      }
     }
     ctx.font='700 30px Inter, Arial, sans-serif';
-    const chipH=64,chipGap=18,chipPadX=32;
+    const chipH=64,chipGap=18,chipPadX=32,chipRowGap=14,chipMaxRowW=1080-160;
     const widths=chipTexts.map(t=>ctx.measureText(t).width+chipPadX*2);
-    const totalChipW=widths.reduce((a,w)=>a+w,0)+(chipTexts.length-1)*chipGap;
-    let cx=(1080-totalChipW)/2;
+    // Varios chips pueden no caber en una sola fila (p.ej. racha + % leído + página) —
+    // se reparten en filas centradas en vez de desbordar el lienzo.
+    const chipRows=[];let curRow=[],curRowW=0;
     chipTexts.forEach((t,i)=>{
       const w=widths[i];
-      ctx.fillStyle=T.chipBg;
-      roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.fill();
-      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-      roundRectPath(ctx,cx,chipY,w,chipH,chipH/2);ctx.stroke();
-      ctx.fillStyle=T.chipText;
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(t,cx+w/2,chipY+chipH/2+3);
-      ctx.textAlign='left';ctx.textBaseline='alphabetic';
-      cx+=w+chipGap;
+      const addW=w+(curRow.length?chipGap:0);
+      if(curRow.length&&curRowW+addW>chipMaxRowW){chipRows.push(curRow);curRow=[];curRowW=0;}
+      curRow.push({t,w});
+      curRowW+=w+(curRow.length>1?chipGap:0);
+    });
+    if(curRow.length)chipRows.push(curRow);
+    const totalChipsH=chipRows.length*chipH+(chipRows.length-1)*chipRowGap;
+    const chipY=Math.min(contentBottomUsed+50,1780-totalChipsH);
+    chipRows.forEach((row,ri)=>{
+      const rowY=chipY+ri*(chipH+chipRowGap);
+      const rowW=row.reduce((s,c,ci)=>s+c.w+(ci?chipGap:0),0);
+      let cx=(1080-rowW)/2;
+      row.forEach(({t,w})=>{
+        ctx.fillStyle=T.chipBg;
+        roundRectPath(ctx,cx,rowY,w,chipH,chipH/2);ctx.fill();
+        ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+        roundRectPath(ctx,cx,rowY,w,chipH,chipH/2);ctx.stroke();
+        ctx.fillStyle=T.chipText;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(t,cx+w/2,rowY+chipH/2+3);
+        ctx.textAlign='left';ctx.textBaseline='alphabetic';
+        cx+=w+chipGap;
+      });
     });
 
     // Pie
