@@ -3265,6 +3265,15 @@ a{color:inherit}
 </div>
 </div>
 
+<div class="overlay" id="modal-event-preview" style="display:none" onclick="if(event.target===this)closeModal('modal-event-preview')">
+<div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+  <button class="modal-close" onclick="closeModal('modal-event-preview')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-eye" style="font-size:20px;color:var(--red)"></i> Vista previa del evento</h2>
+  <p class="sub">Así verán tus lectores la ficha de este evento dentro de shelfie</p>
+  <div id="event-preview-content" style="margin-top:8px"></div>
+</div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════
 // SUPABASE
@@ -4106,6 +4115,7 @@ function renderOrganizerEvents(){
       ${capacityBarHtml(e._signupCount||0,e.capacity)}
       <div class="organizer-event-actions">
         <button class="btn btn-white btn-sm" onclick="openEventAttendees('${e.id}','${escapeHtml(e.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos</button>
+        <button class="btn btn-white btn-sm" onclick="previewEventFicha('${e.id}')"><i class="ti ti-eye"></i> Ver ficha</button>
         <button class="btn btn-white btn-sm" onclick="openEventStoryPreview('${e.id}')"><i class="ti ti-photo"></i> Crear story</button>
       </div>
     </div>`).join('');
@@ -4239,6 +4249,14 @@ async function deleteEvent(id){
   ORGANIZER_EVENTS=ORGANIZER_EVENTS.filter(e=>e.id!==id);
   renderOrganizerEvents();
   toast('Evento eliminado');
+}
+
+function previewEventFicha(id){
+  const e=ORGANIZER_EVENTS.find(ev=>ev.id===id);
+  if(!e)return;
+  const previewEv={...e,_signups:new Array(e._signupCount||0).fill(null)};
+  openModal('modal-event-preview');
+  renderEventDetailContent(previewEv,false,'event-preview-content',true);
 }
 
 async function openEventAttendees(id,title){
@@ -4522,11 +4540,23 @@ async function renderEventDetailPage(id){
   renderEventDetailContent(ev,joined);
 }
 
-function renderEventDetailContent(ev,joined){
-  CURRENT_EVENT_DETAIL=ev;
-  const cont=document.getElementById('event-detail-content');
+function renderEventDetailContent(ev,joined,containerId,readOnly){
+  containerId=containerId||'event-detail-content';
+  if(!readOnly)CURRENT_EVENT_DETAIL=ev;
+  const cont=document.getElementById(containerId);
   const signups=ev._signups||[];
   const full=ev.capacity&&signups.length>=ev.capacity;
+  const actionsHtml=readOnly
+    ?`<div class="organizer-event-actions" style="margin-top:18px"><div class="text-sm text-muted" style="display:flex;align-items:center;gap:6px"><i class="ti ti-eye"></i> Vista previa — así es como lo ven los lectores</div></div>`
+    :`<div class="organizer-event-actions" style="margin-top:18px">
+      ${joined
+        ?`<button class="btn btn-white" onclick="cancelEventSignup('${ev.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
+        :full
+          ?`<button class="btn btn-white" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
+          :`<button class="btn btn-red" onclick="signUpForEvent('${ev.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
+      <button class="btn btn-white" onclick="openReaderEventAttendees('${ev.id}','${escapeHtml(ev.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
+      <a class="btn btn-white" href="${googleCalendarLink(ev)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
+    </div>`;
   cont.innerHTML=`
     <div class="organizer-event-title" style="font-size:26px">${escapeHtml(ev.title)}</div>
     <div class="organizer-event-meta" style="margin-top:10px">
@@ -4545,15 +4575,7 @@ function renderEventDetailContent(ev,joined){
       </div>
     </div>`:''}
     <div style="margin-top:20px;max-width:320px">${capacityBarHtml(signups.length,ev.capacity)}</div>
-    <div class="organizer-event-actions" style="margin-top:18px">
-      ${joined
-        ?`<button class="btn btn-white" onclick="cancelEventSignup('${ev.id}')"><i class="ti ti-check"></i> Apuntado — cancelar</button>`
-        :full
-          ?`<button class="btn btn-white" disabled><i class="ti ti-lock"></i> Aforo completo</button>`
-          :`<button class="btn btn-red" onclick="signUpForEvent('${ev.id}')"><i class="ti ti-plus"></i> Apuntarme</button>`}
-      <button class="btn btn-white" onclick="openReaderEventAttendees('${ev.id}','${escapeHtml(ev.title).replace(/'/g,"\\'")}')"><i class="ti ti-users"></i> Ver inscritos${signups.length?` (${signups.length})`:''}</button>
-      <a class="btn btn-white" href="${googleCalendarLink(ev)}" target="_blank" rel="noopener"><i class="ti ti-calendar-plus"></i> Añadir al calendario</a>
-    </div>
+    ${actionsHtml}
   `;
 }
 
@@ -11030,36 +11052,94 @@ function drawStorySparkle(ctx,x,y,r,color){
   ctx.fill();
   ctx.restore();
 }
-function drawOpenBookDoodle(ctx,cx,cy,w,T,accent){
-  const h=w*0.62;
+// Un icono distinto por tipo de evento, dibujado con formas simples (nada de
+// curvas complejas sin validar) para que sea reconocible en un lienzo pequeño.
+function drawEventTypeIcon(ctx,type,cx,cy,s,T,accent){
   ctx.save();
-  ctx.fillStyle=T.shelfBack;
-  ctx.strokeStyle=T.chipBorder;ctx.lineWidth=3;
-  [-1,1].forEach(side=>{
-    ctx.beginPath();
-    ctx.moveTo(cx,cy-h*0.42);
-    ctx.quadraticCurveTo(cx+side*w*0.52,cy-h*0.30,cx+side*w*0.5,cy+h*0.36);
-    ctx.quadraticCurveTo(cx+side*w*0.18,cy+h*0.46,cx,cy+h*0.30);
-    ctx.closePath();
-    ctx.fill();ctx.stroke();
-  });
-  ctx.beginPath();ctx.moveTo(cx,cy-h*0.42);ctx.lineTo(cx,cy+h*0.30);ctx.stroke();
-  ctx.strokeStyle=T.textTertiary;ctx.lineWidth=2.5;ctx.globalAlpha=0.4;
-  for(let i=0;i<3;i++){
-    const ly=cy-h*0.10+i*h*0.16;
-    ctx.beginPath();ctx.moveTo(cx-w*0.34,ly);ctx.lineTo(cx-w*0.10,ly);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(cx+w*0.10,ly);ctx.lineTo(cx+w*0.34,ly);ctx.stroke();
+  ctx.translate(cx,cy);
+  ctx.lineJoin='round';ctx.lineCap='round';
+  if(type==='presentacion'){
+    // Micrófono
+    ctx.fillStyle=accent;
+    roundRectPath(ctx,-s*0.11,-s*0.42,s*0.22,s*0.42,s*0.11);ctx.fill();
+    ctx.strokeStyle=T.bg;ctx.lineWidth=s*0.035;ctx.globalAlpha=0.5;
+    for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(-s*0.08,-s*0.30+i*s*0.09);ctx.lineTo(s*0.08,-s*0.30+i*s*0.09);ctx.stroke();}
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=accent;ctx.lineWidth=s*0.05;
+    ctx.beginPath();ctx.arc(0,-s*0.12,s*0.22,Math.PI*0.12,Math.PI*0.88);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,s*0.10);ctx.lineTo(0,s*0.30);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-s*0.16,s*0.30);ctx.lineTo(s*0.16,s*0.30);ctx.stroke();
+  }else if(type==='firma'){
+    // Libro abierto + pluma en diagonal
+    ctx.fillStyle=T.shelfPlank;ctx.strokeStyle=T.chipBorder;ctx.lineWidth=s*0.03;
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(0,-s*0.06);
+      ctx.quadraticCurveTo(side*s*0.34,-s*0.14,side*s*0.32,s*0.22);
+      ctx.quadraticCurveTo(side*s*0.12,s*0.28,0,s*0.20);
+      ctx.closePath();ctx.fill();ctx.stroke();
+    });
+    ctx.strokeStyle=accent;ctx.lineWidth=s*0.055;
+    ctx.beginPath();ctx.moveTo(-s*0.24,s*0.34);ctx.lineTo(s*0.28,-s*0.36);ctx.stroke();
+    ctx.fillStyle=accent;
+    ctx.beginPath();ctx.moveTo(s*0.28,-s*0.36);ctx.lineTo(s*0.38,-s*0.30);ctx.lineTo(s*0.32,-s*0.24);ctx.closePath();ctx.fill();
+  }else if(type==='club'){
+    // Tres libros en abanico
+    [[-0.34,0],[0,accent],[0.34,0]].forEach(([rot,forcedColor],i)=>{
+      ctx.save();
+      ctx.rotate(rot);
+      ctx.fillStyle=forcedColor||T.shelfPlank;
+      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=s*0.03;
+      roundRectPath(ctx,-s*0.08,-s*0.34,s*0.16,s*0.46,s*0.025);
+      ctx.fill();ctx.stroke();
+      ctx.restore();
+    });
+  }else if(type==='taller'){
+    // Bombilla sobre un libro
+    ctx.strokeStyle=accent;ctx.lineWidth=s*0.05;
+    ctx.beginPath();ctx.arc(0,-s*0.16,s*0.2,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-s*0.08,s*0.02);ctx.lineTo(-s*0.08,s*0.12);ctx.lineTo(s*0.08,s*0.12);ctx.lineTo(s*0.08,s*0.02);ctx.stroke();
+    ctx.fillStyle=T.shelfPlank;ctx.strokeStyle=T.chipBorder;ctx.lineWidth=s*0.03;
+    roundRectPath(ctx,-s*0.32,s*0.20,s*0.64,s*0.14,s*0.03);ctx.fill();ctx.stroke();
+  }else if(type==='feria'){
+    // Caseta de mercadillo con banderín
+    ctx.fillStyle=accent;
+    ctx.beginPath();ctx.moveTo(-s*0.34,-s*0.06);ctx.lineTo(0,-s*0.32);ctx.lineTo(s*0.34,-s*0.06);ctx.closePath();ctx.fill();
+    ctx.fillStyle=T.shelfPlank;ctx.strokeStyle=T.chipBorder;ctx.lineWidth=s*0.03;
+    roundRectPath(ctx,-s*0.28,-s*0.04,s*0.56,s*0.34,s*0.02);ctx.fill();ctx.stroke();
+    ctx.strokeStyle=T.textTertiary;ctx.lineWidth=s*0.03;
+    ctx.beginPath();ctx.moveTo(0,-s*0.32);ctx.lineTo(0,-s*0.44);ctx.stroke();
+    ctx.fillStyle=accent;
+    ctx.beginPath();ctx.moveTo(0,-s*0.44);ctx.lineTo(s*0.12,-s*0.40);ctx.lineTo(0,-s*0.36);ctx.closePath();ctx.fill();
+  }else{
+    // Libro abierto genérico
+    ctx.fillStyle=T.shelfPlank;ctx.strokeStyle=T.chipBorder;ctx.lineWidth=s*0.03;
+    [-1,1].forEach(side=>{
+      ctx.beginPath();
+      ctx.moveTo(0,-s*0.26);
+      ctx.quadraticCurveTo(side*s*0.36,-s*0.18,side*s*0.34,s*0.22);
+      ctx.quadraticCurveTo(side*s*0.12,s*0.3,0,s*0.18);
+      ctx.closePath();ctx.fill();ctx.stroke();
+    });
   }
   ctx.restore();
-  drawStorySparkle(ctx,cx-w*0.60,cy-h*0.56,15,accent);
-  drawStorySparkle(ctx,cx+w*0.66,cy-h*0.32,11,accent);
-  drawStorySparkle(ctx,cx+w*0.52,cy+h*0.56,13,accent);
+}
+// Tarjeta con el icono del tipo de evento — ocupa el mismo hueco que ocuparía
+// la portada del libro cuando el evento no tiene ninguno vinculado.
+function drawEventTypeBox(ctx,x,y,w,h,type,T,accent){
+  roundRectPath(ctx,x,y,w,h,16);
+  ctx.fillStyle=T.shelfBack;ctx.fill();
+  ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
+  roundRectPath(ctx,x,y,w,h,16);ctx.stroke();
+  drawEventTypeIcon(ctx,type,x+w/2,y+h/2,Math.min(w,h)*0.62,T,accent);
+  drawStorySparkle(ctx,x-6,y+h*0.14,12,accent);
+  drawStorySparkle(ctx,x+w+8,y+h*0.82,10,accent);
 }
 function drawCapacityRing(ctx,cx,cy,r,pct,T,accent){
   const lw=r*0.2;
   ctx.save();
   ctx.lineCap='round';ctx.lineWidth=lw;
-  ctx.strokeStyle=T.chipBorder;
+  ctx.strokeStyle=T.ringTrack;
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
   if(pct>0){
     ctx.strokeStyle=accent;
@@ -11119,7 +11199,7 @@ function storyThemePalette(theme){
     cellBorder:'rgba(26,26,26,0.1)',fallbackText:'rgba(255,255,255,0.95)',
     shelfBack:'#F0E8D8',shelfPlank:'#D9C6A0',shelfPlankTop:'#EAE0C8',
     progressTrack:'rgba(26,26,26,0.14)',progressFill:'#3D6B52',listDivider:'rgba(26,26,26,0.1)',
-    moreTileBg:'#B8A480',moreTileText:'#1A1A1A'
+    moreTileBg:'#B8A480',moreTileText:'#1A1A1A',ringTrack:'rgba(26,26,26,0.18)'
   }:{
     bg:'#1A1A1A',glowA:'rgba(74,124,95,0.35)',glowB:'rgba(61,107,82,0.32)',
     textPrimary:'#FFFFFF',textSecondary:'rgba(255,255,255,0.6)',textTertiary:'rgba(255,255,255,0.62)',
@@ -11127,7 +11207,7 @@ function storyThemePalette(theme){
     cellBorder:'rgba(255,255,255,0.1)',fallbackText:'rgba(255,255,255,0.95)',
     shelfBack:'#241C14',shelfPlank:'#3A2C1D',shelfPlankTop:'#4A3826',
     progressTrack:'rgba(255,255,255,0.2)',progressFill:'#6FAE87',listDivider:'rgba(255,255,255,0.1)',
-    moreTileBg:'#5A4E3C',moreTileText:'#FFFFFF'
+    moreTileBg:'#5A4E3C',moreTileText:'#FFFFFF',ringTrack:'rgba(255,255,255,0.2)'
   };
 }
 function bookProgressPercent(b){
@@ -11682,7 +11762,7 @@ async function generateEventStoryImage(){
         ctx.textAlign='left';ctx.textBaseline='alphabetic';
         y+=ringBlockH;
       }else{
-        drawOpenBookDoodle(ctx,540,y+illusH/2,illusW,T,T.progressFill);
+        drawEventTypeBox(ctx,540-illusW/2,y,illusW,illusH-40,e.event_type,T,T.progressFill);
         y+=illusH;
       }
 
@@ -11703,18 +11783,12 @@ async function generateEventStoryImage(){
       y+=40;
 
       drawEventCta(y,cap&&left===0?'📖 Descúbrelo en shelfie':'📖 Apúntate en shelfie',cap?null:'Aforo libre');
-    }else if(img){
-      // Con libro vinculado: portada arriba, texto alineado a la izquierda.
+    }else{
+      // Portada del libro arriba si hay uno vinculado; si no, una tarjeta con
+      // un icono propio del tipo de evento ocupa ese mismo hueco — mismo
+      // diseño top-anchored en los dos casos, solo cambia lo que hay dentro.
       let y=230;
-      ctx.font='700 24px Inter, Arial, sans-serif';
-      const typeW=ctx.measureText(typeLabel).width+40;
-      roundRectPath(ctx,margin,y,typeW,42,21);
-      ctx.fillStyle=T.chipBg;ctx.fill();
-      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-      roundRectPath(ctx,margin,y,typeW,42,21);ctx.stroke();
-      ctx.fillStyle=T.chipText;ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(typeLabel,margin+typeW/2,y+22);
-      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      drawChip(typeLabel,margin,y);
       y+=70;
 
       ctx.fillStyle=T.textPrimary;
@@ -11738,58 +11812,23 @@ async function generateEventStoryImage(){
       const coverH=Math.min(visualH,(availW)/0.68);
       const coverW=coverH*0.68;
       const cx=540-coverW/2,cy=visualTop+(visualH-coverH)/2;
-      ctx.save();
-      roundRectPath(ctx,cx,cy,coverW,coverH,16);
-      ctx.clip();
-      ctx.fillStyle='#555';ctx.fillRect(cx,cy,coverW,coverH);
-      const s=Math.min(coverW/img.width,coverH/img.height);
-      const iw=img.width*s,ih=img.height*s;
-      ctx.drawImage(img,cx+(coverW-iw)/2,cy+(coverH-ih)/2,iw,ih);
-      ctx.restore();
-      ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
-      roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
+
+      if(img){
+        ctx.save();
+        roundRectPath(ctx,cx,cy,coverW,coverH,16);
+        ctx.clip();
+        ctx.fillStyle='#555';ctx.fillRect(cx,cy,coverW,coverH);
+        const s=Math.min(coverW/img.width,coverH/img.height);
+        const iw=img.width*s,ih=img.height*s;
+        ctx.drawImage(img,cx+(coverW-iw)/2,cy+(coverH-ih)/2,iw,ih);
+        ctx.restore();
+        ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
+        roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
+      }else{
+        drawEventTypeBox(ctx,cx,cy,coverW,coverH,e.event_type,T,T.progressFill);
+      }
 
       drawEventCta(1550);
-    }else{
-      // Sin libro vinculado no hay portada que anclar arriba — en vez de un
-      // diseño top-anchored con medio lienzo vacío, la ilustración de un libro
-      // abierto encabeza un cartel centrado (chip, título, fecha, ubicación y
-      // CTA), tanto vertical como horizontalmente.
-      const illusW=260,illusH=illusW*0.62+40;
-      ctx.font='700 24px Inter, Arial, sans-serif';
-      const typeW=measureChipW(typeLabel);
-      ctx.font='800 54px "Playfair Display", Georgia, serif';
-      const titleLines=wrapCanvasText(ctx,e.title,availW-120).slice(0,3);
-      ctx.font='500 27px Inter, Arial, sans-serif';
-      const locLines=(e.address||e.city)?wrapCanvasText(ctx,`📍  ${[e.address,e.city].filter(Boolean).join(', ')}`,availW-120).slice(0,2):[];
-
-      const blockH=illusH+70+titleLines.length*60+16+42+locLines.length*34+40+ctaH+58;
-      const bandTop=200,bandBottom=1800;
-      let y=bandTop+Math.max(0,(bandBottom-bandTop-blockH)/2);
-
-      drawOpenBookDoodle(ctx,540,y+illusH/2,illusW,T,T.progressFill);
-      y+=illusH;
-
-      drawChip(typeLabel,540-typeW/2,y);
-      y+=70;
-
-      ctx.fillStyle=T.textPrimary;
-      ctx.font='800 54px "Playfair Display", Georgia, serif';
-      ctx.textAlign='center';
-      titleLines.forEach(ln=>{ctx.fillText(ln,540,y+42);y+=60;});
-      ctx.textAlign='left';
-      y+=16;
-
-      ctx.font='500 27px Inter, Arial, sans-serif';
-      ctx.fillStyle=T.textTertiary;
-      ctx.textAlign='center';
-      ctx.fillText(`🗓️  ${formatEventDate(e.starts_at)}`,540,y+22);
-      y+=42;
-      locLines.forEach(ln=>{ctx.fillText(ln,540,y+22);y+=34;});
-      ctx.textAlign='left';
-      y+=40;
-
-      drawEventCta(y);
     }
 
     // Pie
