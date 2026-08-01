@@ -14,7 +14,6 @@
      las tarjetas por la mitad entre páginas) -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -790,9 +789,12 @@ a{color:inherit}
 .upost-comment-send:hover{background:var(--red-dark)}
 .upost-edited-tag{font-size:10.5px;color:var(--ink3);font-style:italic;margin-left:4px}
 
-.profile-hero{background:linear-gradient(145deg,#1A1A1A 0%,#242424 100%);color:white;border-radius:18px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden}
-.profile-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(61,107,82,0.08),transparent 65%)}
-.profile-hero::before{content:'';position:absolute;left:-60px;bottom:-80px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,6,0.08),transparent 65%)}
+.profile-hero{background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 3px,transparent 3px 26px),
+    linear-gradient(160deg,#16241D 0%,#1A1A1A 55%,#241A14 100%);
+  color:white;border-radius:18px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden}
+.profile-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(74,124,95,0.22),transparent 65%)}
+.profile-hero::before{content:'';position:absolute;left:-60px;bottom:-100px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,6,0.16),transparent 65%)}
 .profile-hero-top{display:flex;align-items:flex-start;gap:20px;position:relative;z-index:2;margin-bottom:20px;min-height:112px}
 .profile-av-wrap{position:relative;flex-shrink:0}
 .profile-av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(61,107,82,0.55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0}
@@ -815,11 +817,46 @@ a{color:inherit}
 .ps-streak-flame{font-size:22px;line-height:1}
 .ps-streak .ps-n{color:var(--amber)}
 .ps-streak .ps-l{color:rgba(217,119,6,0.6)}
-/* profile streak badge — top-right, big */
-.profile-streak-badge{position:absolute;top:22px;right:26px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(145deg,#92400E,#B45309);border:2px solid rgba(255,255,255,0.15);border-radius:18px;padding:14px 20px;box-shadow:0 8px 24px rgba(0,0,0,0.35),0 0 0 1px rgba(217,119,6,0.3)}
-.profile-streak-badge-flame{font-size:34px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))}
-.profile-streak-badge-num{font-family:'Inter',sans-serif;font-size:32px;font-weight:600;color:#FFF;line-height:1;letter-spacing:-0.03em;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
-.profile-streak-badge-lbl{font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;font-weight:600}
+/* profile streak badge — top-right, el "reclamo" del perfil: cuanto más larga
+   la racha, más sube de nivel (color, brillo, animación), como un medidor de
+   estatus pensado para presumir, no solo informar. */
+.profile-streak-badge{--glow:180,83,9;position:absolute;top:18px;right:24px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;background:linear-gradient(145deg,#92400E,#B45309);border:2px solid rgba(255,255,255,0.2);border-radius:20px;padding:15px 22px;box-shadow:0 8px 26px rgba(var(--glow),0.4),0 0 0 1px rgba(255,255,255,0.1);overflow:hidden;isolation:isolate;animation:streakPulse 2.6s ease-in-out infinite;transition:opacity .3s,transform .2s}
+.profile-streak-badge::before{content:'';position:absolute;top:-60%;left:-70%;width:45%;height:220%;background:linear-gradient(75deg,transparent,rgba(255,255,255,0.5),transparent);animation:streakShine 3.4s ease-in-out infinite;z-index:-1}
+.profile-streak-badge.tier-ember{--glow:234,88,12;background:linear-gradient(145deg,#9A3412,#EA580C)}
+.profile-streak-badge.tier-blaze{--glow:220,38,38;background:linear-gradient(145deg,#7F1D1D,#DC2626)}
+.profile-streak-badge.tier-inferno{--glow:192,38,211;background:linear-gradient(145deg,#581C87,#C026D3)}
+.profile-streak-badge.tier-legend{--glow:220,38,38;background:linear-gradient(120deg,#B45309,#DC2626,#C026D3,#2563EB,#B45309);background-size:300% 300%;animation:streakPulse 1.8s ease-in-out infinite,streakGradientShift 6s ease infinite}
+.profile-streak-badge-flame{font-size:36px;line-height:1;display:inline-block;animation:flicker 1.8s ease-in-out infinite;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4))}
+.profile-streak-badge-num{font-family:'Inter',sans-serif;font-size:34px;font-weight:700;color:#FFF;line-height:1;letter-spacing:-0.03em;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
+.profile-streak-badge-lbl{font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;font-weight:700}
+.profile-streak-badge-best{font-size:9.5px;color:rgba(255,255,255,0.65);white-space:nowrap;margin-top:1px}
+@keyframes streakPulse{0%,100%{box-shadow:0 8px 26px rgba(var(--glow),0.4),0 0 0 1px rgba(255,255,255,0.1)}50%{box-shadow:0 10px 34px rgba(var(--glow),0.7),0 0 0 4px rgba(255,255,255,0.12)}}
+@keyframes streakShine{0%,40%{left:-70%}75%,100%{left:150%}}
+@keyframes streakGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* ═══ LOGROS ═══ */
+.ach-card{margin-bottom:16px}
+.ach-count-pill{font-size:11.5px;font-weight:700;color:var(--red);background:var(--red-light);padding:2px 9px;border-radius:10px;margin-left:8px;vertical-align:middle}
+.ach-strip{display:flex;gap:14px;overflow-x:auto;padding:6px 2px 4px}
+.ach-badge{--ach-color:#B45309;--ach-light:#FEF3E2;flex-shrink:0;width:56px;height:56px;border-radius:50%;background:linear-gradient(150deg,var(--ach-light),white);border:2.5px solid var(--ach-color);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 3px 10px rgba(0,0,0,0.08);cursor:default}
+.ach-badge-sm{width:40px;height:40px;border-width:2px;flex-shrink:0}
+.ach-badge-icon{font-size:24px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15))}
+.ach-badge-sm .ach-badge-icon{font-size:17px}
+.ach-badge.locked{background:#F1F1EF;border-color:#DDD;filter:grayscale(1)}
+.ach-badge.locked .ach-badge-icon{opacity:0.4}
+.ach-badge-progress{position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);width:70%;height:4px;background:#E5E5E5;border-radius:3px;overflow:hidden}
+.ach-badge-progress-fill{height:100%;background:var(--ach-color);border-radius:3px}
+.ach-modal-list{max-height:60vh;overflow-y:auto;margin-top:8px}
+.ach-modal-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.ach-modal-cat:first-child{margin-top:0}
+.ach-modal-row{display:flex;gap:12px;align-items:center;padding:8px 4px}
+.ach-modal-row.earned{background:var(--red-light);border-radius:10px}
+.ach-modal-info{flex:1;min-width:0}
+.ach-modal-name{font-size:13.5px;font-weight:700}
+.ach-modal-tier{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-left:4px}
+.ach-modal-desc{font-size:12px;color:var(--ink3);margin-top:1px}
+.ach-modal-pct{font-size:11px;color:var(--ink3);margin-top:3px}
+.ach-modal-pct.earned{color:var(--red);font-weight:700}
 /* profile reading-now banner */
 .profile-reading-now{background:linear-gradient(120deg,#F5F3EF,white);border:1px solid #E8E4DC;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:center}
 .profile-reading-now-spine{width:42px;height:64px;border-radius:4px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding:4px;overflow:hidden;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
@@ -1988,6 +2025,7 @@ a{color:inherit}
       <input type="file" id="prof-photo" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
       <div style="position:absolute;bottom:0;right:0;background:var(--red);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center"><i class="ti ti-camera" style="font-size:12px;color:white"></i></div>
     </div>
+    <div><button type="button" class="card-link" id="prof-reframe-btn" style="display:none;margin-top:6px" onclick="event.stopPropagation();reframeExistingPhoto()"><i class="ti ti-crop"></i> Reencuadrar foto actual</button></div>
   </div>
   <div class="f-row"><label class="f-label">Nombre</label><input class="f-input" id="prof-name"></div>
   <div class="f-row"><label class="f-label">Username</label><div style="position:relative"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink3)">@</span><input class="f-input" style="padding-left:26px" id="prof-username"></div></div>
@@ -2015,6 +2053,16 @@ a{color:inherit}
     <button class="btn btn-ghost" style="flex:1" onclick="closePhotoCrop()">Cancelar</button>
     <button class="btn btn-red" style="flex:1" onclick="confirmPhotoCrop()"><i class="ti ti-check"></i> Usar esta foto</button>
   </div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: LOGROS ══════════════════════ -->
+<div class="overlay" id="modal-achievements" style="display:none" onclick="if(event.target===this)closeModal('modal-achievements')">
+<div class="modal modal-lg">
+  <button class="modal-close" onclick="closeModal('modal-achievements')"><i class="ti ti-x"></i></button>
+  <h2>🏅 Logros</h2>
+  <p class="sub" id="ach-modal-count">0 de 0 logros conseguidos</p>
+  <div id="ach-modal-list" class="ach-modal-list"></div>
 </div>
 </div>
 
@@ -2989,7 +3037,7 @@ a{color:inherit}
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-white" id="stats-export-pdf-btn" onclick="exportStatsPDF()"><i class="ti ti-file-type-pdf"></i> Exportar PDF</button>
-      <button class="btn btn-white" id="stats-export-xlsx-btn" onclick="exportStatsExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
+      <button class="btn btn-white" id="stats-export-csv-btn" onclick="exportStatsCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar CSV</button>
     </div>
   </div>
 
@@ -3050,6 +3098,7 @@ a{color:inherit}
       <span class="profile-streak-badge-flame">🔥</span>
       <div class="profile-streak-badge-num" id="profile-streak-n">0</div>
       <div class="profile-streak-badge-lbl">días racha</div>
+      <div class="profile-streak-badge-best" id="profile-streak-best"></div>
     </div>
     <div class="profile-hero-top">
       <div class="profile-av-wrap">
@@ -3069,6 +3118,15 @@ a{color:inherit}
       <div class="ps" onclick="openPeopleModal('siguiendo')"><div class="ps-n" id="ps-siguiendo">0</div><div class="ps-l">Siguiendo</div></div>
       <div class="ps" onclick="openPeopleModal('seguidores')"><div class="ps-n" id="ps-seguidores">0</div><div class="ps-l">Seguidores</div></div>
     </div>
+  </div>
+
+  <!-- LOGROS -->
+  <div class="card ach-card">
+    <div class="card-head">
+      <div class="card-title">🏅 Logros <span id="profile-ach-count" class="ach-count-pill">0/0</span></div>
+      <button class="card-link" onclick="openAchievementsModal()">Ver todos →</button>
+    </div>
+    <div class="ach-strip" id="profile-ach-strip"></div>
   </div>
 
   <!-- LEYENDO AHORA — visible para otros -->
@@ -5672,6 +5730,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
   const theirReadingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
   const streak=calculateCurrentStreak(theirReadingDays);
+  const bestStreak=Math.max(calculateBestStreak(theirReadingDays),streak);
   // Raw rows use shelf_level/shelf_col like the rest of user_books' snake_case fields —
   // mirror them onto shelfLevel/shelfCol so their saved shelf arrangement shows for real,
   // the same helpers own profile uses instead of always recomputing a fresh layout.
@@ -5736,10 +5795,11 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
 
   document.getElementById('user-profile-content').innerHTML=`
     <div class="profile-hero">
-      <div class="profile-streak-badge" style="opacity:${streak>0?1:0.35}">
+      <div class="profile-streak-badge ${streakTierClass(streak)==='tier-spark'?'':streakTierClass(streak)}" style="opacity:${streak>0?1:0.35}">
         <span class="profile-streak-badge-flame">🔥</span>
         <div class="profile-streak-badge-num">${streak}</div>
         <div class="profile-streak-badge-lbl">días racha</div>
+        <div class="profile-streak-badge-best">${streak>0&&streak===bestStreak?'¡Récord personal! 🏆':(bestStreak>0?`Mejor racha: ${bestStreak} días`:'')}</div>
       </div>
       <div class="profile-hero-top">
         <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
@@ -5902,6 +5962,7 @@ function openProfileEdit(){
   av.textContent=PROFILE.photo?'':PROFILE.name.slice(0,2).toUpperCase();
   av.style.background=PROFILE.photo?'none':'var(--red)';
   av.style.backgroundImage=PROFILE.photo?`url(${PROFILE.photo})`:'';
+  document.getElementById('prof-reframe-btn').style.display=PROFILE.photo?'inline-flex':'none';
   document.getElementById('prof-name').value=PROFILE.name;
   document.getElementById('prof-username').value=PROFILE.username;
   document.getElementById('prof-bio').value=PROFILE.bio;
@@ -6448,8 +6509,7 @@ let _pcImg=null,_pcFile=null,_pcScale=1,_pcBaseScale=1,_pcLeft=0,_pcTop=0;
 let _pcDragging=false,_pcDragStartX=0,_pcDragStartY=0,_pcStartLeft=0,_pcStartTop=0;
 const PC_VIEWPORT=280;
 
-function handleProfilePhoto(input){
-  const file=input.files[0];if(!file)return;
+function loadFileIntoCropper(file){
   _pcFile=file;
   const reader=new FileReader();
   reader.onload=e=>{
@@ -6468,6 +6528,34 @@ function handleProfilePhoto(input){
     img.src=e.target.result;
   };
   reader.readAsDataURL(file);
+}
+function handleProfilePhoto(input){
+  const file=input.files[0];if(!file)return;
+  loadFileIntoCropper(file);
+}
+// Re-encuadrar la foto YA subida: hasta ahora el recortador solo se abría al
+// elegir un archivo nuevo, así que si tu foto actual había quedado mal
+// centrada, la única forma de arreglarlo era volver a buscar el archivo
+// original en el disco y subirlo de cero. Aquí se descarga la foto ya
+// guardada y se mete en el mismo flujo de recorte, como si acabaras de
+// seleccionarla.
+async function reframeExistingPhoto(){
+  if(!PROFILE.photo)return;
+  const btn=document.getElementById('prof-reframe-btn');
+  const prevHtml=btn?.innerHTML;
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Cargando...';}
+  try{
+    const res=await fetch(PROFILE.photo);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    const file=new File([blob],'avatar.jpg',{type:blob.type||'image/jpeg'});
+    loadFileIntoCropper(file);
+  }catch(e){
+    console.error('no se pudo cargar la foto actual para reencuadrar:',e);
+    toast('❌ No se pudo cargar tu foto actual. Prueba a subir una nueva.');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=prevHtml;}
+  }
 }
 
 function renderPhotoCrop(){
@@ -6790,6 +6878,17 @@ function todayKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
+// La racha es lo que más apetece enseñar del perfil, así que el badge sube de
+// "nivel" (color, brillo, animación) según lo larga que sea — como un
+// medidor de estatus, no solo un contador.
+function streakTierClass(streak){
+  if(streak>=365)return'tier-legend';
+  if(streak>=100)return'tier-inferno';
+  if(streak>=30)return'tier-blaze';
+  if(streak>=7)return'tier-ember';
+  return'tier-spark';
+}
+
 async function markTodayAsRead(){
   const key=todayKey();
   if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
@@ -6821,13 +6920,14 @@ function calculateCurrentStreak(days){
   return streak;
 }
 
-function calculateBestStreak(){
-  if(!READING_DAYS.size)return 0;
+function calculateBestStreak(days){
+  days=days||READING_DAYS;
+  if(!days.size)return 0;
   // Use Date.UTC (not `new Date(y,m-1,dd)`) so each calendar day is exactly 86400000ms
   // apart regardless of local DST transitions — with local time, the day a clock springs
   // forward/falls back is only 23h/25h long, which made consecutive-day streaks that
   // crossed a DST change get miscounted as broken.
-  const dates=[...READING_DAYS].map(k=>{
+  const dates=[...days].map(k=>{
     const[y,m,dd]=k.split('-').map(Number);
     return Date.UTC(y,m-1,dd);
   }).sort((a,b)=>a-b);
@@ -8939,9 +9039,9 @@ function setStatsYear(year){
 function statsExportFilename(ext){
   const uname=(PROFILE?.username||'usuario').toString().trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')||'usuario';
   // El PDF es una foto de lo que tengas seleccionado en pantalla (año o general);
-  // el Excel siempre lleva el historial completo (para eso es una hoja de
-  // cálculo), así que su nombre no debe sugerir que está recortado a un año.
-  const yearPart=ext==='xlsx'?'completo':(_statsYear==='all'?'general':_statsYear);
+  // el CSV siempre lleva el historial completo (para eso es un volcado de
+  // datos), así que su nombre no debe sugerir que está recortado a un año.
+  const yearPart=ext==='csv'?'completo':(_statsYear==='all'?'general':_statsYear);
   const date=new Date().toISOString().slice(0,10);
   return `shelfie-estadisticas-${uname}-${yearPart}-${date}.${ext}`;
 }
@@ -9289,236 +9389,44 @@ function collectReadingLogRows(){
   return rows;
 }
 
-// Paleta de acento reutilizada en toda la hoja (mismos verdes/morados/ámbar/azul
-// que ya usa la propia app para las tarjetas y géneros en pantalla).
-const XLSX_GREEN='FF3D6B52',XLSX_GREEN_L='FFEBF4EF';
-const XLSX_PURPLE='FF7C3AED',XLSX_PURPLE_L='FFF5F3FF';
-const XLSX_AMBER='FFD97706',XLSX_AMBER_L='FFFFFBEB';
-const XLSX_BLUE='FF2563EB',XLSX_BLUE_L='FFEFF6FF';
-const XLSX_SLATE='FF57534E',XLSX_SLATE_L='FFF5F5F4';
-const XLSX_GENRE_TINTS=['FFFEE2E2','FFF5F3FF','FFFEF3C7','FFD1FAE5','FFDBEAFE','FFFCE7F3','FFCCFBF1','FFF3E8FF'];
-const XLSX_GRID_BORDER=(()=>{const t={style:'thin',color:{argb:'FFE5E5E5'}};return{top:t,left:t,bottom:t,right:t};})();
-const XLSX_ZEBRA='FFF7F9F8';
-
-function xlsxTintForGenre(name){
-  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
-  return XLSX_GENRE_TINTS[h%XLSX_GENRE_TINTS.length];
-}
-function xlsxStyleHeaderRow(row,argb){
-  row.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb}};c.border=XLSX_GRID_BORDER;c.alignment={vertical:'middle',indent:1};});
-  row.height=20;
-}
-// Bordes de rejilla en cada celda con dato + una franja "cebra" de fondo cada
-// dos filas — sin pisar ningún relleno que ya se le haya puesto a la celda
-// (como el color de género).
-function xlsxStyleDataRow(row,i){
-  row.eachCell({includeEmpty:false},c=>{
-    c.border=XLSX_GRID_BORDER;
-    if(i%2===1&&!c.fill)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:XLSX_ZEBRA}};
-  });
-}
-function xlsxDataBar(ws,ref,colorArgb){
-  ws.addConditionalFormatting({ref,rules:[{type:'dataBar',minLength:0,maxLength:100,gradient:false,color:{argb:colorArgb},cfvo:[{type:'min'},{type:'max'}],priority:1}]});
-}
-
-async function exportStatsExcel(){
-  const btn=document.getElementById('stats-export-xlsx-btn');
-  if(!window.ExcelJS){toast('❌ No se pudo cargar el generador de Excel. Comprueba tu conexión e inténtalo de nuevo.');return;}
+function exportStatsCSV(){
+  const btn=document.getElementById('stats-export-csv-btn');
   const prevHtml=btn?.innerHTML;
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
   try{
-    const wb=new ExcelJS.Workbook();
-    wb.creator='Shelfie';
-    wb.created=new Date();
-    wb.title=`Estadísticas de lectura de @${PROFILE?.username||'lector'}`;
-
-    // El Excel es el "archivo oficial" completo: a diferencia del PDF (que es una
-    // foto de la pestaña de año que tengas abierta), aquí siempre sale el
-    // historial entero — para eso sirve tener una hoja de cálculo de verdad.
-    const logRows=collectReadingLogRows();
-
-    // ── Hoja Resumen ──
-    const ws=wb.addWorksheet('Resumen',{properties:{tabColor:{argb:XLSX_GREEN}},views:[{showGridLines:false}]});
-    ws.columns=[{width:3},{width:15},{width:15},{width:2.5},{width:15},{width:15},{width:2.5},{width:15},{width:15},{width:2.5},{width:15},{width:15}];
-
-    // Banner de cabecera — a todo lo ancho de la cuadrícula de tarjetas, en vez
-    // del banco blanco original con el título metido en dos celdas estrechas.
-    // (Relleno celda a celda, no mergeCells: A1:L2 no puede fusionarse como
-    // bloque y ADEMÁS contener los merges independientes B1:L1 / B2:L2.)
-    for(let rr=1;rr<=2;rr++)for(let cc=1;cc<=12;cc++)ws.getCell(rr,cc).fill={type:'pattern',pattern:'solid',fgColor:{argb:XLSX_GREEN}};
-    ws.getRow(1).height=24;ws.getRow(2).height=20;
-    const logoId=wb.addImage({base64:shelfieLogoDataUrl(96,'#FFFFFF'),extension:'png'});
-    ws.addImage(logoId,{tl:{col:0.3,row:0.25},ext:{width:28,height:28}});
-    ws.mergeCells('B1:L1');
-    ws.getCell('B1').value='shelfie — Estadísticas de lectura';
-    ws.getCell('B1').font={bold:true,size:15,color:{argb:'FFFFFFFF'}};
-    ws.getCell('B1').alignment={vertical:'middle'};
-    ws.mergeCells('B2:L2');
-    ws.getCell('B2').value=`@${PROFILE?.username||'lector'}  ·  Historial completo  ·  ${new Date().toLocaleDateString('es-ES')}`;
-    ws.getCell('B2').font={size:10,color:{argb:'FFD8E8DE'},italic:true};
-    ws.getCell('B2').alignment={vertical:'middle'};
-
-    let r=4;
-    const sectionTitle=text=>{
-      ws.mergeCells(`A${r}:L${r}`);
-      const c=ws.getCell(`A${r}`);
-      c.value=text;c.font={bold:true,size:11.5,color:{argb:'FF1A1A1A'}};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F0'}};
-      c.alignment={vertical:'middle',indent:1};
-      c.border={left:{style:'medium',color:{argb:XLSX_GREEN}}};
-      ws.getRow(r).height=20;
-      r++;
+    const rows=collectReadingLogRows();
+    const headers=['Fecha de fin','Mes','Año','Título','Autor','Páginas','Valoración','Género 1','Género 2','Editorial','Año de publicación','Favorito','Reseña'];
+    // Un campo va entre comillas en cuanto puede confundirse con el separador —
+    // coma, comillas o salto de línea —, escapando las comillas internas
+    // duplicándolas, como exige el propio formato CSV (RFC 4180).
+    const csvField=v=>{
+      const s=v==null?'':String(v);
+      return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
     };
-
-    // Tarjetas KPI en cuadrícula 4×2 — cada una ocupa 2 columnas × 2 filas
-    // (etiqueta pequeña arriba, cifra grande abajo), en vez de la lista
-    // vertical de una sola columna que había antes.
-    function addKpiCard(colStart,rowStart,label,value,color,light){
-      ws.mergeCells(rowStart,colStart,rowStart,colStart+1);
-      ws.mergeCells(rowStart+1,colStart,rowStart+1,colStart+1);
-      const labelCell=ws.getCell(rowStart,colStart);
-      labelCell.value=label;
-      labelCell.font={size:9,bold:true,color:{argb:'FF8A8A85'}};
-      labelCell.alignment={vertical:'middle',horizontal:'left',indent:1};
-      const valCell=ws.getCell(rowStart+1,colStart);
-      valCell.value=value;
-      valCell.font={bold:true,size:20,color:{argb:color}};
-      valCell.alignment={vertical:'middle',horizontal:'left',indent:1};
-      for(let cc=colStart;cc<=colStart+1;cc++){
-        ws.getCell(rowStart,cc).fill={type:'pattern',pattern:'solid',fgColor:{argb:light}};
-        ws.getCell(rowStart+1,cc).fill={type:'pattern',pattern:'solid',fgColor:{argb:light}};
-        ws.getCell(rowStart,cc).border={top:{style:'medium',color:{argb:color}}};
-      }
-      ws.getRow(rowStart).height=16;
-      ws.getRow(rowStart+1).height=30;
-    }
-
-    sectionTitle('Resumen general (los tres primeros se recalculan solos si editas el Registro de lectura)');
-    r++;
-    const kpiDefs=[
-      {label:'LIBROS LEÍDOS',value:{formula:`COUNT('Registro de lectura'!A2:A9999)`},color:XLSX_GREEN,light:XLSX_GREEN_L},
-      {label:'PÁGINAS LEÍDAS',value:{formula:`SUM('Registro de lectura'!G2:G9999)`},color:XLSX_PURPLE,light:XLSX_PURPLE_L},
-      {label:'VALORACIÓN MEDIA',value:{formula:`IFERROR(ROUND(AVERAGEIF('Registro de lectura'!H2:H9999,">0"),2),0)`},color:XLSX_AMBER,light:XLSX_AMBER_L},
-      {label:'AUTORES DISTINTOS',value:new Set(logRows.map(x=>x.author)).size,color:XLSX_BLUE,light:XLSX_BLUE_L},
-      {label:'RACHA ACTUAL (DÍAS)',value:calculateCurrentStreak(),color:XLSX_AMBER,light:XLSX_AMBER_L},
-      {label:'LEYENDO AHORA',value:DB.leyendo.length,color:XLSX_BLUE,light:XLSX_BLUE_L},
-      {label:'QUIERO LEER',value:DB.quiero.length,color:XLSX_AMBER,light:XLSX_AMBER_L},
-      {label:'ABANDONADOS',value:DB.dnf.length,color:XLSX_SLATE,light:XLSX_SLATE_L},
-    ];
-    const cardCols=[2,5,8,11];
-    kpiDefs.forEach((k,i)=>{
-      const rowStart=r+Math.floor(i/4)*3;
-      addKpiCard(cardCols[i%4],rowStart,k.label,k.value,k.color,k.light);
+    const csvRow=arr=>arr.map(csvField).join(',');
+    const lines=[csvRow(headers)];
+    rows.forEach(row=>{
+      lines.push(csvRow([
+        row.date?row.date.toLocaleDateString('es-ES'):'',
+        row.date?MESES_ES[row.date.getMonth()]:'',
+        row.date?row.date.getFullYear():'',
+        row.title,row.author,row.pages||'',row.stars||'',
+        row.genres[0]||'',row.genres[1]||'',row.publisher||'',row.editionYear||'',
+        row.favorite?'Sí':'',row.review||'',
+      ]));
     });
-    r+=6;
-
-    sectionTitle('Libros terminados por mes (todos los años)');
-    // Empieza en columna B, no A — la A es el margen estrecho del banner/
-    // tarjetas (ancho 3) y "Septiembre"/"Noviembre" no caben ahí.
-    const monthHead=ws.getRow(r);monthHead.getCell(2).value='Mes';monthHead.getCell(3).value='Libros';
-    xlsxStyleHeaderRow(monthHead,XLSX_GREEN);r++;
-    const monthStart=r;
-    const monthCounts=Array(12).fill(0);
-    logRows.forEach(row=>{if(row.date)monthCounts[row.date.getMonth()]++;});
-    MESES_ES.forEach((m,i)=>{
-      const row=ws.getRow(r);row.getCell(2).value=m;row.getCell(3).value=monthCounts[i];
-      xlsxStyleDataRow(row,i);r++;
-    });
-    if(monthCounts.some(n=>n>0))xlsxDataBar(ws,`C${monthStart}:C${r-1}`,XLSX_GREEN);
-    r++;
-
-    // ── Registro de lectura: una fila por CADA lectura (las relecturas cuentan aparte) ──
-    const wsLog=wb.addWorksheet('Registro de lectura',{properties:{tabColor:{argb:XLSX_GREEN}}});
-    wsLog.columns=[
-      {header:'#',key:'n',width:6},{header:'Fecha de fin',key:'date',width:14,style:{numFmt:'dd/mm/yyyy'}},
-      {header:'Mes',key:'month',width:12},{header:'Año',key:'year',width:8},
-      {header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},
-      {header:'Páginas',key:'pages',width:10},{header:'Valoración',key:'stars',width:12},
-      {header:'Género 1',key:'g1',width:16},{header:'Género 2',key:'g2',width:16},
-      {header:'Editorial',key:'publisher',width:20},{header:'Año publicación',key:'editionYear',width:14},
-      {header:'Favorito',key:'favorite',width:10},{header:'Reseña',key:'review',width:40},
-    ];
-    xlsxStyleHeaderRow(wsLog.getRow(1),XLSX_GREEN);
-    wsLog.views=[{state:'frozen',ySplit:1,showGridLines:false}];
-    logRows.forEach((row,i)=>{
-      const xlRow=wsLog.addRow({
-        n:i+1,date:row.date,month:row.date?MESES_ES[row.date.getMonth()]:'',year:row.date?row.date.getFullYear():'',
-        title:row.title,author:row.author,pages:row.pages,stars:row.stars||'',g1:row.genres[0]||'',g2:row.genres[1]||'',
-        publisher:row.publisher,editionYear:row.editionYear,favorite:row.favorite?'Sí':'',review:row.review,
-      });
-      xlsxStyleDataRow(xlRow,i);
-      if(row.genres[0])xlRow.getCell(9).fill={type:'pattern',pattern:'solid',fgColor:{argb:xlsxTintForGenre(row.genres[0])}};
-      if(row.genres[1])xlRow.getCell(10).fill={type:'pattern',pattern:'solid',fgColor:{argb:xlsxTintForGenre(row.genres[1])}};
-      if(row.favorite){xlRow.getCell(13).font={bold:true,color:{argb:XLSX_GREEN}};xlRow.getCell(13).fill={type:'pattern',pattern:'solid',fgColor:{argb:XLSX_GREEN_L}};}
-      if(row.stars)xlRow.getCell(8).font={bold:true,color:{argb:XLSX_AMBER}};
-    });
-    wsLog.autoFilter={from:'A1',to:'N1'};
-    if(logRows.length)xlsxDataBar(wsLog,`H2:H${logRows.length+1}`,XLSX_AMBER);
-
-    // ── Quiero leer ──
-    const wsWant=wb.addWorksheet('Quiero leer',{properties:{tabColor:{argb:XLSX_AMBER}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsWant.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Año',key:'year',width:8},{header:'Género(s)',key:'genres',width:26},{header:'Añadido el',key:'added',width:14,style:{numFmt:'dd/mm/yyyy'}}];
-    xlsxStyleHeaderRow(wsWant.getRow(1),XLSX_AMBER);
-    DB.quiero.forEach((b,i)=>xlsxStyleDataRow(wsWant.addRow({title:b.title,author:b.author,year:b.year||'',genres:(b.genres||[]).join(', '),added:parseEsDate(b.addedAt)}),i));
-    if(DB.quiero.length)wsWant.autoFilter={from:'A1',to:'E1'};
-
-    // ── Leyendo ahora ──
-    const wsReading=wb.addWorksheet('Leyendo ahora',{properties:{tabColor:{argb:XLSX_BLUE}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsReading.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Páginas',key:'pages',width:10},{header:'Página actual',key:'cur',width:14},{header:'Progreso',key:'pct',width:12,style:{numFmt:'0%'}}];
-    xlsxStyleHeaderRow(wsReading.getRow(1),XLSX_BLUE);
-    DB.leyendo.forEach((b,i)=>xlsxStyleDataRow(wsReading.addRow({title:b.title,author:b.author,pages:b.pages||'',cur:b.curPage||0,pct:b.pages?(b.curPage||0)/b.pages:null}),i));
-
-    // ── Abandonados ──
-    const wsDnf=wb.addWorksheet('Abandonados',{properties:{tabColor:{argb:XLSX_SLATE}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsDnf.columns=[{header:'Título',key:'title',width:36},{header:'Autor',key:'author',width:24},{header:'Páginas',key:'pages',width:10},{header:'Se quedó en',key:'cur',width:14},{header:'Notas',key:'review',width:40}];
-    xlsxStyleHeaderRow(wsDnf.getRow(1),XLSX_SLATE);
-    DB.dnf.forEach((b,i)=>xlsxStyleDataRow(wsDnf.addRow({title:b.title,author:b.author,pages:b.pages||'',cur:b.curPage||'',review:b.review||''}),i));
-
-    // ── Autores ──
-    const wsAuthors=wb.addWorksheet('Autores',{properties:{tabColor:{argb:XLSX_BLUE}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsAuthors.columns=[{header:'Autor',key:'author',width:26},{header:'Libros leídos',key:'n',width:14},{header:'Páginas totales',key:'pages',width:16},{header:'Valoración media',key:'avg',width:16}];
-    xlsxStyleHeaderRow(wsAuthors.getRow(1),XLSX_BLUE);
-    const byAuthor={};
-    logRows.forEach(row=>{const a=byAuthor[row.author]=byAuthor[row.author]||{n:0,pages:0,starsSum:0,starsN:0};a.n++;a.pages+=row.pages||0;if(row.stars){a.starsSum+=row.stars;a.starsN++;}});
-    const authorEntries=Object.entries(byAuthor).sort((a,b)=>b[1].n-a[1].n);
-    authorEntries.forEach(([name,a],i)=>xlsxStyleDataRow(wsAuthors.addRow({author:name,n:a.n,pages:a.pages,avg:a.starsN?Math.round((a.starsSum/a.starsN)*100)/100:null}),i));
-    if(authorEntries.length){wsAuthors.autoFilter={from:'A1',to:'D1'};xlsxDataBar(wsAuthors,`B2:B${authorEntries.length+1}`,XLSX_BLUE);}
-
-    // ── Géneros ──
-    const wsGenres=wb.addWorksheet('Géneros',{properties:{tabColor:{argb:XLSX_PURPLE}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsGenres.columns=[{header:'Género',key:'genre',width:22},{header:'Libros',key:'n',width:12},{header:'Valoración media',key:'avg',width:16}];
-    xlsxStyleHeaderRow(wsGenres.getRow(1),XLSX_PURPLE);
-    const byGenre={};
-    logRows.forEach(row=>{(row.genres||[]).forEach(g=>{const e=byGenre[g]=byGenre[g]||{n:0,starsSum:0,starsN:0};e.n++;if(row.stars){e.starsSum+=row.stars;e.starsN++;}});});
-    const genreEntries=Object.entries(byGenre).sort((a,b)=>b[1].n-a[1].n);
-    genreEntries.forEach(([name,e],i)=>{
-      const xlRow=wsGenres.addRow({genre:name,n:e.n,avg:e.starsN?Math.round((e.starsSum/e.starsN)*100)/100:null});
-      xlsxStyleDataRow(xlRow,i);
-      xlRow.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:xlsxTintForGenre(name)}};
-    });
-    if(genreEntries.length)xlsxDataBar(wsGenres,`B2:B${genreEntries.length+1}`,XLSX_PURPLE);
-
-    // ── Por año ──
-    const wsYears=wb.addWorksheet('Por año',{properties:{tabColor:{argb:XLSX_GREEN}},views:[{state:'frozen',ySplit:1,showGridLines:false}]});
-    wsYears.columns=[{header:'Año',key:'year',width:10},{header:'Libros',key:'n',width:10},{header:'Páginas',key:'pages',width:12},{header:'Valoración media',key:'avg',width:16},{header:'Autores distintos',key:'authors',width:16}];
-    xlsxStyleHeaderRow(wsYears.getRow(1),XLSX_GREEN);
-    const byYear={};
-    logRows.forEach(row=>{if(!row.date)return;const y=row.date.getFullYear();const e=byYear[y]=byYear[y]||{n:0,pages:0,starsSum:0,starsN:0,authors:new Set()};e.n++;e.pages+=row.pages||0;if(row.stars){e.starsSum+=row.stars;e.starsN++;}e.authors.add(row.author);});
-    const yearRows=Object.entries(byYear).sort((a,b)=>b[0]-a[0]);
-    yearRows.forEach(([year,e],i)=>xlsxStyleDataRow(wsYears.addRow({year:parseInt(year),n:e.n,pages:e.pages,avg:e.starsN?Math.round((e.starsSum/e.starsN)*100)/100:null,authors:e.authors.size}),i));
-    if(yearRows.length)xlsxDataBar(wsYears,`B2:B${yearRows.length+1}`,XLSX_GREEN);
-
-    const buf=await wb.xlsx.writeBuffer();
-    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    // BOM UTF-8 al principio — sin esto Excel abre el CSV interpretando los
+    // acentos como Latin-1 y "López" sale como "LÃ³pez".
+    const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;a.download=statsExportFilename('xlsx');
+    a.href=url;a.download=statsExportFilename('csv');
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast('✅ Excel descargado');
+    toast('✅ CSV descargado');
   }catch(e){
-    console.error('exportStatsExcel failed:',e);
-    toast('❌ No se pudo generar el Excel');
+    console.error('exportStatsCSV failed:',e);
+    toast('❌ No se pudo generar el CSV');
   }finally{
     if(btn){btn.disabled=false;btn.innerHTML=prevHtml;}
   }
@@ -10893,6 +10801,193 @@ function renderProfileShelfieContent(){
   el.innerHTML=shelfieSectionContentHtml(sorted,PROFILE.shelfPublicView,profileShelfTab,true,PROFILE.shelfPublicSort);
 }
 
+// ═══════════════════════════════════════════════
+// LOGROS — insignias calculadas a partir de tus propios datos, sin tabla
+// nueva en la base de datos: cada logro es una condición sobre DB/RETOS/
+// CLUBS/READING_DAYS/etc. que se recalcula al vuelo cada vez que se pinta
+// el perfil. Una vez conseguido queda para siempre (usa el mejor valor
+// histórico — mejor racha, no la racha actual — así nunca se "pierde" un
+// logro ya ganado).
+// ═══════════════════════════════════════════════
+const ACHIEVEMENT_TIERS={
+  bronce:{label:'Bronce',color:'#B45309',light:'#FEF3E2'},
+  plata:{label:'Plata',color:'#64748B',light:'#F1F5F9'},
+  oro:{label:'Oro',color:'#D97706',light:'#FFFBEB'},
+  platino:{label:'Platino',color:'#7C3AED',light:'#F5F3FF'},
+  leyenda:{label:'Leyenda',color:'#DC2626',light:'#FEF2F2'},
+};
+const ACHIEVEMENT_CATALOG=[
+  {cat:'Volumen',items:[
+    {id:'vol1',tier:'bronce',icon:'📖',name:'Primeras páginas',desc:'Termina tu primer libro',get:c=>c.totalLeidos,target:1},
+    {id:'vol2',tier:'plata',icon:'📚',name:'Ritmo constante',desc:'Termina 10 libros',get:c=>c.totalLeidos,target:10},
+    {id:'vol3',tier:'oro',icon:'🏛️',name:'Devorador de libros',desc:'Termina 25 libros',get:c=>c.totalLeidos,target:25},
+    {id:'vol4',tier:'platino',icon:'🗼',name:'Bibliófilo',desc:'Termina 50 libros',get:c=>c.totalLeidos,target:50},
+    {id:'vol5',tier:'leyenda',icon:'👑',name:'Leyenda lectora',desc:'Termina 100 libros',get:c=>c.totalLeidos,target:100},
+  ]},
+  {cat:'Páginas',items:[
+    {id:'pag1',tier:'bronce',icon:'📄',name:'Calentando motores',desc:'Lee 1.000 páginas en total',get:c=>c.totalPages,target:1000},
+    {id:'pag2',tier:'plata',icon:'📃',name:'Página tras página',desc:'Lee 5.000 páginas en total',get:c=>c.totalPages,target:5000},
+    {id:'pag3',tier:'oro',icon:'📜',name:'Maratón de papel',desc:'Lee 15.000 páginas en total',get:c=>c.totalPages,target:15000},
+    {id:'pag4',tier:'platino',icon:'🗞️',name:'Sin fondo',desc:'Lee 30.000 páginas en total',get:c=>c.totalPages,target:30000},
+    {id:'pag5',tier:'leyenda',icon:'🧾',name:'Biblioteca ambulante',desc:'Lee 50.000 páginas en total',get:c=>c.totalPages,target:50000},
+  ]},
+  {cat:'Racha de lectura',items:[
+    {id:'rac1',tier:'bronce',icon:'🔥',name:'Prendiendo la mecha',desc:'Racha de 3 días seguidos',get:c=>c.bestStreak,target:3},
+    {id:'rac2',tier:'plata',icon:'🔥',name:'Una semana entera',desc:'Racha de 7 días seguidos',get:c=>c.bestStreak,target:7},
+    {id:'rac3',tier:'oro',icon:'🔥',name:'Sin fallar ni un día',desc:'Racha de 30 días seguidos',get:c=>c.bestStreak,target:30},
+    {id:'rac4',tier:'platino',icon:'🔥',name:'Imparable',desc:'Racha de 100 días seguidos',get:c=>c.bestStreak,target:100},
+    {id:'rac5',tier:'leyenda',icon:'🔥',name:'Todo un año',desc:'Racha de 365 días seguidos',get:c=>c.bestStreak,target:365},
+  ]},
+  {cat:'Autores',items:[
+    {id:'aut1',tier:'bronce',icon:'✍️',name:'Curioso',desc:'Lee libros de 5 autores distintos',get:c=>c.distinctAuthors,target:5},
+    {id:'aut2',tier:'plata',icon:'🖋️',name:'Explorador de voces',desc:'Lee libros de 15 autores distintos',get:c=>c.distinctAuthors,target:15},
+    {id:'aut3',tier:'oro',icon:'🖊️',name:'Sin autor favorito',desc:'Lee libros de 30 autores distintos',get:c=>c.distinctAuthors,target:30},
+    {id:'aut4',tier:'plata',icon:'💚',name:'Fan incondicional',desc:'Lee 3 libros del mismo autor',get:c=>c.maxByAuthor,target:3},
+    {id:'aut5',tier:'oro',icon:'💎',name:'Coleccionista',desc:'Lee 5 libros del mismo autor',get:c=>c.maxByAuthor,target:5},
+  ]},
+  {cat:'Géneros',items:[
+    {id:'gen1',tier:'bronce',icon:'🎭',name:'Mente abierta',desc:'Lee libros de 3 géneros distintos',get:c=>c.distinctGenres,target:3},
+    {id:'gen2',tier:'plata',icon:'🌈',name:'Todoterreno',desc:'Lee libros de 6 géneros distintos',get:c=>c.distinctGenres,target:6},
+    {id:'gen3',tier:'oro',icon:'🧭',name:'Explorador literario',desc:'Lee libros de 10 géneros distintos',get:c=>c.distinctGenres,target:10},
+    {id:'gen4',tier:'oro',icon:'🎯',name:'Especialista',desc:'Lee 10 libros de un mismo género',get:c=>c.maxByGenre,target:10},
+  ]},
+  {cat:'Tomos',items:[
+    {id:'tom1',tier:'bronce',icon:'📗',name:'Buen tocho',desc:'Termina un libro de 400+ páginas',get:c=>c.longestBook,target:400},
+    {id:'tom2',tier:'plata',icon:'📘',name:'Ladrillo literario',desc:'Termina un libro de 600+ páginas',get:c=>c.longestBook,target:600},
+    {id:'tom3',tier:'oro',icon:'📙',name:'Gigante de papel',desc:'Termina un libro de 900+ páginas',get:c=>c.longestBook,target:900},
+  ]},
+  {cat:'Valoraciones',items:[
+    {id:'val1',tier:'bronce',icon:'⭐',name:'Obra maestra',desc:'Valora un libro con 5 estrellas',get:c=>c.fiveStarCount,target:1},
+    {id:'val2',tier:'oro',icon:'🌟',name:'Solo lo mejor',desc:'Valora 10 libros con 5 estrellas',get:c=>c.fiveStarCount,target:10},
+  ]},
+  {cat:'Constancia',items:[
+    {id:'con1',tier:'plata',icon:'🍂',name:'Lector de temporada',desc:'Termina libros en 3 meses distintos de un mismo año',get:c=>c.maxMonthsCoverage,target:3},
+    {id:'con2',tier:'leyenda',icon:'🗓️',name:'Constancia de hierro',desc:'Termina al menos un libro cada mes del año',get:c=>c.maxMonthsCoverage,target:12},
+  ]},
+  {cat:'Exploración',items:[
+    {id:'exp1',tier:'bronce',icon:'🔖',name:'Planificador',desc:'Ten 10 libros en tu lista de "Quiero leer"',get:c=>c.quieroCount,target:10},
+    {id:'exp2',tier:'plata',icon:'🗂️',name:'Coleccionista de deseos',desc:'Ten 30 libros en tu lista de "Quiero leer"',get:c=>c.quieroCount,target:30},
+  ]},
+  {cat:'Honestidad',items:[
+    {id:'hon1',tier:'bronce',icon:'🚪',name:'Saber cuándo parar',desc:'Abandona tu primer libro (no pasa nada)',get:c=>c.dnfCount,target:1},
+    {id:'hon2',tier:'plata',icon:'🧹',name:'Criba sin piedad',desc:'Abandona 5 libros',get:c=>c.dnfCount,target:5},
+  ]},
+  {cat:'Metas y retos',items:[
+    {id:'met1',tier:'oro',icon:'🎯',name:'Objetivo anual',desc:'Marca 12 libros en tu Shelfie de este año',get:c=>c.yearGoalCount,target:12},
+    {id:'ret1',tier:'bronce',icon:'🚩',name:'Organizador',desc:'Crea tu primer reto de lectura',get:c=>c.retosCreated,target:1},
+    {id:'ret2',tier:'bronce',icon:'🎯',name:'Retador',desc:'Únete a un reto de otra persona',get:c=>c.retosJoined,target:1},
+    {id:'ret3',tier:'oro',icon:'🏁',name:'Meta cumplida',desc:'Completa un reto de lectura',get:c=>c.retosCompleted,target:1},
+  ]},
+  {cat:'Comunidad',items:[
+    {id:'com1',tier:'bronce',icon:'👥',name:'Se une al club',desc:'Únete a tu primer club de lectura',get:c=>c.clubsCount,target:1},
+    {id:'com2',tier:'plata',icon:'🏘️',name:'Muy sociable',desc:'Sé miembro de 3 clubes de lectura',get:c=>c.clubsCount,target:3},
+    {id:'com3',tier:'bronce',icon:'📍',name:'Presencial',desc:'Apúntate a tu primer evento Shelfie',get:c=>c.eventsCount,target:1},
+  ]},
+];
+
+function computeAchievementContext(){
+  const logRows=collectReadingLogRows();
+  const totalPages=DB.leidos.reduce((s,b)=>s+(b.pages||0),0);
+  const authorCounts={};
+  DB.leidos.forEach(b=>{if(b.author)authorCounts[b.author]=(authorCounts[b.author]||0)+1;});
+  const genreCounts={};
+  DB.leidos.forEach(b=>{(b.genres||[]).forEach(g=>{genreCounts[g]=(genreCounts[g]||0)+1;});});
+  const monthsByYear={};
+  logRows.forEach(row=>{
+    if(!row.date)return;
+    const y=row.date.getFullYear();
+    (monthsByYear[y]=monthsByYear[y]||new Set()).add(row.date.getMonth());
+  });
+  const maxMonthsCoverage=Object.values(monthsByYear).reduce((max,s)=>Math.max(max,s.size),0);
+  return{
+    totalLeidos:DB.leidos.length,
+    totalPages,
+    bestStreak:Math.max(calculateBestStreak(),calculateCurrentStreak()),
+    distinctAuthors:Object.keys(authorCounts).length,
+    maxByAuthor:Object.values(authorCounts).reduce((m,n)=>Math.max(m,n),0),
+    distinctGenres:Object.keys(genreCounts).length,
+    maxByGenre:Object.values(genreCounts).reduce((m,n)=>Math.max(m,n),0),
+    longestBook:DB.leidos.reduce((m,b)=>Math.max(m,b.pages||0),0),
+    fiveStarCount:DB.leidos.filter(b=>b.stars===5).length,
+    maxMonthsCoverage,
+    quieroCount:DB.quiero.length,
+    dnfCount:DB.dnf.length,
+    yearGoalCount:YEAR_GOAL_IDS.size,
+    retosCreated:RETOS.filter(r=>r.createdByMe).length,
+    retosJoined:RETOS.filter(r=>!r.createdByMe).length,
+    retosCompleted:RETOS.filter(r=>r.goal&&r.progress>=r.goal).length,
+    clubsCount:CLUBS.length,
+    eventsCount:MY_EVENT_SIGNUPS.size,
+  };
+}
+
+// Aplana el catálogo en logros individuales con su progreso ya calculado —
+// lo consumen tanto la tira resumen del perfil como el modal con el listado
+// completo, para no calcular el contexto dos veces.
+function computeAchievements(){
+  const ctx=computeAchievementContext();
+  const flat=[];
+  ACHIEVEMENT_CATALOG.forEach(group=>{
+    group.items.forEach(a=>{
+      const progress=Math.min(a.get(ctx),a.target);
+      flat.push({...a,cat:group.cat,progress,earned:progress>=a.target});
+    });
+  });
+  return flat;
+}
+
+function renderProfileAchievements(){
+  const stripEl=document.getElementById('profile-ach-strip');
+  const countEl=document.getElementById('profile-ach-count');
+  if(!stripEl||!countEl)return;
+  const all=computeAchievements();
+  const earned=all.filter(a=>a.earned);
+  countEl.textContent=`${earned.length}/${all.length}`;
+  // Vista previa: los conseguidos primero (los de más nivel delante, para
+  // presumir), luego los más cerca de conseguirse — así la tira siempre
+  // enseña algo relevante aunque tengas pocos logros todavía.
+  const tierOrder=['leyenda','platino','oro','plata','bronce'];
+  const preview=[...all].sort((a,b)=>{
+    if(a.earned!==b.earned)return a.earned?-1:1;
+    if(a.earned)return tierOrder.indexOf(a.tier)-tierOrder.indexOf(b.tier);
+    return(b.progress/b.target)-(a.progress/a.target);
+  }).slice(0,10);
+  stripEl.innerHTML=preview.map(achievementBadgeHtml).join('');
+}
+
+function achievementBadgeHtml(a){
+  const t=ACHIEVEMENT_TIERS[a.tier];
+  const pct=Math.round(a.progress/a.target*100);
+  return `<div class="ach-badge ${a.earned?'':'locked'}" title="${escapeHtml(a.name)} — ${escapeHtml(a.desc)}" style="--ach-color:${t.color};--ach-light:${t.light}">
+    <div class="ach-badge-icon">${a.icon}</div>
+    ${!a.earned?`<div class="ach-badge-progress"><div class="ach-badge-progress-fill" style="width:${pct}%"></div></div>`:''}
+  </div>`;
+}
+
+function openAchievementsModal(){
+  const all=computeAchievements();
+  const earned=all.filter(a=>a.earned).length;
+  document.getElementById('ach-modal-count').textContent=`${earned} de ${all.length} logros conseguidos`;
+  const byCat={};
+  all.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a);});
+  document.getElementById('ach-modal-list').innerHTML=Object.entries(byCat).map(([cat,items])=>`
+    <div class="ach-modal-cat">${escapeHtml(cat)}</div>
+    ${items.map(a=>{
+      const t=ACHIEVEMENT_TIERS[a.tier];
+      const pct=Math.round(a.progress/a.target*100);
+      return `<div class="ach-modal-row ${a.earned?'earned':''}">
+        <div class="ach-badge ${a.earned?'':'locked'} ach-badge-sm" style="--ach-color:${t.color};--ach-light:${t.light}"><div class="ach-badge-icon">${a.icon}</div></div>
+        <div class="ach-modal-info">
+          <div class="ach-modal-name">${escapeHtml(a.name)} <span class="ach-modal-tier" style="color:${t.color}">${t.label}</span></div>
+          <div class="ach-modal-desc">${escapeHtml(a.desc)}</div>
+          ${!a.earned?`<div class="bar-track" style="margin-top:5px"><div class="bar-fill" style="width:${pct}%;background:${t.color}"></div></div><div class="ach-modal-pct">${a.progress}/${a.target}</div>`:'<div class="ach-modal-pct earned">✓ Conseguido</div>'}
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+  openModal('modal-achievements');
+}
+
 function renderProfile(){
   const av=document.getElementById('p-av');
   setAvatarEl(av,PROFILE.photo,(PROFILE.name||'??').slice(0,2).toUpperCase(),'var(--red)','white');
@@ -10904,11 +10999,21 @@ function renderProfile(){
 
   // racha de lectura + avatar ring + badge
   const streak=calculateCurrentStreak();
+  const bestStreak=Math.max(calculateBestStreak(),streak);
   document.getElementById('profile-streak-n').textContent=streak;
   const avEl=document.getElementById('p-av');
   if(streak>0)avEl.classList.add('has-streak'); else avEl.classList.remove('has-streak');
   const badge=document.getElementById('profile-streak-badge');
-  if(badge){badge.style.opacity=streak>0?'1':'0.35';}
+  if(badge){
+    badge.style.opacity=streak>0?'1':'0.35';
+    badge.classList.remove('tier-ember','tier-blaze','tier-inferno','tier-legend');
+    const tier=streakTierClass(streak);
+    if(tier!=='tier-spark')badge.classList.add(tier);
+  }
+  const bestEl=document.getElementById('profile-streak-best');
+  if(bestEl)bestEl.textContent=streak>0&&streak===bestStreak?'¡Récord personal! 🏆':(bestStreak>0?`Mejor racha: ${bestStreak} días`:'');
+
+  renderProfileAchievements();
 
   // genre tags in hero — real distribution from read books (matches renderUserProfileView,
   // was previously a hardcoded genre-name list unrelated to the user's actual books)
