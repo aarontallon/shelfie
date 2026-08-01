@@ -2069,6 +2069,7 @@ a{color:inherit}
   <button class="modal-close" onclick="closeModal('modal-achievements')"><i class="ti ti-x"></i></button>
   <h2>🏅 Logros</h2>
   <p class="sub" id="ach-modal-count">0 de 0 logros conseguidos</p>
+  <select class="stats-year-sel" id="ach-modal-filter" style="margin:4px 0 2px" onchange="renderAchievementsModalList(this.value)"></select>
   <div id="ach-modal-list" class="ach-modal-list"></div>
 </div>
 </div>
@@ -3400,6 +3401,7 @@ async function loadSupaProfile(){
   PROFILE.shelfPublicSort=data.shelf_public_sort||'manual';
   PROFILE.shelfTheme=data.shelf_theme||'clasica';
   PROFILE.shelfPublicView=data.shelf_public_view||'shelf';
+  PROFILE.storyShares=data.story_shares||0;
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -3442,6 +3444,7 @@ async function loadSupaBooks(){
       synopsis:row.synopsis||null,
       addedAt:row.added_at?new Date(row.added_at).toLocaleDateString('es-ES'):new Date().toLocaleDateString('es-ES'),
       cameFromQuiero:row.came_from_quiero||false,
+      cameFromDnf:row.came_from_dnf||false,
     });
   });
 }
@@ -3481,6 +3484,7 @@ async function saveSupaBook(book,attempt){
     author_ol_key:book.authorOlKey||null,
     synopsis:book.synopsis||null,
     came_from_quiero:!!book.cameFromQuiero,
+    came_from_dnf:!!book.cameFromDnf,
   };
   const{error}=await supa.from('user_books').upsert(row,{onConflict:'id'});
   if(error){
@@ -4725,7 +4729,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica',shelfPublicView:'shelf'};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica',shelfPublicView:'shelf',storyShares:0};
 
 let CLUBS=[
   {
@@ -7067,11 +7071,13 @@ function confirmFinishBook(){
   const idx=DB[from].findIndex(b=>b.id===pendingFinishId);
   if(idx<0){closeModal('modal-finish-book');return;}
   const book=DB[from].splice(idx,1)[0];
-  // Punto único donde de verdad se sabe si el libro pasó por "Quiero leer" antes
-  // de terminarse — "Terminado"/"Ya lo leí" se puede pulsar desde varios sitios
-  // (shelfie, ficha del libro) sin pasar por moveBook(), así que hay que
-  // marcarlo aquí también para no perder el dato en esos caminos.
+  // Punto único donde de verdad se sabe si el libro pasó por "Quiero leer" (o
+  // por Abandonados) antes de terminarse — "Terminado"/"Ya lo leí"/"Ya lo
+  // terminé" se puede pulsar desde varios sitios (shelfie, ficha del libro)
+  // sin pasar por moveBook(), así que hay que marcarlo aquí también para no
+  // perder el dato en esos caminos.
   if(from==='quiero')book.cameFromQuiero=true;
+  if(from==='dnf')book.cameFromDnf=true;
   book.stars=finishStarVal;
   book.status='leidos';
   const finishedDate=new Date().toLocaleDateString('es-ES');
@@ -7681,10 +7687,12 @@ function moveBookUniversal(id,from,to){
 function moveBook(id,from,to){
   const idx=DB[from].findIndex(b=>b.id===id);if(idx<0)return;
   const book=DB[from][idx];
-  // Se marca aquí, no solo al terminar el libro — así el logro de "Exploración"
-  // cuenta cualquier libro que alguna vez pasó por "Quiero leer" antes de
-  // leerse, sin importar si llegó a leidos directo o pasando antes por leyendo.
+  // Se marca aquí, no solo al terminar el libro — así los logros de
+  // "Exploración" y "Segunda oportunidad" cuentan cualquier libro que alguna
+  // vez pasó por "Quiero leer" o "Abandonados" antes de leerse, sin importar
+  // si llegó a leidos directo o pasando antes por leyendo/quiero de nuevo.
   if(from==='quiero')book.cameFromQuiero=true;
+  if(from==='dnf')book.cameFromDnf=true;
   // When starting to read a book from "quiero leer", offer edition picker if possible
   if(from==='quiero'&&to==='leyendo'&&book.olKey){
     startReadingWithEdition(book,from);
@@ -10900,6 +10908,16 @@ const ACHIEVEMENT_CATALOG=[
     [5475,'inmortal','Quince años sin fallar','Racha de 5.475 días seguidos'],
     [7300,'cosmico','Toda una vida leyendo','Racha de 7.300 días seguidos'],
   ])},
+  // "N libros en N días" — a diferencia de la racha (un día de lectura),
+  // esto premia terminar varios libros seguidos en muy poco tiempo.
+  {cat:'Maratón lector',items:[
+    {id:'mar1',tier:'bronce',icon:'🏃',name:'Arrancada fuerte',desc:'Termina 3 libros en 3 días',get:c=>c.maratonWindows[3],target:3},
+    {id:'mar2',tier:'plata',icon:'🏃',name:'Racha de sprint',desc:'Termina 5 libros en 5 días',get:c=>c.maratonWindows[5],target:5},
+    {id:'mar3',tier:'oro',icon:'🏃',name:'Semana de fuego',desc:'Termina 7 libros en 7 días',get:c=>c.maratonWindows[7],target:7},
+    {id:'mar4',tier:'platino',icon:'🏃',name:'Diez en diez',desc:'Termina 10 libros en 10 días',get:c=>c.maratonWindows[10],target:10},
+    {id:'mar5',tier:'diamante',icon:'🏃',name:'Quincena imparable',desc:'Termina 15 libros en 15 días',get:c=>c.maratonWindows[15],target:15},
+    {id:'mar6',tier:'maestro',icon:'🏃',name:'Un libro al día, un mes entero',desc:'Termina 30 libros en 30 días',get:c=>c.maratonWindows[30],target:30},
+  ]},
   {cat:'Autores',items:ladder('aut','✍️',c=>c.distinctAuthors,[
     [5,'bronce','Curioso','Lee libros de 5 autores distintos'],
     [15,'bronce','Explorador de voces','Lee libros de 15 autores distintos'],
@@ -10939,6 +10957,12 @@ const ACHIEVEMENT_CATALOG=[
     [900,'oro','Gigante de papel','Termina un libro de 900+ páginas'],
     [1200,'platino','Tocho brutal','Termina un libro de 1.200+ páginas'],
     [1600,'diamante','En busca del tiempo perdido','Termina un libro de 1.600+ páginas'],
+  ])},
+  {cat:'Viajero en el tiempo',items:ladder('dec','🕰️',c=>c.decadesCount,[
+    [3,'bronce','Salto en el tiempo','Lee libros publicados en 3 décadas distintas'],
+    [5,'plata','Explorador de épocas','Lee libros publicados en 5 décadas distintas'],
+    [8,'oro','Del pasado al presente','Lee libros publicados en 8 décadas distintas'],
+    [10,'platino','Un siglo entero','Lee libros publicados en 10 décadas distintas'],
   ])},
   {cat:'Valoraciones',items:ladder('val','⭐',c=>c.fiveStarCount,[
     [1,'bronce','Obra maestra','Valora un libro con 5 estrellas'],
@@ -10996,6 +11020,15 @@ const ACHIEVEMENT_CATALOG=[
     [5,'plata','Criba sin piedad','Abandona 5 libros'],
     [15,'oro','Sabes lo que no quieres leer','Abandona 15 libros'],
     [30,'platino','Ningún libro te obliga a terminarlo','Abandona 30 libros'],
+  ])},
+  // Mismo mecanismo que "Exploración" pero para libros que retomaste después
+  // de haberlos abandonado — premia darle una segunda vuelta a algo que no
+  // te enganchó a la primera, no solo terminar cosas nuevas.
+  {cat:'Segunda oportunidad',items:ladder('red','🔁',c=>c.dnfRedeemed,[
+    [1,'bronce','Le diste otra vuelta','Retoma y termina un libro que habías abandonado'],
+    [5,'plata','No te rindes tan fácil','Retoma y termina 5 libros que habías abandonado'],
+    [15,'oro','A la tercera va la vencida','Retoma y termina 15 libros que habías abandonado'],
+    [30,'platino','Ningún libro se queda a medias para siempre','Retoma y termina 30 libros que habías abandonado'],
   ])},
   {cat:'Metas anuales',items:ladder('met','🎯',c=>c.yearGoalCount,[
     [12,'oro','Objetivo anual','Marca 12 libros en tu Shelfie de este año'],
@@ -11057,6 +11090,24 @@ const ACHIEVEMENT_CATALOG=[
     [250,'platino','Todo el mundo tiene algo que decir','Recibe 250 comentarios en tus publicaciones'],
     [500,'diamante','El post que no para de crecer','Recibe 500 comentarios en tus publicaciones'],
   ])},
+  {cat:'Generosidad',items:ladder('gvn','❤️',c=>c.likesGiven,[
+    [10,'bronce','Repartes cariño','Da like a 10 publicaciones de otros'],
+    [50,'plata','Apoyas a la comunidad','Da like a 50 publicaciones de otros'],
+    [150,'oro','Nunca dejas pasar algo bueno','Da like a 150 publicaciones de otros'],
+    [300,'platino','El botón de like ya es cosa tuya','Da like a 300 publicaciones de otros'],
+  ])},
+  {cat:'Comentarista',items:ladder('cmg','💬',c=>c.commentsGiven,[
+    [10,'bronce','Participas en la conversación','Comenta 10 publicaciones de otros'],
+    [30,'bronce','Siempre tienes algo que aportar','Comenta 30 publicaciones de otros'],
+    [75,'plata','Motor de la conversación','Comenta 75 publicaciones de otros'],
+    [150,'oro','No hay debate sin ti','Comenta 150 publicaciones de otros'],
+  ])},
+  {cat:'Embajador',items:ladder('amb','📤',c=>c.storySharesCount,[
+    [1,'bronce','Primera Story','Comparte o descarga tu Story del shelfie por primera vez'],
+    [5,'plata','Le coges el gusto a presumir','Comparte o descarga tu Story 5 veces'],
+    [15,'oro','La cara visible de Shelfie','Comparte o descarga tu Story 15 veces'],
+    [30,'platino','Embajador de la lectura','Comparte o descarga tu Story 30 veces'],
+  ])},
   {cat:'Comunidad',items:ladder('flw','👤',c=>c.followersCount,[
     [10,'bronce','Empiezas a sonar','Ten 10 seguidores'],
     [50,'plata','Te siguen de cerca','Ten 50 seguidores'],
@@ -11066,6 +11117,16 @@ const ACHIEVEMENT_CATALOG=[
   {cat:'Siguiendo',items:ladder('flg','🔗',c=>c.followingCount,[
     [10,'bronce','Ampliando tu círculo','Sigue a 10 personas'],
     [50,'plata','Bien conectado','Sigue a 50 personas'],
+  ])},
+  // A partir de la fecha real de alta de la cuenta (Supabase Auth) — el único
+  // logro que no depende de nada que hagas, solo del tiempo que llevas aquí.
+  {cat:'Aniversario en Shelfie',items:ladder('ani','🎂',c=>c.accountYears,[
+    [1,'bronce','Un año en Shelfie','Cumple 1 año desde que te uniste a Shelfie'],
+    [3,'plata','Tres años en Shelfie','Cumple 3 años desde que te uniste a Shelfie'],
+    [5,'oro','Cinco años en Shelfie','Cumple 5 años desde que te uniste a Shelfie'],
+    [10,'platino','Diez años en Shelfie','Cumple 10 años desde que te uniste a Shelfie'],
+    [15,'diamante','Quince años en Shelfie','Cumple 15 años desde que te uniste a Shelfie'],
+    [20,'maestro','Veinte años en Shelfie','Cumple 20 años desde que te uniste a Shelfie'],
   ])},
 ];
 
@@ -11086,6 +11147,36 @@ function computeAchievementContext(){
   const fullCoverageYears=Object.values(monthsByYear).filter(s=>s.size>=12).length;
   const myId=SUPA_USER?SUPA_USER.id:'local';
   const myPosts=USER_POSTS.filter(p=>(p.author?p.author.id:myId)===myId);
+
+  // Décadas de publicación distintas (usa la edición si se conoce, si no el
+  // año general del libro) — para "Viajero en el tiempo".
+  const decades=new Set();
+  DB.leidos.forEach(b=>{
+    const y=parseInt(b.editionYear||b.year,10);
+    if(y)decades.add(Math.floor(y/10)*10);
+  });
+
+  // "N libros en N días": mayor nº de lecturas terminadas dentro de CUALQUIER
+  // ventana de N días naturales consecutivos — una relectura del mismo libro
+  // cuenta como una lectura más, igual que en el resto de logros de fechas.
+  const finishDays=logRows.filter(r=>r.date).map(r=>Math.floor(r.date.getTime()/86400000)).sort((a,b)=>a-b);
+  function maxBooksInWindow(days){
+    let best=0,left=0;
+    for(let right=0;right<finishDays.length;right++){
+      while(finishDays[right]-finishDays[left]>=days)left++;
+      best=Math.max(best,right-left+1);
+    }
+    return best;
+  }
+  const maratonWindows={};
+  [3,5,7,10,15,30].forEach(n=>{maratonWindows[n]=maxBooksInWindow(n);});
+
+  // Años desde que te uniste a Shelfie, a partir de la fecha de alta real de
+  // la cuenta (Supabase Auth) — para "Aniversario en Shelfie".
+  const accountYears=SUPA_USER?.created_at
+    ?Math.floor((Date.now()-new Date(SUPA_USER.created_at).getTime())/(365.25*86400000))
+    :0;
+
   return{
     totalLeidos:DB.leidos.length,
     totalPages,
@@ -11099,6 +11190,10 @@ function computeAchievementContext(){
     maxMonthsCoverage,
     fullCoverageYears,
     wishlistFollowThrough:DB.leidos.filter(b=>b.cameFromQuiero).length,
+    dnfRedeemed:DB.leidos.filter(b=>b.cameFromDnf).length,
+    decadesCount:decades.size,
+    maratonWindows,
+    accountYears,
     rereadCount:DB.leidos.filter(b=>b.readHistory&&b.readHistory.length>1).length,
     favCount:DB.leidos.filter(b=>b.isFavorite).length,
     dnfCount:DB.dnf.length,
@@ -11111,6 +11206,9 @@ function computeAchievementContext(){
     postsCount:myPosts.length,
     likesReceived:myPosts.reduce((s,p)=>s+(p.likes||0),0),
     commentsReceived:myPosts.reduce((s,p)=>s+(p.comments?p.comments.length:0),0),
+    likesGiven:USER_POSTS.filter(p=>p.likedByMe).length,
+    commentsGiven:USER_POSTS.reduce((s,p)=>s+(p.comments||[]).filter(c=>c.userId===myId).length,0),
+    storySharesCount:PROFILE.storyShares||0,
     followersCount:FOLLOWERS.length,
     followingCount:FRIENDS.length,
   };
@@ -11162,12 +11260,29 @@ function achievementBadgeHtml(a){
   </div>`;
 }
 
+let _achModalAll=[];
 function openAchievementsModal(){
-  const all=computeAchievements();
-  const earned=all.filter(a=>a.earned).length;
-  document.getElementById('ach-modal-count').textContent=`${earned} de ${all.length} logros conseguidos`;
+  _achModalAll=computeAchievements();
+  const earned=_achModalAll.filter(a=>a.earned).length;
+  document.getElementById('ach-modal-count').textContent=`${earned} de ${_achModalAll.length} logros conseguidos`;
+  // Categorías en el mismo orden en que aparecen en el catálogo, no
+  // alfabético — así el desplegable sigue el mismo recorrido que la lista.
+  const cats=[...new Set(_achModalAll.map(a=>a.cat))];
+  const filterSel=document.getElementById('ach-modal-filter');
+  filterSel.innerHTML=`<option value="all">Todas las secciones</option>`+cats.map(c=>{
+    const n=_achModalAll.filter(a=>a.cat===c).length;
+    const e=_achModalAll.filter(a=>a.cat===c&&a.earned).length;
+    return `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${e}/${n})</option>`;
+  }).join('');
+  filterSel.value='all';
+  renderAchievementsModalList('all');
+  openModal('modal-achievements');
+}
+
+function renderAchievementsModalList(filterCat){
+  const filtered=filterCat==='all'?_achModalAll:_achModalAll.filter(a=>a.cat===filterCat);
   const byCat={};
-  all.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a);});
+  filtered.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a);});
   document.getElementById('ach-modal-list').innerHTML=Object.entries(byCat).map(([cat,items])=>`
     <div class="ach-modal-cat">${escapeHtml(cat)}</div>
     ${items.map(a=>{
@@ -11183,7 +11298,6 @@ function openAchievementsModal(){
       </div>`;
     }).join('')}
   `).join('');
-  openModal('modal-achievements');
 }
 
 function renderProfile(){
@@ -11938,6 +12052,17 @@ async function generateShelfieStoryImage(){
   }
 }
 
+// Contador para el logro "Embajador" — se cuenta tanto la descarga como el
+// share nativo (ambos son "te llevaste la Story para compartirla"), pero
+// nunca un share cancelado a medias (AbortError).
+function registerStoryShare(){
+  PROFILE.storyShares=(PROFILE.storyShares||0)+1;
+  if(SUPA_USER){
+    supa.from('profiles').update({story_shares:PROFILE.storyShares}).eq('id',SUPA_USER.id)
+      .then(({error})=>{if(error)console.error('registerStoryShare failed:',error);});
+  }
+}
+
 function downloadShelfieStoryImage(){
   if(!_shelfieStoryBlobUrl)return;
   const uname=(PROFILE?.username||'shelfie').toString().trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-')||'shelfie';
@@ -11945,6 +12070,7 @@ function downloadShelfieStoryImage(){
   a.href=_shelfieStoryBlobUrl;
   a.download=`shelfie-story-${uname}-${new Date().toISOString().slice(0,10)}.png`;
   document.body.appendChild(a);a.click();document.body.removeChild(a);
+  registerStoryShare();
   toast('✅ Imagen descargada');
 }
 
@@ -11957,6 +12083,7 @@ async function shareShelfieStoryImage(){
       return;
     }
     await navigator.share({files:[file],title:'Mi shelfie',text:'Mira mi shelfie en shelfie 📚'});
+    registerStoryShare();
   }catch(e){
     if(e?.name!=='AbortError')console.error('shareShelfieStoryImage failed:',e);
   }
