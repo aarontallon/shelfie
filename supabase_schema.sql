@@ -569,3 +569,14 @@ create policy "event_signups_select_authenticated" on public.event_signups for s
 alter table public.events add column if not exists book_title text;
 alter table public.events add column if not exists book_author text;
 alter table public.events add column if not exists book_cover text;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: clave de Open Library del libro vinculado al evento
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Con solo título/autor/portada, la ficha del evento no podía enlazar al
+-- libro dentro de shelfie (no hay forma fiable de reencontrar la obra
+-- exacta en Open Library a partir de un título). Guardamos también su
+-- work key (p.ej. "/works/OL12345W") para poder abrir su ficha real.
+alter table public.events add column if not exists book_ol_key text;

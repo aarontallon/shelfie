@@ -198,6 +198,12 @@ a{color:inherit}
 .organizer-event-type-tag{font-size:10.5px;font-weight:700;color:var(--red);background:var(--red-light);padding:2px 8px;border-radius:8px;text-transform:uppercase;letter-spacing:0.03em}
 .organizer-event-desc{font-size:13px;color:var(--ink2);line-height:1.6;margin:10px 0}
 .organizer-event-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #EEE}
+.event-book-card{display:flex;align-items:center;gap:14px;background:#FAFAFA;border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer}
+.event-book-card:hover{border-color:var(--red)}
+.event-book-card .grid-cover{width:52px;height:76px;border-radius:5px;flex-shrink:0}
+.event-book-card-title{font-weight:700;font-size:14px;color:var(--ink)}
+.event-book-card-author{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.event-book-card-link{font-size:11.5px;color:var(--red);margin-top:6px;display:inline-flex;align-items:center;gap:4px}
 .event-attendee-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0F0F0}
 .event-attendee-row:last-child{border-bottom:none}
 .organizer-stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
@@ -213,14 +219,14 @@ a{color:inherit}
 .events-layout{display:flex;gap:22px;align-items:flex-start}
 .events-list-col{flex:1;min-width:0}
 .events-map-col{width:460px;flex-shrink:0;position:sticky;top:20px}
-#events-map{height:min(460px,calc(100vh - 240px));border-radius:14px;border:1px solid var(--border);z-index:0}
+#events-map,#organizer-events-map{height:min(460px,calc(100vh - 240px));border-radius:14px;border:1px solid var(--border);z-index:0}
 .event-card-highlight{animation:eventCardPulse 1.4s ease}
 @keyframes eventCardPulse{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px var(--red-light),0 0 0 4px var(--red)}}
 .leaflet-popup-content{margin:12px 14px}
 @media (max-width:900px){
   .events-layout{flex-direction:column}
   .events-map-col{width:100%;position:static}
-  #events-map{height:280px;max-height:none}
+  #events-map,#organizer-events-map{height:280px;max-height:none}
 }
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
 /* Sin overflow-x aquí a propósito: fijarlo (aunque sea solo en X) obliga al
@@ -4138,7 +4144,7 @@ async function runEventBookSearch(q){
   }
 }
 function selectEventBook(book){
-  EVENT_LINKED_BOOK={title:book.title,author:book.author,cover:book.cover||null,color:book.color};
+  EVENT_LINKED_BOOK={title:book.title,author:book.author,cover:book.cover||null,color:book.color,olKey:book.olKey||null};
   document.getElementById('ev-book-drop').style.display='none';
   document.getElementById('ev-book-search-wrap').style.display='none';
   document.getElementById('ev-book-srch').value='';
@@ -4178,7 +4184,7 @@ function openEditEventModal(id){
   document.getElementById('ev-datetime').value=e.starts_at?new Date(new Date(e.starts_at).getTime()-new Date(e.starts_at).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
   document.getElementById('ev-capacity').value=e.capacity||'';
   document.getElementById('ev-geocode-status').textContent='';
-  if(e.book_title){selectEventBook({title:e.book_title,author:e.book_author||'',cover:e.book_cover||null,color:'#555'});}else{clearEventBook();}
+  if(e.book_title){selectEventBook({title:e.book_title,author:e.book_author||'',cover:e.book_cover||null,color:'#555',olKey:e.book_ol_key||null});}else{clearEventBook();}
   document.getElementById('create-event-title').textContent='Editar evento';
   document.getElementById('create-event-sub').textContent='Los cambios se publican al instante';
   document.getElementById('create-event-btn').innerHTML='<i class="ti ti-check"></i> Guardar cambios';
@@ -4202,7 +4208,7 @@ async function saveNewEvent(){
   statusEl.textContent='Localizando la dirección en el mapa…';
   const coords=address?await geocodeAddress(address,city):null;
   statusEl.textContent=coords?'':(address?'No se ha podido localizar la dirección exacta; el evento se guardará sin marcador en el mapa.':'');
-  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity,lat:coords?.lat??null,lng:coords?.lng??null,book_title:EVENT_LINKED_BOOK?.title??null,book_author:EVENT_LINKED_BOOK?.author??null,book_cover:EVENT_LINKED_BOOK?.cover??null};
+  const row={organizer_id:ORGANIZER.id,venue_name:ORGANIZER.venue_name,title,description:desc,event_type:type,city,address,starts_at:new Date(datetime).toISOString(),capacity,lat:coords?.lat??null,lng:coords?.lng??null,book_title:EVENT_LINKED_BOOK?.title??null,book_author:EVENT_LINKED_BOOK?.author??null,book_cover:EVENT_LINKED_BOOK?.cover??null,book_ol_key:EVENT_LINKED_BOOK?.olKey??null};
   if(EDITING_EVENT_ID){
     const{data,error}=await supa.from('events').update(row).eq('id',EDITING_EVENT_ID).select().single();
     btn.disabled=false;
@@ -4526,6 +4532,14 @@ function renderEventDetailContent(ev,joined){
     </div>
     ${ev.address?`<div class="organizer-event-meta" style="margin-top:8px"><i class="ti ti-map-pin" style="font-size:12px"></i> <a class="event-map-link" href="${googleMapsLink(ev)}" target="_blank" rel="noopener">${escapeHtml(ev.address)}, ${escapeHtml(ev.city)}</a></div>`:''}
     ${ev.description?`<div class="organizer-event-desc" style="margin-top:18px;font-size:14.5px;line-height:1.65">${escapeHtml(ev.description)}</div>`:''}
+    ${ev.book_title?`<div class="event-book-card" style="margin-top:16px;max-width:420px" onclick="go('bookdetail',null,'${bkKey({olKey:ev.book_ol_key||null,title:ev.book_title,author:ev.book_author||''})}')">
+      ${cvr({title:ev.book_title,author:ev.book_author||'',cover:ev.book_cover,color:'#555'},'grid')}
+      <div>
+        <div class="event-book-card-title">${escapeHtml(ev.book_title)}</div>
+        ${ev.book_author?`<div class="event-book-card-author">${escapeHtml(ev.book_author)}</div>`:''}
+        <div class="event-book-card-link">Ver ficha del libro <i class="ti ti-arrow-right" style="font-size:11px"></i></div>
+      </div>
+    </div>`:''}
     <div style="margin-top:20px;max-width:320px">${capacityBarHtml(signups.length,ev.capacity)}</div>
     <div class="organizer-event-actions" style="margin-top:18px">
       ${joined
@@ -11552,6 +11566,8 @@ async function generateEventStoryImage(){
 
     const visualTop=y,visualBottom=1500;
     const visualH=Math.max(220,visualBottom-visualTop);
+    const ctaH=70;
+    let ctaY=1550;
 
     if(img){
       // Portada del libro vinculado, en formato retrato, sin recortar
@@ -11569,21 +11585,11 @@ async function generateEventStoryImage(){
       ctx.strokeStyle=T.cellBorder;ctx.lineWidth=2;
       roundRectPath(ctx,cx,cy,coverW,coverH,16);ctx.stroke();
     }else{
-      // Sin libro vinculado: tarjeta decorativa
-      const cardH=Math.min(visualH,460);
-      const cardY=visualTop+(visualH-cardH)/2;
-      roundRectPath(ctx,margin,cardY,availW,cardH,20);
-      ctx.fillStyle=T.shelfBack;ctx.fill();
-      ctx.strokeStyle=T.chipBorder;ctx.lineWidth=2;
-      roundRectPath(ctx,margin,cardY,availW,cardH,20);ctx.stroke();
-      ctx.font='84px Inter, Arial, sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('📚',540,cardY+cardH/2);
-      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+      // Sin libro vinculado: nada que mostrar en el hueco — en vez de dejar
+      // un enorme espacio en blanco por encima del CTA fijo, centramos el
+      // botón de inscripción en el espacio disponible.
+      ctaY=Math.round(visualTop+(1780-visualTop)/2-ctaH/2);
     }
-
-    // CTA — deja claro que la inscripción es a través de shelfie
-    const ctaY=1550,ctaH=70;
     roundRectPath(ctx,margin,ctaY,availW,ctaH,ctaH/2);
     ctx.fillStyle=T.progressFill;
     ctx.fill();
