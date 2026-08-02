@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shelfie — Tu shelfie social</title>
+<meta name="description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura. La red social para gente que lee de verdad.">
+<link rel="canonical" href="https://aarontallon.github.io/shelfie/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Shelfie">
+<meta property="og:url" content="https://aarontallon.github.io/shelfie/">
+<meta property="og:title" content="Shelfie — Tu shelfie social de lectura">
+<meta property="og:description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura.">
+<meta property="og:image" content="https://aarontallon.github.io/shelfie/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Shelfie — Tu shelfie social de lectura">
+<meta name="twitter:description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura.">
+<meta name="twitter:image" content="https://aarontallon.github.io/shelfie/og-image.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS) -->
@@ -1860,9 +1876,52 @@ a{color:inherit}
     </div>
     <div class="auth-divider">o con tu email</div>
     <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="login-email" type="email" placeholder="tu@email.com"></div>
-    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="login-pass" type="password" placeholder="••••••••"></div>
+    <div class="f-row">
+      <label class="f-label">Contraseña</label>
+      <input class="f-input" id="login-pass" type="password" placeholder="••••••••">
+      <div style="text-align:right;margin-top:6px"><button type="button" class="card-link" style="font-size:12px" onclick="showAuth('forgot-password')">¿Has olvidado tu contraseña?</button></div>
+    </div>
     <button class="btn btn-red w-full btn-lg" onclick="doLogin()"><i class="ti ti-login"></i> Iniciar sesión</button>
     <div class="auth-switch">¿No tienes cuenta? <button onclick="showAuth('register')">Regístrate gratis</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: OLVIDÉ MI CONTRASEÑA ══════════════════════ -->
+<div class="auth-screen" id="auth-forgot-password">
+  <button class="auth-back" onclick="showAuth('login')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div class="auth-box" id="forgot-password-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="auth-title">Recupera tu contraseña</div>
+    <div class="auth-sub">Te mandamos un enlace por email para elegir una nueva</div>
+    <div class="auth-error" id="forgot-password-error"></div>
+    <div id="forgot-password-sent" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Si <strong id="forgot-password-sent-email"></strong> tiene una cuenta en Shelfie, te hemos enviado un enlace para elegir una contraseña nueva.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('login')">Volver a iniciar sesión</button>
+    </div>
+    <div id="forgot-password-fields">
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="forgot-password-email" type="email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')requestPasswordReset()"></div>
+      <button class="btn btn-red w-full btn-lg" id="forgot-password-btn" onclick="requestPasswordReset()"><i class="ti ti-mail"></i> Enviar enlace</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: NUEVA CONTRASEÑA (tras el enlace del email) ══════════════════════ -->
+<div class="auth-screen" id="auth-reset-password">
+  <div class="auth-box" id="reset-password-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="auth-title">Elige una nueva contraseña</div>
+    <div class="auth-sub">Ya casi está — esta será tu nueva contraseña de acceso</div>
+    <div class="auth-error" id="reset-password-error"></div>
+    <div class="f-row"><label class="f-label">Nueva contraseña</label><input class="f-input" id="reset-password-new" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <div class="f-row"><label class="f-label">Repite la contraseña</label><input class="f-input" id="reset-password-new2" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <button class="btn btn-red w-full btn-lg" id="reset-password-btn" onclick="completePasswordReset()"><i class="ti ti-check"></i> Guardar contraseña</button>
   </div>
 </div>
 
@@ -1877,32 +1936,39 @@ a{color:inherit}
     <div class="auth-title">Crea tu cuenta</div>
     <div class="auth-sub">Tu próxima lectura favorita empieza aquí</div>
     <div class="auth-error" id="register-error"></div>
-    <div class="auth-social">
-      <button class="auth-social-btn" onclick="socialLogin('Google')"><svg class="google-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continuar con Google</button>
+    <div id="register-confirm-msg" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Te hemos enviado un correo a <strong id="register-confirm-email"></strong> para confirmar tu cuenta. Ábrelo y toca el enlace — luego ya podrás iniciar sesión.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('login')">Ir a iniciar sesión</button>
     </div>
-    <div class="auth-divider">o regístrate con email</div>
-    <div style="display:flex;gap:10px">
-      <div class="f-row" style="flex:1"><label class="f-label">Nombre</label><input class="f-input" id="reg-nombre" placeholder="Nombre"></div>
-      <div class="f-row" style="flex:1"><label class="f-label">Apellido</label><input class="f-input" id="reg-apellido" placeholder="Apellido"></div>
-    </div>
-    <div class="f-row">
-      <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
-      <div style="position:relative">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
-        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+    <div id="register-fields">
+      <div class="auth-social">
+        <button class="auth-social-btn" onclick="socialLogin('Google')"><svg class="google-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continuar con Google</button>
       </div>
-      <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
+      <div class="auth-divider">o regístrate con email</div>
+      <div style="display:flex;gap:10px">
+        <div class="f-row" style="flex:1"><label class="f-label">Nombre</label><input class="f-input" id="reg-nombre" placeholder="Nombre"></div>
+        <div class="f-row" style="flex:1"><label class="f-label">Apellido</label><input class="f-input" id="reg-apellido" placeholder="Apellido"></div>
+      </div>
+      <div class="f-row">
+        <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
+        <div style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
+          <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+        </div>
+        <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
+      </div>
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="reg-email" type="email" placeholder="tu@email.com"></div>
+      <div class="f-row">
+        <label class="f-label">Contraseña</label>
+        <input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 8 caracteres" oninput="onPassInput(this.value)">
+        <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden"><div id="pass-strength-fill" style="height:100%;width:0;transition:width 0.2s,background 0.2s;border-radius:2px"></div></div>
+        <div id="pass-strength-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+      </div>
+      <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
+      <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
+      <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
     </div>
-    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="reg-email" type="email" placeholder="tu@email.com"></div>
-    <div class="f-row">
-      <label class="f-label">Contraseña</label>
-      <input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 8 caracteres" oninput="onPassInput(this.value)">
-      <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden"><div id="pass-strength-fill" style="height:100%;width:0;transition:width 0.2s,background 0.2s;border-radius:2px"></div></div>
-      <div id="pass-strength-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
-    </div>
-    <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
-    <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
-    <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
   </div>
 </div>
 
@@ -1938,12 +2004,19 @@ a{color:inherit}
     <div class="auth-title">Registra tu local o servicio</div>
     <div class="auth-sub">Publica tus eventos de lectura y ve quién se apunta</div>
     <div class="auth-error" id="organizer-register-error"></div>
-    <div class="f-row"><label class="f-label">Nombre del local / servicio</label><input class="f-input" id="org-reg-venue" placeholder="Ej: Librería La Central"></div>
-    <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="org-reg-city" placeholder="Ej: Barcelona"></div>
-    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-reg-email" type="email" placeholder="contacto@tulocal.com"></div>
-    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-reg-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
-    <button class="btn btn-red w-full btn-lg" onclick="organizerRegister()"><i class="ti ti-user-plus"></i> Crear cuenta de organizador</button>
-    <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('organizer-login')">Inicia sesión</button></div>
+    <div id="organizer-register-confirm-msg" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Te hemos enviado un correo a <strong id="organizer-register-confirm-email"></strong> para confirmar tu cuenta. Ábrelo y toca el enlace — luego ya podrás iniciar sesión.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('organizer-login')">Ir a iniciar sesión</button>
+    </div>
+    <div id="organizer-register-fields">
+      <div class="f-row"><label class="f-label">Nombre del local / servicio</label><input class="f-input" id="org-reg-venue" placeholder="Ej: Librería La Central"></div>
+      <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="org-reg-city" placeholder="Ej: Barcelona"></div>
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-reg-email" type="email" placeholder="contacto@tulocal.com"></div>
+      <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-reg-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
+      <button class="btn btn-red w-full btn-lg" onclick="organizerRegister()"><i class="ti ti-user-plus"></i> Crear cuenta de organizador</button>
+      <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('organizer-login')">Inicia sesión</button></div>
+    </div>
   </div>
 </div>
 
@@ -3442,6 +3515,17 @@ function showLoginScreen(){
 // ── Auth state listener (handles refresh / tab reopen) ──
 let _appEntering=false;
 supa.auth.onAuthStateChange(async(event,session)=>{
+  // Clicking the "recuperar contraseña" link in the email lands back here with a
+  // recovery token in the URL — Supabase detects it and fires this dedicated event
+  // (not SIGNED_IN) with a session already attached. Show the "set a new password"
+  // screen instead of silently dropping them into the app with their OLD password
+  // still active and no idea they're "logged in".
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('auth-loading')?.classList.remove('on');
+    try{history.replaceState(null,'',window.location.pathname);}catch(e){}
+    showAuth('reset-password');
+    return;
+  }
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn&&!_appEntering){
     _appEntering=true;
     SUPA_USER=session.user;
@@ -4107,10 +4191,15 @@ async function organizerRegister(){
     authErr('organizer-register-error',(msg.includes('already registered')||msg.includes('already been registered'))?'Ya existe una cuenta con ese email. Inicia sesión.':(msg||'Error al crear la cuenta. Inténtalo de nuevo.'));
     return;
   }
-  SUPA_USER=data.user||data.session?.user||null;
-  if(!SUPA_USER){const{data:sd}=await supa.auth.getSession();SUPA_USER=sd?.session?.user||null;}
+  if(!data.session){
+    document.getElementById('organizer-register-confirm-email').textContent=email;
+    document.getElementById('organizer-register-fields').style.display='none';
+    document.getElementById('organizer-register-confirm-msg').style.display='block';
+    return;
+  }
+  SUPA_USER=data.session.user;
   toast(`✅ Cuenta creada para «${venueName}»`);
-  if(SUPA_USER&&!isLoggedIn&&!_appEntering){_appEntering=true;try{await _supaEnterApp();}finally{_appEntering=false;}}
+  if(!isLoggedIn&&!_appEntering){_appEntering=true;try{await _supaEnterApp();}finally{_appEntering=false;}}
 }
 
 async function organizerLogin(){
@@ -5238,6 +5327,14 @@ function showAuth(which){
   document.getElementById('auth-'+which).classList.add('on');
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('register-error').classList.remove('show');
+  document.getElementById('register-confirm-msg').style.display='none';
+  document.getElementById('register-fields').style.display='block';
+  document.getElementById('organizer-register-confirm-msg').style.display='none';
+  document.getElementById('organizer-register-fields').style.display='block';
+  document.getElementById('forgot-password-error')?.classList.remove('show');
+  document.getElementById('forgot-password-sent').style.display='none';
+  document.getElementById('forgot-password-fields').style.display='block';
+  document.getElementById('reset-password-error')?.classList.remove('show');
   // Cada pantalla es una vista nueva — si venías con scroll (p.ej. desde el pie de
   // una landing larga) no debe arrastrarse a la siguiente, que puede ser mucho más corta.
   window.scrollTo(0,0);
@@ -5306,6 +5403,49 @@ async function doLogin(){
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Iniciar sesión';}
   if(error){authErr('login-error',error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message);return;}
   // onAuthStateChange will fire SIGNED_IN and enter the app
+}
+
+async function requestPasswordReset(){
+  const email=document.getElementById('forgot-password-email').value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authErr('forgot-password-error','Introduce un email válido.');return;}
+  const btn=document.getElementById('forgot-password-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Enviando...';
+  const redirectTo=window.location.href.split('#')[0].split('?')[0];
+  const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){
+    console.error('resetPasswordForEmail failed:',error);
+    authErr('forgot-password-error','No se pudo enviar el correo. Inténtalo de nuevo en unos minutos.');
+    return;
+  }
+  // Mismo mensaje exista o no esa cuenta — Supabase ya se comporta así por su cuenta
+  // (no revela si un email está registrado), así que la UI no debe delatarlo tampoco.
+  document.getElementById('forgot-password-sent-email').textContent=email;
+  document.getElementById('forgot-password-fields').style.display='none';
+  document.getElementById('forgot-password-sent').style.display='block';
+}
+
+async function completePasswordReset(){
+  const pw1=document.getElementById('reset-password-new').value;
+  const pw2=document.getElementById('reset-password-new2').value;
+  if(!pw1||pw1.length<8){authErr('reset-password-error','La contraseña debe tener al menos 8 caracteres.');return;}
+  if(pw1!==pw2){authErr('reset-password-error','Las contraseñas no coinciden.');return;}
+  const btn=document.getElementById('reset-password-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Guardando...';
+  const{error}=await supa.auth.updateUser({password:pw1});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){
+    console.error('password reset updateUser failed:',error);
+    authErr('reset-password-error','No se pudo guardar la contraseña. Pide un nuevo enlace e inténtalo otra vez.');
+    return;
+  }
+  toast('✓ Contraseña actualizada');
+  if(!isLoggedIn&&!_appEntering){
+    _appEntering=true;
+    try{await _supaEnterApp();}finally{_appEntering=false;}
+  }
 }
 
 let _usernameCheckTimer=null;
@@ -5411,18 +5551,20 @@ async function doRegister(){
     else authErr('register-error',msg||'Error al crear la cuenta. Inténtalo de nuevo.');
     return;
   }
-  SUPA_USER=data.user||data.session?.user||null;
-  if(!SUPA_USER){
-    const{data:sd}=await supa.auth.getSession();
-    SUPA_USER=sd?.session?.user||null;
+  // signUp() only returns a session when the project doesn't require confirming
+  // the email first (or it auto-confirmed). Without a session there's no real
+  // auth.uid() yet — trying to update the profile or enter the app now would
+  // just fail silently under RLS, so we stop here and tell the user to check
+  // their inbox instead of pretending they're logged in.
+  if(!data.session){
+    document.getElementById('register-confirm-email').textContent=email;
+    document.getElementById('register-fields').style.display='none';
+    document.getElementById('register-confirm-msg').style.display='block';
+    return;
   }
-  if(SUPA_USER){
-    // If the project requires email confirmation, signUp() returns a user but no
-    // session yet — this update then runs unauthenticated and RLS (auth.uid()=id)
-    // silently blocks it, leaving the trigger-generated default username in place.
-    const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
-    if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
-  }
+  SUPA_USER=data.session.user;
+  const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+  if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
   PROFILE.name=fullName;
   PROFILE.email=email;
   PROFILE.username=username;
