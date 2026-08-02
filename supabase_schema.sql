@@ -580,3 +580,28 @@ alter table public.events add column if not exists book_cover text;
 -- exacta en Open Library a partir de un título). Guardamos también su
 -- work key (p.ej. "/works/OL12345W") para poder abrir su ficha real.
 alter table public.events add column if not exists book_ol_key text;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: recuerda si un libro leído pasó antes por "Quiero leer"
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Para el logro "Exploración" del perfil: contar cuántos libros leídos
+-- vinieron de tu lista de "Quiero leer" en vez de solo el tamaño de la
+-- lista — así el logro premia terminar lo que planeas leer, no acumular
+-- una lista interminable que nunca abres.
+alter table public.user_books add column if not exists came_from_quiero boolean default false;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: recuerda si un libro leído había sido abandonado antes
+-- + cuántas veces se ha compartido la Story del shelfie
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Mismo mecanismo que came_from_quiero, pero para el logro "Segunda
+-- oportunidad": retomar y terminar un libro que estaba en Abandonados.
+alter table public.user_books add column if not exists came_from_dnf boolean default false;
+
+-- Contador para el logro "Embajador" — cuántas veces se ha descargado o
+-- compartido la imagen de Story del propio shelfie.
+alter table public.profiles add column if not exists story_shares integer default 0;
