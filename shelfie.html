@@ -279,7 +279,7 @@ a{color:inherit}
 .sb-logout{padding:10px 18px;border-top:1px solid rgba(255,255,255,0.07)}
 .sb-logout button{width:100%;background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;padding:4px 0;font-family:'Inter',sans-serif}
 .sb-logout button:hover{color:white}
-.u-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:white;flex-shrink:0;background-size:cover;background-position:center}
+.u-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:white;flex-shrink:0;background-size:cover;background-position:center top}
 .page{display:none;padding:28px 32px;min-height:100vh}
 .page.on{display:block}
 .tb{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
@@ -815,7 +815,7 @@ a{color:inherit}
 .profile-hero::before{content:'';position:absolute;left:-60px;bottom:-100px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(217,119,6,0.16),transparent 65%)}
 .profile-hero-top{display:flex;align-items:flex-start;gap:20px;position:relative;z-index:2;margin-bottom:20px;min-height:112px}
 .profile-av-wrap{position:relative;flex-shrink:0}
-.profile-av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(61,107,82,0.55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0}
+.profile-av{width:80px;height:80px;border-radius:50%;border:3px solid rgba(61,107,82,0.55);background-size:cover;background-position:center top;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:white;flex-shrink:0}
 .profile-av.has-streak{border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,0.25)}
 .profile-hero-info{flex:1;min-width:0}
 .profile-name{font-family:'Inter',sans-serif;font-size:26px;font-weight:800;line-height:1.1;margin-bottom:4px;letter-spacing:-0.03em}
@@ -2062,7 +2062,7 @@ a{color:inherit}
   <div class="f-row" style="text-align:center">
     <label class="f-label">Foto de perfil</label>
     <div style="position:relative;display:inline-block;cursor:pointer" onclick="document.getElementById('prof-photo').click()">
-      <div id="prof-av-preview" style="width:72px;height:72px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;margin:0 auto;background-size:cover;background-position:center"></div>
+      <div id="prof-av-preview" style="width:72px;height:72px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;margin:0 auto;background-size:cover;background-position:center top"></div>
       <input type="file" id="prof-photo" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
       <div style="position:absolute;bottom:0;right:0;background:var(--red);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center"><i class="ti ti-camera" style="font-size:12px;color:white"></i></div>
     </div>
@@ -2377,7 +2377,7 @@ a{color:inherit}
     <button class="nb" onclick="go('stats',this)"><i class="ti ti-chart-bar"></i> Estadísticas</button>
   </div>
   <div class="sb-user" onclick="go('profile',null)">
-    <div class="u-av" id="sb-avatar" style="background:var(--red)">AA</div>
+    <div class="u-av" id="sb-avatar" style="background-color:var(--red)">AA</div>
     <div style="min-width:0">
       <div style="font-size:13px;color:white;font-weight:500" id="sb-name">Aarón</div>
       <div style="font-size:11px;color:rgba(255,255,255,0.3)" id="sb-stat">0 libros leídos</div>
@@ -2678,7 +2678,7 @@ a{color:inherit}
   <!-- ══════ COMPOSER ══════ -->
   <div class="composer-card">
     <div class="composer-top">
-      <div class="u-av" id="composer-avatar" style="background:var(--red);width:38px;height:38px;flex-shrink:0">AA</div>
+      <div class="u-av" id="composer-avatar" style="background-color:var(--red);width:38px;height:38px;flex-shrink:0">AA</div>
       <div class="composer-modes">
         <button class="composer-mode on" data-mode="tweet" onclick="setComposerMode(this)"><i class="ti ti-message-2"></i> Publicación</button>
         <button class="composer-mode" data-mode="hilo" onclick="setComposerMode(this)"><i class="ti ti-stack-2"></i> Historia</button>
@@ -5013,11 +5013,20 @@ function avatarColorFor(str){
 // "no photo set" and very confusing to debug.
 function setAvatarEl(el,photoUrl,initials,bg,tc){
   if(!el)return;
-  const showFallback=()=>{el.style.backgroundImage='';el.style.background=bg||'var(--red)';el.textContent=initials||'??';if(tc)el.style.color=tc;};
+  // backgroundColor (longhand), not background=… — the shorthand resets EVERY
+  // background-* sub-property to its initial value as an inline override, wiping out
+  // the class's background-size:cover/background-position for good (a later
+  // el.style.backgroundColor=… doesn't undo it, since that's a different property).
+  const showFallback=()=>{el.style.backgroundImage='';el.style.backgroundColor=bg||'var(--red)';el.textContent=initials||'??';if(tc)el.style.color=tc;};
   showFallback();
   if(!photoUrl)return;
   const img=new Image();
-  img.onload=()=>{el.style.background='none';el.style.backgroundImage=`url(${photoUrl})`;el.textContent='';};
+  // backgroundColor (longhand), not background='none' — the shorthand resets EVERY
+  // background-* sub-property to its initial value as an inline override, wiping out
+  // the class's background-size:cover/background-position (they'd reset to auto/0% 0%,
+  // showing just the raw top-left corner of the photo at native pixel size instead of
+  // the whole thing scaled to fit — looks like the avatar is zoomed into one spot).
+  img.onload=()=>{el.style.backgroundColor='transparent';el.style.backgroundImage=`url(${photoUrl})`;el.textContent='';};
   img.onerror=()=>{console.error('avatar image failed to load — check the Storage bucket is set to Public (broken URL otherwise):',photoUrl);showFallback();};
   img.src=photoUrl;
 }
@@ -6013,7 +6022,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
         <div class="profile-streak-badge-best">${streak>0&&streak===bestStreak?'¡Récord personal! 🏆':(bestStreak>0?`Mejor racha: ${bestStreak} días`:'')}</div>
       </div>
       <div class="profile-hero-top">
-        <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
+        <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background-color:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
         <div class="profile-hero-info">
           <div class="profile-name">${escapeHtml(profile.name||profile.username)}</div>
           <div class="profile-handle">@${escapeHtml(profile.username)}${followsMe?'<span class="profile-visibility-badge">Te sigue</span>':''}</div>
@@ -6074,7 +6083,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
 function renderFeedPage(){
   const av=document.getElementById('composer-avatar');
   if(av){
-    if(PROFILE.photo){av.style.background='none';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
+    if(PROFILE.photo){av.style.backgroundColor='transparent';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
     else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
   }
   populateComposerRetoSelect();
@@ -6172,8 +6181,8 @@ function resetAddModal(){
 function openProfileEdit(){
   const av=document.getElementById('prof-av-preview');
   av.textContent=PROFILE.photo?'':PROFILE.name.slice(0,2).toUpperCase();
-  av.style.background=PROFILE.photo?'none':'var(--red)';
-  av.style.backgroundImage=PROFILE.photo?`url(${PROFILE.photo})`:'';
+  if(PROFILE.photo){av.style.backgroundColor='transparent';av.style.backgroundImage=`url(${PROFILE.photo})`;}
+  else{av.style.background='var(--red)';av.style.backgroundImage='';}
   document.getElementById('prof-reframe-btn').style.display=PROFILE.photo?'inline-flex':'none';
   document.getElementById('prof-name').value=PROFILE.name;
   document.getElementById('prof-username').value=PROFILE.username;
@@ -6852,7 +6861,7 @@ async function confirmPhotoCrop(){
     const file=new File([blob],'avatar.jpg',{type:'image/jpeg'});
     PROFILE._pendingPhotoFile=file;
     const av=document.getElementById('prof-av-preview');
-    av.style.background='none';av.style.backgroundImage=`url(${URL.createObjectURL(blob)})`;av.textContent='';
+    av.style.backgroundColor='transparent';av.style.backgroundImage=`url(${URL.createObjectURL(blob)})`;av.textContent='';
     closeModal('modal-photo-crop');
     document.getElementById('prof-photo').value='';
     _pcImg=null;_pcFile=null;
@@ -6982,7 +6991,7 @@ function updateHome(){
   document.getElementById('sb-name').textContent=PROFILE.name;
   document.getElementById('sb-stat').textContent=DB.leidos.length+' libros leídos';
   const av=document.getElementById('sb-avatar');
-  if(PROFILE.photo){av.style.background='none';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
+  if(PROFILE.photo){av.style.backgroundColor='transparent';av.style.backgroundImage=`url(${PROFILE.photo})`;av.textContent='';}
   else{av.style.backgroundImage='';av.style.background='var(--red)';av.textContent=(PROFILE.name||'??').slice(0,2).toUpperCase();}
 
   // ── Reading hero ──
