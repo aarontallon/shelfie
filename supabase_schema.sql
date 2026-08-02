@@ -809,3 +809,10 @@ create policy "posts_select" on public.posts for select using (
   or not exists (select 1 from public.profiles p where p.id = posts.user_id and p.is_private = true)
   or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = posts.user_id)
 );
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: preferencia de notificaciones por email
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+alter table public.profiles add column if not exists email_notifications boolean default true;

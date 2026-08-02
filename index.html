@@ -2193,6 +2193,11 @@ a{color:inherit}
     <p class="sub" style="margin:4px 0 0">Con la cuenta privada, solo quien te sigue puede ver tu shelfie y tus publicaciones. Quien quiera seguirte tendrá que esperar a que aceptes su solicitud.</p>
   </div>
 
+  <div style="margin-top:16px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" id="acc-email-notifs" onchange="toggleEmailNotifications(this)"> Notificaciones por email</label>
+    <p class="sub" style="margin:4px 0 0">Avisos por email cuando alguien te sigue o te pide seguirte — además de dentro de la app.</p>
+  </div>
+
   <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
     <label class="f-label" style="color:var(--red)">Zona de peligro</label>
     <p class="sub" style="margin:4px 0 12px">Eliminar tu cuenta borra tu perfil, tus libros, publicaciones y toda tu actividad en Shelfie. No se puede deshacer.</p>
@@ -3595,6 +3600,7 @@ async function loadSupaProfile(){
   PROFILE.storyShares=data.story_shares||0;
   PROFILE.onboardingSeen=data.onboarding_seen!==false;
   PROFILE.isPrivate=!!data.is_private;
+  PROFILE.emailNotifications=data.email_notifications!==false;
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -5958,6 +5964,7 @@ function openAccountSettings(){
   document.getElementById('acc-new-pw2').value='';
   document.getElementById('acc-new-email').value=PROFILE.email||SUPA_USER?.email||'';
   document.getElementById('acc-is-private').checked=!!PROFILE.isPrivate;
+  document.getElementById('acc-email-notifs').checked=PROFILE.emailNotifications!==false;
   openModal('modal-account');
 }
 
@@ -5975,6 +5982,22 @@ async function toggleAccountPrivacy(checkbox){
   }
   PROFILE.isPrivate=next;
   toast(next?'✓ Tu cuenta ahora es privada':'✓ Tu cuenta ahora es pública');
+}
+
+async function toggleEmailNotifications(checkbox){
+  if(!SUPA_USER){checkbox.checked=!checkbox.checked;return;}
+  const next=checkbox.checked;
+  checkbox.disabled=true;
+  const{error}=await supa.from('profiles').update({email_notifications:next}).eq('id',SUPA_USER.id);
+  checkbox.disabled=false;
+  if(error){
+    console.error('toggleEmailNotifications failed:',error);
+    checkbox.checked=!next;
+    toast('❌ No se pudo cambiar la preferencia de notificaciones.');
+    return;
+  }
+  PROFILE.emailNotifications=next;
+  toast(next?'✓ Notificaciones por email activadas':'✓ Notificaciones por email desactivadas');
 }
 
 async function changeAccountPassword(){
