@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shelfie — Tu shelfie social</title>
+<meta name="description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura. La red social para gente que lee de verdad.">
+<link rel="canonical" href="https://aarontallon.github.io/shelfie/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Shelfie">
+<meta property="og:url" content="https://aarontallon.github.io/shelfie/">
+<meta property="og:title" content="Shelfie — Tu shelfie social de lectura">
+<meta property="og:description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura.">
+<meta property="og:image" content="https://aarontallon.github.io/shelfie/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Shelfie — Tu shelfie social de lectura">
+<meta name="twitter:description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura.">
+<meta name="twitter:image" content="https://aarontallon.github.io/shelfie/og-image.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS) -->
@@ -1860,9 +1876,52 @@ a{color:inherit}
     </div>
     <div class="auth-divider">o con tu email</div>
     <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="login-email" type="email" placeholder="tu@email.com"></div>
-    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="login-pass" type="password" placeholder="••••••••"></div>
+    <div class="f-row">
+      <label class="f-label">Contraseña</label>
+      <input class="f-input" id="login-pass" type="password" placeholder="••••••••">
+      <div style="text-align:right;margin-top:6px"><button type="button" class="card-link" style="font-size:12px" onclick="showAuth('forgot-password')">¿Has olvidado tu contraseña?</button></div>
+    </div>
     <button class="btn btn-red w-full btn-lg" onclick="doLogin()"><i class="ti ti-login"></i> Iniciar sesión</button>
     <div class="auth-switch">¿No tienes cuenta? <button onclick="showAuth('register')">Regístrate gratis</button></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: OLVIDÉ MI CONTRASEÑA ══════════════════════ -->
+<div class="auth-screen" id="auth-forgot-password">
+  <button class="auth-back" onclick="showAuth('login')"><i class="ti ti-arrow-left"></i> Volver</button>
+  <div class="auth-box" id="forgot-password-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="auth-title">Recupera tu contraseña</div>
+    <div class="auth-sub">Te mandamos un enlace por email para elegir una nueva</div>
+    <div class="auth-error" id="forgot-password-error"></div>
+    <div id="forgot-password-sent" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Si <strong id="forgot-password-sent-email"></strong> tiene una cuenta en Shelfie, te hemos enviado un enlace para elegir una contraseña nueva.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('login')">Volver a iniciar sesión</button>
+    </div>
+    <div id="forgot-password-fields">
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="forgot-password-email" type="email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')requestPasswordReset()"></div>
+      <button class="btn btn-red w-full btn-lg" id="forgot-password-btn" onclick="requestPasswordReset()"><i class="ti ti-mail"></i> Enviar enlace</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ AUTH: NUEVA CONTRASEÑA (tras el enlace del email) ══════════════════════ -->
+<div class="auth-screen" id="auth-reset-password">
+  <div class="auth-box" id="reset-password-box">
+    <div class="auth-logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="auth-title">Elige una nueva contraseña</div>
+    <div class="auth-sub">Ya casi está — esta será tu nueva contraseña de acceso</div>
+    <div class="auth-error" id="reset-password-error"></div>
+    <div class="f-row"><label class="f-label">Nueva contraseña</label><input class="f-input" id="reset-password-new" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <div class="f-row"><label class="f-label">Repite la contraseña</label><input class="f-input" id="reset-password-new2" type="password" placeholder="Mínimo 8 caracteres"></div>
+    <button class="btn btn-red w-full btn-lg" id="reset-password-btn" onclick="completePasswordReset()"><i class="ti ti-check"></i> Guardar contraseña</button>
   </div>
 </div>
 
@@ -1877,32 +1936,39 @@ a{color:inherit}
     <div class="auth-title">Crea tu cuenta</div>
     <div class="auth-sub">Tu próxima lectura favorita empieza aquí</div>
     <div class="auth-error" id="register-error"></div>
-    <div class="auth-social">
-      <button class="auth-social-btn" onclick="socialLogin('Google')"><svg class="google-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continuar con Google</button>
+    <div id="register-confirm-msg" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Te hemos enviado un correo a <strong id="register-confirm-email"></strong> para confirmar tu cuenta. Ábrelo y toca el enlace — luego ya podrás iniciar sesión.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('login')">Ir a iniciar sesión</button>
     </div>
-    <div class="auth-divider">o regístrate con email</div>
-    <div style="display:flex;gap:10px">
-      <div class="f-row" style="flex:1"><label class="f-label">Nombre</label><input class="f-input" id="reg-nombre" placeholder="Nombre"></div>
-      <div class="f-row" style="flex:1"><label class="f-label">Apellido</label><input class="f-input" id="reg-apellido" placeholder="Apellido"></div>
-    </div>
-    <div class="f-row">
-      <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
-      <div style="position:relative">
-        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
-        <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+    <div id="register-fields">
+      <div class="auth-social">
+        <button class="auth-social-btn" onclick="socialLogin('Google')"><svg class="google-icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> Continuar con Google</button>
       </div>
-      <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
+      <div class="auth-divider">o regístrate con email</div>
+      <div style="display:flex;gap:10px">
+        <div class="f-row" style="flex:1"><label class="f-label">Nombre</label><input class="f-input" id="reg-nombre" placeholder="Nombre"></div>
+        <div class="f-row" style="flex:1"><label class="f-label">Apellido</label><input class="f-input" id="reg-apellido" placeholder="Apellido"></div>
+      </div>
+      <div class="f-row">
+        <label class="f-label">Usuario único <span style="color:var(--ink3);font-weight:400">(@handle)</span></label>
+        <div style="position:relative">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:14px;pointer-events:none">@</span>
+          <input class="f-input" id="reg-username" placeholder="tu_usuario" style="padding-left:26px" oninput="onUsernameInput(this.value)" autocomplete="off">
+        </div>
+        <div id="username-status" style="font-size:12px;margin-top:4px;height:16px"></div>
+      </div>
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="reg-email" type="email" placeholder="tu@email.com"></div>
+      <div class="f-row">
+        <label class="f-label">Contraseña</label>
+        <input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 8 caracteres" oninput="onPassInput(this.value)">
+        <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden"><div id="pass-strength-fill" style="height:100%;width:0;transition:width 0.2s,background 0.2s;border-radius:2px"></div></div>
+        <div id="pass-strength-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
+      </div>
+      <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
+      <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
+      <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
     </div>
-    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="reg-email" type="email" placeholder="tu@email.com"></div>
-    <div class="f-row">
-      <label class="f-label">Contraseña</label>
-      <input class="f-input" id="reg-pass" type="password" placeholder="Mínimo 8 caracteres" oninput="onPassInput(this.value)">
-      <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden"><div id="pass-strength-fill" style="height:100%;width:0;transition:width 0.2s,background 0.2s;border-radius:2px"></div></div>
-      <div id="pass-strength-label" style="font-size:11px;color:var(--ink3);margin-top:4px"></div>
-    </div>
-    <button class="btn btn-red w-full btn-lg" onclick="doRegister()"><i class="ti ti-user-plus"></i> Crear cuenta</button>
-    <div class="auth-terms">Al crear una cuenta aceptas los <a href="#">Términos</a> y la <a href="#">Política de Privacidad</a> de Shelfie.</div>
-    <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('login')">Inicia sesión</button></div>
   </div>
 </div>
 
@@ -1938,12 +2004,19 @@ a{color:inherit}
     <div class="auth-title">Registra tu local o servicio</div>
     <div class="auth-sub">Publica tus eventos de lectura y ve quién se apunta</div>
     <div class="auth-error" id="organizer-register-error"></div>
-    <div class="f-row"><label class="f-label">Nombre del local / servicio</label><input class="f-input" id="org-reg-venue" placeholder="Ej: Librería La Central"></div>
-    <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="org-reg-city" placeholder="Ej: Barcelona"></div>
-    <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-reg-email" type="email" placeholder="contacto@tulocal.com"></div>
-    <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-reg-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
-    <button class="btn btn-red w-full btn-lg" onclick="organizerRegister()"><i class="ti ti-user-plus"></i> Crear cuenta de organizador</button>
-    <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('organizer-login')">Inicia sesión</button></div>
+    <div id="organizer-register-confirm-msg" style="display:none;text-align:center;padding:8px 0 4px">
+      <div style="font-size:38px;margin-bottom:10px">📬</div>
+      <p style="font-size:14px;color:var(--ink2);line-height:1.5;margin-bottom:18px">Te hemos enviado un correo a <strong id="organizer-register-confirm-email"></strong> para confirmar tu cuenta. Ábrelo y toca el enlace — luego ya podrás iniciar sesión.</p>
+      <button class="btn btn-white w-full" onclick="showAuth('organizer-login')">Ir a iniciar sesión</button>
+    </div>
+    <div id="organizer-register-fields">
+      <div class="f-row"><label class="f-label">Nombre del local / servicio</label><input class="f-input" id="org-reg-venue" placeholder="Ej: Librería La Central"></div>
+      <div class="f-row"><label class="f-label">Ciudad</label><input class="f-input" id="org-reg-city" placeholder="Ej: Barcelona"></div>
+      <div class="f-row"><label class="f-label">Email</label><input class="f-input" id="org-reg-email" type="email" placeholder="contacto@tulocal.com"></div>
+      <div class="f-row"><label class="f-label">Contraseña</label><input class="f-input" id="org-reg-pass" type="password" placeholder="Mínimo 8 caracteres"></div>
+      <button class="btn btn-red w-full btn-lg" onclick="organizerRegister()"><i class="ti ti-user-plus"></i> Crear cuenta de organizador</button>
+      <div class="auth-switch">¿Ya tienes cuenta? <button onclick="showAuth('organizer-login')">Inicia sesión</button></div>
+    </div>
   </div>
 </div>
 
@@ -2115,11 +2188,41 @@ a{color:inherit}
   </div>
   <button class="btn btn-white w-full" id="acc-email-btn" onclick="changeAccountEmail()"><i class="ti ti-mail"></i> Actualizar email</button>
 
+  <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" id="acc-is-private" onchange="toggleAccountPrivacy(this)"> Cuenta privada</label>
+    <p class="sub" style="margin:4px 0 0">Con la cuenta privada, solo quien te sigue puede ver tu shelfie y tus publicaciones. Quien quiera seguirte tendrá que esperar a que aceptes su solicitud.</p>
+  </div>
+
+  <div style="margin-top:16px">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" id="acc-email-notifs" onchange="toggleEmailNotifications(this)"> Notificaciones por email</label>
+    <p class="sub" style="margin:4px 0 0">Avisos por email cuando alguien te sigue o te pide seguirte — además de dentro de la app.</p>
+  </div>
+
   <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
     <label class="f-label" style="color:var(--red)">Zona de peligro</label>
     <p class="sub" style="margin:4px 0 12px">Eliminar tu cuenta borra tu perfil, tus libros, publicaciones y toda tu actividad en Shelfie. No se puede deshacer.</p>
     <button class="btn btn-danger w-full" id="acc-delete-btn" onclick="deleteAccountFlow()"><i class="ti ti-trash"></i> Eliminar mi cuenta</button>
   </div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: REPORTAR ══════════════════════ -->
+<div class="overlay" id="modal-report" style="display:none" onclick="if(event.target===this)closeModal('modal-report')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-report')"><i class="ti ti-x"></i></button>
+  <h2>Reportar</h2>
+  <p class="sub" id="report-modal-sub">Cuéntanos qué pasa — lo revisamos a mano</p>
+  <div class="f-row"><label class="f-label">Motivo</label>
+    <select class="f-input" id="report-reason">
+      <option value="spam">Spam o publicidad</option>
+      <option value="acoso">Acoso o comportamiento abusivo</option>
+      <option value="inapropiado">Contenido inapropiado</option>
+      <option value="suplantacion">Suplantación de identidad</option>
+      <option value="otro">Otro</option>
+    </select>
+  </div>
+  <div class="f-row"><label class="f-label">Detalles <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><textarea class="f-input" id="report-details" style="height:70px;resize:none" placeholder="Cualquier detalle que nos ayude a revisarlo"></textarea></div>
+  <button class="btn btn-red w-full" id="report-submit-btn" onclick="submitReport()"><i class="ti ti-flag"></i> Enviar reporte</button>
 </div>
 </div>
 
@@ -3442,6 +3545,17 @@ function showLoginScreen(){
 // ── Auth state listener (handles refresh / tab reopen) ──
 let _appEntering=false;
 supa.auth.onAuthStateChange(async(event,session)=>{
+  // Clicking the "recuperar contraseña" link in the email lands back here with a
+  // recovery token in the URL — Supabase detects it and fires this dedicated event
+  // (not SIGNED_IN) with a session already attached. Show the "set a new password"
+  // screen instead of silently dropping them into the app with their OLD password
+  // still active and no idea they're "logged in".
+  if(event==='PASSWORD_RECOVERY'){
+    document.getElementById('auth-loading')?.classList.remove('on');
+    try{history.replaceState(null,'',window.location.pathname);}catch(e){}
+    showAuth('reset-password');
+    return;
+  }
   if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session&&!isLoggedIn&&!_appEntering){
     _appEntering=true;
     SUPA_USER=session.user;
@@ -3485,6 +3599,8 @@ async function loadSupaProfile(){
   PROFILE.shelfPublicView=data.shelf_public_view||'shelf';
   PROFILE.storyShares=data.story_shares||0;
   PROFILE.onboardingSeen=data.onboarding_seen!==false;
+  PROFILE.isPrivate=!!data.is_private;
+  PROFILE.emailNotifications=data.email_notifications!==false;
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -3660,7 +3776,9 @@ function postRowToObject(row){
     editedAt:row.edited_at?new Date(row.edited_at).getTime():null,
     likes:(row.likes||[]).length,
     likedByMe:SUPA_USER?(row.likes||[]).some(l=>l.user_id===SUPA_USER.id):false,
-    comments:(row.comments||[]).map(c=>{
+    // Bloqueado en cualquier dirección = su comentario no se muestra, aunque el
+    // post en sí (de otra persona) siga siendo visible.
+    comments:(row.comments||[]).filter(c=>!isBlockedEitherWay(c.user_id)).map(c=>{
       const ca=authorFromId(c.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
       return{id:c.id,userId:c.user_id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg,likes:0,likedByMe:false};
     }),
@@ -3675,7 +3793,7 @@ function postRowToObject(row){
 
 // Feed = your posts + the posts of everyone you follow, newest first.
 async function loadSupaPosts(){
-  const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
+  const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(id=>id&&!isBlockedEitherWay(id));
   const{data,error}=await supa.from('posts')
     .select('*, comments(*), likes(*)')
     .in('user_id',authorIds)
@@ -4027,6 +4145,8 @@ async function _supaEnterApp(){
   }catch(e){console.error('organizer check failed:',e);}
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
+  // Blocks must be loaded before friends/posts — both filter out blocked people.
+  try{await loadSupaBlocks();}catch(e){console.error('loadSupaBlocks failed:',e);}
   // Friends must be loaded before posts — the feed query needs FRIENDS to know
   // whose posts (besides your own) belong in it.
   try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
@@ -4107,10 +4227,15 @@ async function organizerRegister(){
     authErr('organizer-register-error',(msg.includes('already registered')||msg.includes('already been registered'))?'Ya existe una cuenta con ese email. Inicia sesión.':(msg||'Error al crear la cuenta. Inténtalo de nuevo.'));
     return;
   }
-  SUPA_USER=data.user||data.session?.user||null;
-  if(!SUPA_USER){const{data:sd}=await supa.auth.getSession();SUPA_USER=sd?.session?.user||null;}
+  if(!data.session){
+    document.getElementById('organizer-register-confirm-email').textContent=email;
+    document.getElementById('organizer-register-fields').style.display='none';
+    document.getElementById('organizer-register-confirm-msg').style.display='block';
+    return;
+  }
+  SUPA_USER=data.session.user;
   toast(`✅ Cuenta creada para «${venueName}»`);
-  if(SUPA_USER&&!isLoggedIn&&!_appEntering){_appEntering=true;try{await _supaEnterApp();}finally{_appEntering=false;}}
+  if(!isLoggedIn&&!_appEntering){_appEntering=true;try{await _supaEnterApp();}finally{_appEntering=false;}}
 }
 
 async function organizerLogin(){
@@ -5238,6 +5363,14 @@ function showAuth(which){
   document.getElementById('auth-'+which).classList.add('on');
   document.getElementById('login-error').classList.remove('show');
   document.getElementById('register-error').classList.remove('show');
+  document.getElementById('register-confirm-msg').style.display='none';
+  document.getElementById('register-fields').style.display='block';
+  document.getElementById('organizer-register-confirm-msg').style.display='none';
+  document.getElementById('organizer-register-fields').style.display='block';
+  document.getElementById('forgot-password-error')?.classList.remove('show');
+  document.getElementById('forgot-password-sent').style.display='none';
+  document.getElementById('forgot-password-fields').style.display='block';
+  document.getElementById('reset-password-error')?.classList.remove('show');
   // Cada pantalla es una vista nueva — si venías con scroll (p.ej. desde el pie de
   // una landing larga) no debe arrastrarse a la siguiente, que puede ser mucho más corta.
   window.scrollTo(0,0);
@@ -5306,6 +5439,49 @@ async function doLogin(){
   if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Iniciar sesión';}
   if(error){authErr('login-error',error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message);return;}
   // onAuthStateChange will fire SIGNED_IN and enter the app
+}
+
+async function requestPasswordReset(){
+  const email=document.getElementById('forgot-password-email').value.trim();
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authErr('forgot-password-error','Introduce un email válido.');return;}
+  const btn=document.getElementById('forgot-password-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Enviando...';
+  const redirectTo=window.location.href.split('#')[0].split('?')[0];
+  const{error}=await supa.auth.resetPasswordForEmail(email,{redirectTo});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){
+    console.error('resetPasswordForEmail failed:',error);
+    authErr('forgot-password-error','No se pudo enviar el correo. Inténtalo de nuevo en unos minutos.');
+    return;
+  }
+  // Mismo mensaje exista o no esa cuenta — Supabase ya se comporta así por su cuenta
+  // (no revela si un email está registrado), así que la UI no debe delatarlo tampoco.
+  document.getElementById('forgot-password-sent-email').textContent=email;
+  document.getElementById('forgot-password-fields').style.display='none';
+  document.getElementById('forgot-password-sent').style.display='block';
+}
+
+async function completePasswordReset(){
+  const pw1=document.getElementById('reset-password-new').value;
+  const pw2=document.getElementById('reset-password-new2').value;
+  if(!pw1||pw1.length<8){authErr('reset-password-error','La contraseña debe tener al menos 8 caracteres.');return;}
+  if(pw1!==pw2){authErr('reset-password-error','Las contraseñas no coinciden.');return;}
+  const btn=document.getElementById('reset-password-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Guardando...';
+  const{error}=await supa.auth.updateUser({password:pw1});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){
+    console.error('password reset updateUser failed:',error);
+    authErr('reset-password-error','No se pudo guardar la contraseña. Pide un nuevo enlace e inténtalo otra vez.');
+    return;
+  }
+  toast('✓ Contraseña actualizada');
+  if(!isLoggedIn&&!_appEntering){
+    _appEntering=true;
+    try{await _supaEnterApp();}finally{_appEntering=false;}
+  }
 }
 
 let _usernameCheckTimer=null;
@@ -5411,18 +5587,20 @@ async function doRegister(){
     else authErr('register-error',msg||'Error al crear la cuenta. Inténtalo de nuevo.');
     return;
   }
-  SUPA_USER=data.user||data.session?.user||null;
-  if(!SUPA_USER){
-    const{data:sd}=await supa.auth.getSession();
-    SUPA_USER=sd?.session?.user||null;
+  // signUp() only returns a session when the project doesn't require confirming
+  // the email first (or it auto-confirmed). Without a session there's no real
+  // auth.uid() yet — trying to update the profile or enter the app now would
+  // just fail silently under RLS, so we stop here and tell the user to check
+  // their inbox instead of pretending they're logged in.
+  if(!data.session){
+    document.getElementById('register-confirm-email').textContent=email;
+    document.getElementById('register-fields').style.display='none';
+    document.getElementById('register-confirm-msg').style.display='block';
+    return;
   }
-  if(SUPA_USER){
-    // If the project requires email confirmation, signUp() returns a user but no
-    // session yet — this update then runs unauthenticated and RLS (auth.uid()=id)
-    // silently blocks it, leaving the trigger-generated default username in place.
-    const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
-    if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
-  }
+  SUPA_USER=data.session.user;
+  const{error:profErr}=await supa.from('profiles').update({name:fullName,username}).eq('id',SUPA_USER.id);
+  if(profErr){console.error('doRegister profile update failed:',profErr);toast('⚠️ Cuenta creada, pero no se pudo guardar tu nombre de usuario todavía — podrás cambiarlo en tu perfil.');}
   PROFILE.name=fullName;
   PROFILE.email=email;
   PROFILE.username=username;
@@ -5785,7 +5963,41 @@ function openAccountSettings(){
   document.getElementById('acc-new-pw').value='';
   document.getElementById('acc-new-pw2').value='';
   document.getElementById('acc-new-email').value=PROFILE.email||SUPA_USER?.email||'';
+  document.getElementById('acc-is-private').checked=!!PROFILE.isPrivate;
+  document.getElementById('acc-email-notifs').checked=PROFILE.emailNotifications!==false;
   openModal('modal-account');
+}
+
+async function toggleAccountPrivacy(checkbox){
+  if(!SUPA_USER){checkbox.checked=!checkbox.checked;return;}
+  const next=checkbox.checked;
+  checkbox.disabled=true;
+  const{error}=await supa.from('profiles').update({is_private:next}).eq('id',SUPA_USER.id);
+  checkbox.disabled=false;
+  if(error){
+    console.error('toggleAccountPrivacy failed:',error);
+    checkbox.checked=!next;
+    toast('❌ No se pudo cambiar la privacidad de la cuenta.');
+    return;
+  }
+  PROFILE.isPrivate=next;
+  toast(next?'✓ Tu cuenta ahora es privada':'✓ Tu cuenta ahora es pública');
+}
+
+async function toggleEmailNotifications(checkbox){
+  if(!SUPA_USER){checkbox.checked=!checkbox.checked;return;}
+  const next=checkbox.checked;
+  checkbox.disabled=true;
+  const{error}=await supa.from('profiles').update({email_notifications:next}).eq('id',SUPA_USER.id);
+  checkbox.disabled=false;
+  if(error){
+    console.error('toggleEmailNotifications failed:',error);
+    checkbox.checked=!next;
+    toast('❌ No se pudo cambiar la preferencia de notificaciones.');
+    return;
+  }
+  PROFILE.emailNotifications=next;
+  toast(next?'✓ Notificaciones por email activadas':'✓ Notificaciones por email desactivadas');
 }
 
 async function changeAccountPassword(){
@@ -5853,6 +6065,90 @@ async function deleteAccountFlow(){
   document.getElementById('app-shell').classList.remove('on');
   showAuth('login');
   toast('Tu cuenta se ha eliminado');
+}
+
+// ═══════════════════════════════════════════════
+// REPORTAR Y BLOQUEAR
+// ═══════════════════════════════════════════════
+// BLOCKED_IDS: gente que TÚ has bloqueado. BLOCKED_BY_IDS: gente que te ha
+// bloqueado a TI — no se enseña en ningún sitio como lista, solo sirve para
+// ocultar tu propio contenido a quien te bloqueó (comentarios, feed).
+let BLOCKED_IDS=new Set();
+let BLOCKED_BY_IDS=new Set();
+
+async function loadSupaBlocks(){
+  if(!SUPA_USER)return;
+  const{data,error}=await supa.from('blocks').select('blocker_id,blocked_id').or(`blocker_id.eq.${SUPA_USER.id},blocked_id.eq.${SUPA_USER.id}`);
+  if(error){console.error('loadSupaBlocks failed:',error);return;}
+  BLOCKED_IDS=new Set((data||[]).filter(r=>r.blocker_id===SUPA_USER.id).map(r=>r.blocked_id));
+  BLOCKED_BY_IDS=new Set((data||[]).filter(r=>r.blocked_id===SUPA_USER.id).map(r=>r.blocker_id));
+}
+
+function isBlockedEitherWay(userId){
+  return BLOCKED_IDS.has(userId)||BLOCKED_BY_IDS.has(userId);
+}
+
+async function blockUserProfile(userId,name){
+  if(!SUPA_USER||!userId)return;
+  if(!await confirmModal(`¿Bloquear a ${name}? Dejaréis de seguiros y no verás su actividad, ni ella la tuya.`,{acceptLabel:'Bloquear',title:'Bloquear usuario'}))return;
+  const{error}=await supa.from('blocks').insert({blocker_id:SUPA_USER.id,blocked_id:userId});
+  if(error){console.error('blockUserProfile failed:',error);toast('❌ No se pudo bloquear. Inténtalo de nuevo.');return;}
+  BLOCKED_IDS.add(userId);
+  // El trigger de la base de datos ya deshizo el "seguir" en ambos sentidos —
+  // reflejamos lo mismo aquí para no esperar a un reload.
+  FRIENDS=FRIENDS.filter(f=>f.id!==userId);
+  FOLLOWERS=FOLLOWERS.filter(f=>f.id!==userId);
+  USER_POSTS=USER_POSTS.filter(p=>p.authorId!==userId);
+  updateProfileStats();
+  toast(`✓ Has bloqueado a ${name}`);
+  closeAllMoveMenus();
+  const cur=CURRENT_ENTITY.userprofile;
+  if(cur)renderUserProfilePage(cur);
+}
+
+async function unblockUserProfile(userId,name){
+  if(!SUPA_USER||!userId)return;
+  if(!await confirmModal(`¿Desbloquear a ${name}?`,{acceptLabel:'Desbloquear'}))return;
+  const{error}=await supa.from('blocks').delete().eq('blocker_id',SUPA_USER.id).eq('blocked_id',userId);
+  if(error){console.error('unblockUserProfile failed:',error);toast('❌ No se pudo desbloquear. Inténtalo de nuevo.');return;}
+  BLOCKED_IDS.delete(userId);
+  toast(`✓ Has desbloqueado a ${name}`);
+  closeAllMoveMenus();
+  const cur=CURRENT_ENTITY.userprofile;
+  if(cur)renderUserProfilePage(cur);
+}
+
+let _reportTarget=null; // {type:'user'|'post', id, userId}
+function openReportModal(type,id,userId,label){
+  if(!SUPA_USER){toast('Inicia sesión para poder reportar.');return;}
+  _reportTarget={type,id,userId};
+  document.getElementById('report-modal-sub').textContent=label?`Vas a reportar ${label} — lo revisamos a mano`:'Cuéntanos qué pasa — lo revisamos a mano';
+  document.getElementById('report-reason').value='spam';
+  document.getElementById('report-details').value='';
+  closeAllMoveMenus();
+  openModal('modal-report');
+}
+
+async function submitReport(){
+  if(!SUPA_USER||!_reportTarget)return;
+  const reason=document.getElementById('report-reason').value;
+  const details=document.getElementById('report-details').value.trim();
+  const btn=document.getElementById('report-submit-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Enviando...';
+  const{error}=await supa.from('reports').insert({
+    reporter_id:SUPA_USER.id,
+    target_type:_reportTarget.type,
+    target_id:String(_reportTarget.id),
+    target_user_id:_reportTarget.userId||null,
+    reason,
+    details:details||null,
+  });
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){console.error('submitReport failed:',error);toast('❌ No se pudo enviar el reporte. Inténtalo de nuevo.');return;}
+  closeModal('modal-report');
+  _reportTarget=null;
+  toast('✓ Reporte enviado — gracias por avisarnos');
 }
 
 // ═══════════════════════════════════════════════
@@ -5985,11 +6281,17 @@ async function renderUserProfilePage(username){
     const{data:profile,error}=await supa.from('profiles').select('*').eq('username',username).single();
     if(error||!profile)throw error||new Error('profile not found');
     const cached=cacheUser(profile);
-    const[booksRes,postsRes,followingRes,followersRes]=await Promise.all([
+    if(isBlockedEitherWay(profile.id)){
+      const blockedByMe=BLOCKED_IDS.has(profile.id);
+      cont.innerHTML=`<div class="empty" style="padding:60px 0"><i class="ti ti-ban"></i><p>${blockedByMe?'Has bloqueado a este usuario.':'Este perfil no está disponible.'}</p>${blockedByMe?`<button class="btn btn-white btn-sm" style="margin-top:10px" onclick="unblockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')">Desbloquear</button>`:''}</div>`;
+      return;
+    }
+    const[booksRes,postsRes,followingRes,followersRes,pendingReqRes]=await Promise.all([
       supa.from('user_books').select('*').eq('user_id',profile.id),
       supa.from('posts').select('*, comments(*), likes(*)').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(100),
       supa.from('friendships').select('friend_id',{count:'exact',head:true}).eq('user_id',profile.id),
       supa.from('friendships').select('user_id',{count:'exact',head:true}).eq('friend_id',profile.id),
+      supa.from('follow_requests').select('requester_id').eq('requester_id',SUPA_USER.id).eq('target_id',profile.id).maybeSingle(),
     ]);
     if(booksRes.error)throw booksRes.error;
     const rows=postsRes.data||[];
@@ -6002,7 +6304,7 @@ async function renderUserProfilePage(username){
     });
     await loadPostReactionsInto(rows.map(r=>r.id));
     await loadCommentLikesInto(rows.flatMap(r=>(r.comments||[]).map(c=>c.id)));
-    renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached);
+    renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached,!!pendingReqRes.data);
   }catch(e){
     console.error('renderUserProfilePage failed:',e);
     cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil. Comprueba tu conexión.</p></div>';
@@ -6033,9 +6335,46 @@ function renderUpProfileShelfieContent(){
   el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView,upProfileShelfTab,false,_upProfileSort);
 }
 
-function renderUserProfileView(profile,books,posts,following,followers,cached){
+function renderUserProfileView(profile,books,posts,following,followers,cached,hasPendingRequest){
   const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
+  // Cuenta privada + no la sigues = ni shelfie ni publicaciones ni logros, solo
+  // la ficha básica y el botón para pedir seguir. La base de datos ya bloquea
+  // esos datos por RLS (books/posts llegan vacíos igualmente), esto es solo
+  // para que la pantalla lo explique en vez de parecer una cuenta inactiva.
+  if(profile.is_private&&!isFriend){
+    const followBtnHtml=hasPendingRequest
+      ?`<button class="btn btn-ghost btn-lg" style="flex:1" disabled>Solicitud enviada</button>`
+      :`<button class="btn btn-red btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)">Seguir</button>`;
+    document.getElementById('user-profile-content').innerHTML=`
+      <div class="profile-hero">
+        <div class="profile-hero-top">
+          <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background-color:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
+          <div class="profile-hero-info">
+            <div class="profile-name">${escapeHtml(profile.name||profile.username)}</div>
+            <div class="profile-handle">@${escapeHtml(profile.username)}${followsMe?'<span class="profile-visibility-badge">Te sigue</span>':''}</div>
+            ${profile.bio?`<div class="profile-bio-text">${escapeHtml(profile.bio)}</div>`:''}
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="ps"><div class="ps-n">${following}</div><div class="ps-l">Siguiendo</div></div>
+          <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin:16px 0">
+        ${followBtnHtml}
+        ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
+          <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+          <div class="move-menu-dropdown" id="move-menu-up-actions">
+            <button onclick="openReportModal('user','${profile.id}','${profile.id}','a @${escapeHtml(profile.username)}')"><i class="ti ti-flag"></i> Reportar usuario</button>
+            <button onclick="blockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')" style="color:var(--red)"><i class="ti ti-ban"></i> Bloquear</button>
+          </div>
+        </div>`:''}
+      </div>
+      <div class="empty" style="padding:60px 0"><i class="ti ti-lock"></i><p>Esta cuenta es privada.<br>Síguela para ver su shelfie y sus publicaciones.</p></div>
+    `;
+    return;
+  }
   const theirReadingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
   const streak=calculateCurrentStreak(theirReadingDays);
   const bestStreak=Math.max(calculateBestStreak(theirReadingDays),streak);
@@ -6143,7 +6482,16 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
         <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
       </div>
     </div>
-    <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin:16px 0" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+    <div style="display:flex;gap:8px;margin:16px 0">
+      <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+      ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
+        <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+        <div class="move-menu-dropdown" id="move-menu-up-actions">
+          <button onclick="openReportModal('user','${profile.id}','${profile.id}','a @${escapeHtml(profile.username)}')"><i class="ti ti-flag"></i> Reportar usuario</button>
+          <button onclick="blockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')" style="color:var(--red)"><i class="ti ti-ban"></i> Bloquear</button>
+        </div>
+      </div>`:''}
+    </div>
 
     ${achHtml}
     ${readingNowHtml}
@@ -7992,7 +8340,12 @@ function closeAllMoveMenus(){
   const menu=document.getElementById('g-book-menu');
   if(menu){menu.style.display='none';menu.innerHTML='';}
   _gmenuBookId=null;
-  document.querySelectorAll('.move-menu-dropdown').forEach(d=>{d.classList.remove('show');d.style.display='none';});
+  // Visibility is driven entirely by the .show class (CSS default is display:none) —
+  // ALSO setting an inline display:none here used to leave a stale inline override
+  // behind that a later classList.add('show') can never win against (inline style
+  // always beats a class selector), so reopening the very same dropdown silently
+  // did nothing.
+  document.querySelectorAll('.move-menu-dropdown').forEach(d=>d.classList.remove('show'));
 }
 
 function toggleMoveMenu(e,id){
@@ -10171,6 +10524,30 @@ async function addFriend(username,btn){
   if(!r)return;
   if(btn){btn.disabled=true;btn.textContent='...';}
   if(SUPA_USER&&r.id){
+    // Las cuentas privadas no se siguen al instante — se manda una solicitud
+    // que la otra persona tiene que aceptar (comprobación en vivo, no fiada de
+    // datos en caché que podrían estar desactualizados).
+    let isPrivate=false;
+    try{
+      const{data}=await supa.from('profiles').select('is_private').eq('id',r.id).single();
+      isPrivate=!!data?.is_private;
+    }catch(e){console.error('addFriend privacy check failed:',e);}
+    if(isPrivate){
+      try{
+        const{error}=await supa.from('follow_requests').insert({requester_id:SUPA_USER.id,target_id:r.id});
+        if(error)throw error;
+      }catch(e){
+        console.error('follow request failed:',e);
+        if(btn){btn.disabled=false;btn.textContent='Seguir';}
+        toast('❌ No se pudo enviar la solicitud. Inténtalo de nuevo.');
+        return;
+      }
+      supa.from('notifications').insert({user_id:r.id,actor_id:SUPA_USER.id,type:'follow_request'})
+        .then(({error})=>{if(error)console.error('notify follow-request failed:',error);});
+      if(btn){btn.textContent='Solicitud enviada';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
+      toast(`✓ Solicitud enviada a ${r.name}`);
+      return;
+    }
     try{
       const{error}=await supa.from('friendships').insert({user_id:SUPA_USER.id,friend_id:r.id});
       if(error)throw error;
@@ -10189,6 +10566,51 @@ async function addFriend(username,btn){
   updateProfileStats();renderFriends();
   loadFriendsBooksCache().catch(e=>console.error('loadFriendsBooksCache failed:',e));
   toast(`✓ Ahora sigues a ${r.name}`);
+}
+
+// Acepta desde una notificación de solicitud de seguimiento — usa la función
+// security definer accept_follow_request(), porque la política de inserción
+// de friendships solo te deja crear filas donde TÚ eres quien sigue, no en
+// nombre del solicitante.
+async function acceptFollowRequest(requesterId,notifId,btn){
+  if(!SUPA_USER)return;
+  const card=btn.closest('.friend-card');
+  if(card)card.style.opacity='0.5';
+  try{
+    const{error}=await supa.rpc('accept_follow_request',{p_requester_id:requesterId});
+    if(error)throw error;
+  }catch(e){
+    console.error('acceptFollowRequest failed:',e);
+    if(card)card.style.opacity='1';
+    toast('❌ No se pudo aceptar la solicitud.');
+    return;
+  }
+  supa.from('notifications').insert({user_id:requesterId,actor_id:SUPA_USER.id,type:'follow_accepted'})
+    .then(({error})=>{if(error)console.error('notify follow-accepted failed:',error);});
+  try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
+  NOTIFICATIONS=NOTIFICATIONS.filter(n=>n.id!==notifId);
+  renderNotifications();
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+  toast('✓ Solicitud aceptada');
+}
+
+async function declineFollowRequest(requesterId,notifId,btn){
+  if(!SUPA_USER)return;
+  const card=btn.closest('.friend-card');
+  if(card)card.style.opacity='0.5';
+  try{
+    const{error}=await supa.from('follow_requests').delete().eq('requester_id',requesterId).eq('target_id',SUPA_USER.id);
+    if(error)throw error;
+  }catch(e){
+    console.error('declineFollowRequest failed:',e);
+    if(card)card.style.opacity='1';
+    toast('❌ No se pudo rechazar la solicitud.');
+    return;
+  }
+  NOTIFICATIONS=NOTIFICATIONS.filter(n=>n.id!==notifId);
+  renderNotifications();
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+  toast('Solicitud rechazada');
 }
 
 async function removeFriend(username){
@@ -10244,7 +10666,7 @@ async function searchFriends(q){
       .limit(15);
     if(error)throw error;
     if(token!==_friendSearchToken)return; // a newer search superseded this response
-    renderFriendResults(data||[]);
+    renderFriendResults((data||[]).filter(r=>!isBlockedEitherWay(r.id)));
   }catch(e){
     console.error('searchFriends failed:',e);
     if(token===_friendSearchToken)res.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-wifi-off"></i><p>No se pudo buscar. Comprueba tu conexión e inténtalo de nuevo.</p></div>';
@@ -11133,8 +11555,16 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':'interactuó contigo';
-    const followBtn=n.type==='follow'?`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`:'';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':'interactuó contigo';
+    let followBtn='';
+    if(n.type==='follow'){
+      followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+    }else if(n.type==='follow_request'){
+      followBtn=`<div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm btn-red" onclick="event.stopPropagation();acceptFollowRequest('${n.actor.id}','${n.id}',this)">Aceptar</button>
+        <button class="btn btn-sm btn-white" onclick="event.stopPropagation();declineFollowRequest('${n.actor.id}','${n.id}',this)">Rechazar</button>
+      </div>`;
+    }
     return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${n.actor.username}')"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1;min-width:0"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div></div>${followBtn}</div>`;
   }).join('');
 }
@@ -13485,7 +13915,7 @@ function renderOnePost(p){
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
         <button class="fc-action-btn" onclick="event.stopPropagation();toggleReactionPicker('${p.id}',this)"><i class="ti ti-mood-plus"></i> Reaccionar</button>
         ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
-        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:''}
+        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:(SUPA_USER?`<button class="fc-action-btn" onclick="openReportModal('post','${p.id}','${author.id||''}','esta publicación')"><i class="ti ti-flag"></i> Reportar</button>`:'')}
       </div>
       <div style="${needsOwnPadding?'padding:0 18px 16px':''}">
         ${commentsHtml}

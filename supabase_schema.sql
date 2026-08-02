@@ -636,3 +636,183 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: reportar y bloquear usuarios
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references public.profiles(id) on delete cascade not null,
+  target_type text not null check (target_type in ('user','post')),
+  target_id text not null, -- id de profiles (uuid) o de posts (id de texto)
+  target_user_id uuid references public.profiles(id) on delete cascade, -- a quién se reporta, para poder revisar rápido sin resolver target_id
+  reason text not null,
+  details text,
+  status text not null default 'pending' check (status in ('pending','reviewed','dismissed')),
+  created_at timestamptz default now()
+);
+alter table public.reports enable row level security;
+-- Solo puedes crear reportes en tu nombre, y solo puedes leer los tuyos —
+-- no hay panel de moderación en la app todavía, así que estas filas se
+-- revisan a mano desde el SQL Editor de Supabase.
+drop policy if exists "reports_insert" on public.reports;
+create policy "reports_insert" on public.reports for insert with check (auth.uid() = reporter_id);
+drop policy if exists "reports_select" on public.reports;
+create policy "reports_select" on public.reports for select using (auth.uid() = reporter_id);
+
+create table if not exists public.blocks (
+  blocker_id uuid references public.profiles(id) on delete cascade not null,
+  blocked_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+alter table public.blocks enable row level security;
+-- Puedes gestionar (crear/borrar) solo tus propios bloqueos. La lectura
+-- también permite ver las filas donde TÚ eres el bloqueado — no para
+-- enseñarte una lista de "quién me ha bloqueado" en la UI (no se hace),
+-- sino porque el cliente necesita poder comprobar esa dirección para
+-- ocultar su propio contenido a quien le ha bloqueado.
+drop policy if exists "blocks_select" on public.blocks;
+create policy "blocks_select" on public.blocks for select using (auth.uid() = blocker_id or auth.uid() = blocked_id);
+drop policy if exists "blocks_insert" on public.blocks;
+create policy "blocks_insert" on public.blocks for insert with check (auth.uid() = blocker_id);
+drop policy if exists "blocks_delete" on public.blocks;
+create policy "blocks_delete" on public.blocks for delete using (auth.uid() = blocker_id);
+
+-- Bloquear a alguien deshace el "seguir" en ambos sentidos automáticamente.
+create or replace function public.handle_new_block()
+returns trigger as $$
+begin
+  delete from public.friendships
+  where (user_id = new.blocker_id and friend_id = new.blocked_id)
+     or (user_id = new.blocked_id and friend_id = new.blocker_id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_block_created on public.blocks;
+create trigger on_block_created
+  after insert on public.blocks
+  for each row execute function public.handle_new_block();
+
+-- Y mientras el bloqueo exista, no se puede volver a seguir en ningún sentido
+-- (defensa de verdad en la base de datos, no solo en el cliente).
+create or replace function public.prevent_follow_if_blocked()
+returns trigger as $$
+begin
+  if exists (
+    select 1 from public.blocks
+    where (blocker_id = new.user_id and blocked_id = new.friend_id)
+       or (blocker_id = new.friend_id and blocked_id = new.user_id)
+  ) then
+    raise exception 'No se puede seguir: hay un bloqueo entre estos dos usuarios.';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists before_friendship_insert on public.friendships;
+create trigger before_friendship_insert
+  before insert on public.friendships
+  for each row execute function public.prevent_follow_if_blocked();
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: perfiles privados y solicitudes de seguimiento
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+alter table public.profiles add column if not exists is_private boolean default false;
+
+create table if not exists public.follow_requests (
+  requester_id uuid references public.profiles(id) on delete cascade not null,
+  target_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (requester_id, target_id),
+  check (requester_id <> target_id)
+);
+alter table public.follow_requests enable row level security;
+drop policy if exists "follow_requests_select" on public.follow_requests;
+create policy "follow_requests_select" on public.follow_requests for select using (auth.uid() = requester_id or auth.uid() = target_id);
+drop policy if exists "follow_requests_insert" on public.follow_requests;
+create policy "follow_requests_insert" on public.follow_requests for insert with check (auth.uid() = requester_id);
+-- El propio solicitante puede cancelarla, y quien la recibe puede rechazarla —
+-- "borrar la fila" es como se representa tanto cancelar como rechazar.
+drop policy if exists "follow_requests_delete" on public.follow_requests;
+create policy "follow_requests_delete" on public.follow_requests for delete using (auth.uid() = requester_id or auth.uid() = target_id);
+
+-- Igual que con los bloqueos: no se puede pedir seguir si ya hay un bloqueo
+-- de por medio, ni si ya existe la solicitud o ya se sigue a esa persona.
+create or replace function public.prevent_bad_follow_request()
+returns trigger as $$
+begin
+  if exists (
+    select 1 from public.blocks
+    where (blocker_id = new.requester_id and blocked_id = new.target_id)
+       or (blocker_id = new.target_id and blocked_id = new.requester_id)
+  ) then
+    raise exception 'No se puede solicitar seguir: hay un bloqueo entre estos dos usuarios.';
+  end if;
+  if exists (select 1 from public.friendships where user_id = new.requester_id and friend_id = new.target_id) then
+    raise exception 'Ya sigues a este usuario.';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists before_follow_request_insert on public.follow_requests;
+create trigger before_follow_request_insert
+  before insert on public.follow_requests
+  for each row execute function public.prevent_bad_follow_request();
+
+-- Aceptar una solicitud de seguimiento crea una fila en friendships donde
+-- el SOLICITANTE es quien sigue — pero la política de friendships_insert
+-- solo deja crear filas donde tú (auth.uid()) eres ese "user_id" (quien
+-- sigue), no en nombre de otra persona. Por eso esto va aparte, como
+-- función security definer: solo actúa si de verdad existe una solicitud
+-- pendiente dirigida a quien la llama.
+create or replace function public.accept_follow_request(p_requester_id uuid)
+returns void as $$
+begin
+  if not exists (
+    select 1 from public.follow_requests
+    where requester_id = p_requester_id and target_id = auth.uid()
+  ) then
+    raise exception 'No existe esa solicitud de seguimiento.';
+  end if;
+  insert into public.friendships (user_id, friend_id) values (p_requester_id, auth.uid())
+  on conflict do nothing;
+  delete from public.follow_requests where requester_id = p_requester_id and target_id = auth.uid();
+end;
+$$ language plpgsql security definer;
+
+-- Aplica de verdad la privacidad a nivel de base de datos, no solo
+-- escondiendo cosas en la interfaz — quien no te sigue (y no eres tú
+-- mismo) ya no puede leer tus libros ni tus publicaciones si tu cuenta es
+-- privada. (Los comentarios y "me gusta" de esas publicaciones siguen con
+-- lectura pública por ahora — solo se llega a ellos sabiendo el id exacto
+-- de la publicación, que no se expone en ningún sitio si el post en sí ya
+-- no es visible; low priority pero queda anotado como pendiente de más
+-- blindaje si hace falta.)
+drop policy if exists "user_books_select" on public.user_books;
+create policy "user_books_select" on public.user_books for select using (
+  auth.uid() = user_id
+  or not exists (select 1 from public.profiles p where p.id = user_books.user_id and p.is_private = true)
+  or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = user_books.user_id)
+);
+
+drop policy if exists "posts_select" on public.posts;
+create policy "posts_select" on public.posts for select using (
+  auth.uid() = user_id
+  or not exists (select 1 from public.profiles p where p.id = posts.user_id and p.is_private = true)
+  or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = posts.user_id)
+);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: preferencia de notificaciones por email
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+alter table public.profiles add column if not exists email_notifications boolean default true;
