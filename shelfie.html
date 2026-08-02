@@ -224,7 +224,11 @@ a{color:inherit}
 .leaflet-popup-content{margin:12px 14px}
 @media (max-width:900px){
   .events-layout{flex-direction:column}
-  .events-map-col{width:100%;position:static}
+  /* En columna, sin esto el mapa se queda detrás del `.events-list-col` en
+     el DOM y acaba literalmente al final de la página, después de toda la
+     lista de eventos (que puede tener decenas) — nadie llega a verlo sin
+     hacer scroll hasta el fondo. */
+  .events-map-col{width:100%;position:static;order:-1}
   #events-map,#organizer-events-map{height:280px;max-height:none}
 }
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
@@ -1163,6 +1167,21 @@ a{color:inherit}
 .overlay{position:fixed;inset:0;background:rgba(28,25,23,0.7);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
 .modal{background:white;border-radius:16px;padding:28px;width:100%;max-width:500px;position:relative;margin:auto}
 .modal-lg{max-width:780px}
+/* ═══ TUTORIAL DE BIENVENIDA (recorrido guiado) ═══ */
+.tour-overlay{display:none;position:fixed;inset:0;z-index:3000}
+.tour-spotlight{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(15,15,15,0.72);pointer-events:none;transition:top .35s cubic-bezier(.4,0,.2,1),left .35s cubic-bezier(.4,0,.2,1),width .35s cubic-bezier(.4,0,.2,1),height .35s cubic-bezier(.4,0,.2,1);z-index:3001}
+.tour-spotlight.no-target{width:0;height:0;top:50%;left:50%}
+.tour-card{position:fixed;z-index:3002;background:white;border-radius:16px;padding:20px 22px;width:300px;box-shadow:0 24px 60px rgba(0,0,0,0.4);transition:top .35s cubic-bezier(.4,0,.2,1),left .35s cubic-bezier(.4,0,.2,1)}
+.tour-card-title{font-size:16.5px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px}
+.tour-card-desc{font-size:13px;color:var(--ink2);line-height:1.55;margin-bottom:18px}
+.tour-card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tour-dots{display:flex;gap:5px}
+.tour-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .2s}
+.tour-dot.on{background:var(--red);width:16px;border-radius:3px}
+.tour-nav-btns{display:flex;gap:6px;align-items:center}
+.tour-skip{font-size:12px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:10px;display:block;text-align:center;width:100%}
+.tour-skip:hover{color:var(--ink2);text-decoration:underline}
+@media (max-width:480px){.tour-card{width:calc(100vw - 32px);left:16px !important}}
 .reread-history-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #EBEBEB;font-size:12.5px}
 .reread-history-item:last-child{border-bottom:none}
 .reread-history-n{width:26px;height:26px;border-radius:50%;background:var(--purple-light);color:#5B21B6;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -2062,6 +2081,23 @@ a{color:inherit}
     <button class="btn btn-red" style="flex:1" onclick="confirmPhotoCrop()"><i class="ti ti-check"></i> Usar esta foto</button>
   </div>
 </div>
+</div>
+
+<!-- ══════════════════════ TUTORIAL DE BIENVENIDA ══════════════════════ -->
+<div class="tour-overlay" id="tour-overlay">
+  <div class="tour-spotlight no-target" id="tour-spotlight"></div>
+  <div class="tour-card" id="tour-card">
+    <div class="tour-card-title" id="tour-title"></div>
+    <div class="tour-card-desc" id="tour-desc"></div>
+    <div class="tour-card-foot">
+      <div class="tour-dots" id="tour-dots"></div>
+      <div class="tour-nav-btns">
+        <button class="btn btn-white btn-sm" id="tour-prev-btn" onclick="prevTourStep()"><i class="ti ti-chevron-left"></i></button>
+        <button class="btn btn-red btn-sm" id="tour-next-btn" onclick="nextTourStep()">Siguiente</button>
+      </div>
+    </div>
+    <button class="tour-skip" onclick="skipOnboardingTour()">Saltar tutorial</button>
+  </div>
 </div>
 
 <!-- ══════════════════════ MODAL: LOGROS ══════════════════════ -->
@@ -3405,6 +3441,7 @@ async function loadSupaProfile(){
   PROFILE.shelfTheme=data.shelf_theme||'clasica';
   PROFILE.shelfPublicView=data.shelf_public_view||'shelf';
   PROFILE.storyShares=data.story_shares||0;
+  PROFILE.onboardingSeen=data.onboarding_seen!==false;
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -4732,7 +4769,7 @@ const COMMUNITY_RETOS=[
     ],
   },
 ];
-let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica',shelfPublicView:'shelf',storyShares:0};
+let PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:'',shelfPublicSort:'manual',shelfTheme:'clasica',shelfPublicView:'shelf',storyShares:0,onboardingSeen:true};
 
 let CLUBS=[
   {
@@ -5528,6 +5565,12 @@ function enterApp(skipDemo){
   const h=new Date().getHours();
   document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name||'lector'} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
   restoreLastPage();
+  // Solo para cuentas recién creadas (onboarding_seen=false viene del trigger
+  // de alta en Supabase, ver handle_new_user() en supabase_schema.sql) — a
+  // cualquier cuenta ya existente restoreLastPage() no le cambia nada aquí.
+  if(SUPA_USER&&!PROFILE.onboardingSeen&&document.getElementById('p-home')?.classList.contains('on')){
+    setTimeout(startOnboardingTour,700);
+  }
 }
 
 function checkYearRollover(){
@@ -5547,6 +5590,107 @@ function checkYearRollover(){
   const lbl=document.getElementById('shelf-year-label');
   if(lbl)lbl.textContent=CURRENT_SHELFIE_YEAR;
   toast(`📅 Nuevo año — tu Shelfie ${CURRENT_SHELFIE_YEAR} empieza vacío`);
+}
+
+// ═══════════════════════════════════════════════
+// TUTORIAL DE BIENVENIDA — recorrido guiado por la app la primera vez que
+// alguien entra (ver el disparador en enterApp()). Un único spotlight fijo
+// (box-shadow enorme alrededor del elemento real) que se desplaza de un
+// elemento a otro, en vez de una galería de diapositivas: así lo que se
+// enseña es literalmente el botón/zona que hay que usar, no una ilustración
+// aparte de ello.
+// ═══════════════════════════════════════════════
+const ONBOARDING_STEPS=[
+  {title:'¡Bienvenido a Shelfie! 👋',desc:'Vamos a enseñarte lo básico en menos de un minuto — puedes saltarte el tutorial cuando quieras.',target:null},
+  {title:'Tu menú',desc:'Desde aquí accedes a tu shelfie, el feed de la comunidad, retos, eventos de lectura, tus logros y tus estadísticas.',target:()=>{
+    const hamburger=document.querySelector('.mobile-menu-btn');
+    return(hamburger&&getComputedStyle(hamburger).display!=='none')?'.mobile-menu-btn':'.sidebar .sb-logo';
+  }},
+  {title:'Añade tus libros',desc:'Aquí añades cada libro: los que ya has leído, los que estás leyendo, los que quieres leer o los que has abandonado.',target:'#p-home .tb-right .btn-red'},
+  {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',target:'#streak-mark-btn'},
+  {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',target:'#p-home .stats-grid'},
+  {title:'¡Listo! 🎉',desc:'Eso es lo básico. Ve a añadir tu primer libro y empieza a construir tu shelfie.',target:null},
+];
+let _tourStep=0;
+let _tourActive=false;
+
+function startOnboardingTour(){
+  if(_tourActive)return;
+  _tourActive=true;
+  _tourStep=0;
+  document.getElementById('tour-overlay').style.display='block';
+  renderTourStep();
+  window.addEventListener('resize',_onTourReposition);
+  window.addEventListener('scroll',_onTourReposition,true);
+}
+function _onTourReposition(){if(_tourActive)renderTourStep();}
+
+function endOnboardingTour(){
+  _tourActive=false;
+  document.getElementById('tour-overlay').style.display='none';
+  window.removeEventListener('resize',_onTourReposition);
+  window.removeEventListener('scroll',_onTourReposition,true);
+  if(PROFILE.onboardingSeen)return; // ya se había guardado (no debería pasar, pero por si acaso)
+  PROFILE.onboardingSeen=true;
+  if(SUPA_USER){
+    supa.from('profiles').update({onboarding_seen:true}).eq('id',SUPA_USER.id)
+      .then(({error})=>{if(error)console.error('endOnboardingTour: failed to save onboarding_seen:',error);});
+  }
+}
+function skipOnboardingTour(){endOnboardingTour();}
+
+function nextTourStep(){
+  if(_tourStep>=ONBOARDING_STEPS.length-1){endOnboardingTour();return;}
+  _tourStep++;renderTourStep();
+}
+function prevTourStep(){
+  if(_tourStep<=0)return;
+  _tourStep--;renderTourStep();
+}
+
+function renderTourStep(){
+  const step=ONBOARDING_STEPS[_tourStep];
+  const spotlight=document.getElementById('tour-spotlight');
+  const card=document.getElementById('tour-card');
+  const sel=typeof step.target==='function'?step.target():step.target;
+  const targetEl=sel?document.querySelector(sel):null;
+  const cardW=card.offsetWidth||300;
+  if(targetEl){
+    const applyPosition=()=>{
+      const r=targetEl.getBoundingClientRect();
+      const pad=8;
+      spotlight.classList.remove('no-target');
+      spotlight.style.top=(r.top-pad)+'px';
+      spotlight.style.left=(r.left-pad)+'px';
+      spotlight.style.width=(r.width+pad*2)+'px';
+      spotlight.style.height=(r.height+pad*2)+'px';
+      const cardH=card.offsetHeight||180;
+      let top=r.bottom+16;
+      if(top+cardH>window.innerHeight-12)top=Math.max(12,r.top-cardH-16);
+      let left=Math.min(Math.max(12,r.left),window.innerWidth-cardW-12);
+      card.style.top=top+'px';
+      card.style.left=left+'px';
+    };
+    const rBefore=targetEl.getBoundingClientRect();
+    const needsScroll=rBefore.top<60||rBefore.bottom>window.innerHeight-60;
+    if(needsScroll){
+      targetEl.scrollIntoView({block:'center',behavior:'smooth'});
+      // El scroll suave tarda un instante en asentarse — se espera a que
+      // termine para no perseguir al elemento a medio camino.
+      setTimeout(applyPosition,240);
+    } else {
+      applyPosition();
+    }
+  } else {
+    spotlight.classList.add('no-target');
+    card.style.top=((window.innerHeight-(card.offsetHeight||180))/2)+'px';
+    card.style.left=((window.innerWidth-cardW)/2)+'px';
+  }
+  document.getElementById('tour-title').textContent=step.title;
+  document.getElementById('tour-desc').textContent=step.desc;
+  document.getElementById('tour-dots').innerHTML=ONBOARDING_STEPS.map((_,i)=>`<div class="tour-dot ${i===_tourStep?'on':''}"></div>`).join('');
+  document.getElementById('tour-prev-btn').style.visibility=_tourStep===0?'hidden':'visible';
+  document.getElementById('tour-next-btn').textContent=_tourStep===ONBOARDING_STEPS.length-1?'Empezar':'Siguiente';
 }
 
 async function doLogout(){
@@ -7442,10 +7586,23 @@ function computeShelfCompartmentWidth(containerId){
   // back to the actual window width (minus a rough sidebar+padding allowance) instead
   // is right in the vast majority of real cases, so this fallback is very unlikely to
   // ever be visibly wrong.
-  const total=(el&&el.clientWidth)||Math.max(320,window.innerWidth-320);
-  const outerGap=8; // gap between the 3 cells (.shelf-cells-row)
-  const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
-  return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
+  // El propio fallback también depende del ancho real: por debajo de 900px
+  // el sidebar pasa a position:fixed fuera de flujo (ver @media (max-width:
+  // 900px) de .sidebar), así que no le resta nada al ancho del contenido —
+  // restar 320px ahí habría sido tan erróneo como el problema de las 3
+  // columnas de abajo.
+  const total=(el&&el.clientWidth)||(window.innerWidth<=900?Math.max(280,window.innerWidth-32):Math.max(320,window.innerWidth-320));
+  // Por debajo de 760px las 3 celdas se apilan en vertical en vez de ir en
+  // fila (ver @media (max-width:760px) de .shelf-cells-row) — cada una pasa
+  // a ocupar el ancho completo, no un tercio. Sin este ajuste el cálculo de
+  // capacidad seguía asumiendo 3 columnas también en móvil, así que cada
+  // fila solo recibía sitio para un puñado de libros y el resto del ancho
+  // real (ya completo, no un tercio) se quedaba vacío mostrando de fondo el
+  // patrón del tema — de ahí las estanterías con muchísimo hueco en móvil.
+  const cols=window.innerWidth<=760?1:3;
+  const outerGap=cols>1?8:0; // gap entre celdas cuando van en fila (0 en columna, ver CSS)
+  const cellPadding=32; // .shelf-cell padding horizontal, 16px por lado
+  return Math.max(120,Math.floor((total-outerGap*(cols-1))/cols)-cellPadding);
 }
 // respectPins=false is used whenever a real sort criterion (título/autor/valoración) is
 // active: the criterion always wins over wherever a book was last dragged, so a book
