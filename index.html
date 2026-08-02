@@ -224,7 +224,11 @@ a{color:inherit}
 .leaflet-popup-content{margin:12px 14px}
 @media (max-width:900px){
   .events-layout{flex-direction:column}
-  .events-map-col{width:100%;position:static}
+  /* En columna, sin esto el mapa se queda detrás del `.events-list-col` en
+     el DOM y acaba literalmente al final de la página, después de toda la
+     lista de eventos (que puede tener decenas) — nadie llega a verlo sin
+     hacer scroll hasta el fondo. */
+  .events-map-col{width:100%;position:static;order:-1}
   #events-map,#organizer-events-map{height:280px;max-height:none}
 }
 .sidebar{background:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:hidden}
@@ -7442,10 +7446,23 @@ function computeShelfCompartmentWidth(containerId){
   // back to the actual window width (minus a rough sidebar+padding allowance) instead
   // is right in the vast majority of real cases, so this fallback is very unlikely to
   // ever be visibly wrong.
-  const total=(el&&el.clientWidth)||Math.max(320,window.innerWidth-320);
-  const outerGap=8; // gap between the 3 cells (.shelf-cells-row)
-  const cellPadding=32; // .shelf-cell horizontal padding, 16px each side
-  return Math.max(120,Math.floor((total-2*outerGap)/3)-cellPadding);
+  // El propio fallback también depende del ancho real: por debajo de 900px
+  // el sidebar pasa a position:fixed fuera de flujo (ver @media (max-width:
+  // 900px) de .sidebar), así que no le resta nada al ancho del contenido —
+  // restar 320px ahí habría sido tan erróneo como el problema de las 3
+  // columnas de abajo.
+  const total=(el&&el.clientWidth)||(window.innerWidth<=900?Math.max(280,window.innerWidth-32):Math.max(320,window.innerWidth-320));
+  // Por debajo de 760px las 3 celdas se apilan en vertical en vez de ir en
+  // fila (ver @media (max-width:760px) de .shelf-cells-row) — cada una pasa
+  // a ocupar el ancho completo, no un tercio. Sin este ajuste el cálculo de
+  // capacidad seguía asumiendo 3 columnas también en móvil, así que cada
+  // fila solo recibía sitio para un puñado de libros y el resto del ancho
+  // real (ya completo, no un tercio) se quedaba vacío mostrando de fondo el
+  // patrón del tema — de ahí las estanterías con muchísimo hueco en móvil.
+  const cols=window.innerWidth<=760?1:3;
+  const outerGap=cols>1?8:0; // gap entre celdas cuando van en fila (0 en columna, ver CSS)
+  const cellPadding=32; // .shelf-cell padding horizontal, 16px por lado
+  return Math.max(120,Math.floor((total-outerGap*(cols-1))/cols)-cellPadding);
 }
 // respectPins=false is used whenever a real sort criterion (título/autor/valoración) is
 // active: the criterion always wins over wherever a book was last dragged, so a book
