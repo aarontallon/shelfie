@@ -864,6 +864,9 @@ a{color:inherit}
 .profile-streak-badge-num{font-family:'Inter',sans-serif;font-size:34px;font-weight:700;color:#FFF;line-height:1;letter-spacing:-0.03em;text-shadow:0 2px 6px rgba(0,0,0,0.4)}
 .profile-streak-badge-lbl{font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:.05em;white-space:nowrap;text-transform:uppercase;font-weight:700}
 .profile-streak-badge-best{font-size:9.5px;color:rgba(255,255,255,0.65);white-space:nowrap;margin-top:1px}
+.profile-streak-badge-share{margin-top:8px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.32);color:white;font-size:10.5px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;transition:background .15s}
+.profile-streak-badge-share:hover{background:rgba(255,255,255,0.3)}
+.profile-streak-badge-share i{font-size:11px}
 @keyframes streakPulse{0%,100%{box-shadow:0 8px 26px rgba(var(--glow),0.4),0 0 0 1px rgba(255,255,255,0.1)}50%{box-shadow:0 10px 34px rgba(var(--glow),0.7),0 0 0 4px rgba(255,255,255,0.12)}}
 @keyframes streakShine{0%,40%{left:-70%}75%,100%{left:150%}}
 @keyframes streakGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -2477,6 +2480,22 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: STORY DE RACHA ══════════════════════ -->
+<div class="overlay" id="modal-streak-story" style="display:none" onclick="if(event.target===this)closeModal('modal-streak-story')">
+<div class="modal" style="max-width:380px" onclick="event.stopPropagation()">
+  <button class="modal-close" onclick="closeModal('modal-streak-story')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-flame" style="font-size:20px;color:#EA580C"></i> Tu racha en story</h2>
+  <p class="sub">Descárgala o pulsa Compartir para presumir donde quieras</p>
+  <div style="background:#0a0a0a;border-radius:14px;overflow:hidden;margin-bottom:16px">
+    <img id="streak-story-img" style="width:100%;display:block;aspect-ratio:9/16;object-fit:contain" alt="Story de tu racha de lectura">
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-white w-full" onclick="downloadStreakStoryImage()"><i class="ti ti-download"></i> Descargar</button>
+    <button class="btn btn-red w-full" id="streak-story-share-btn" onclick="shareStreakStoryImage()" style="display:none"><i class="ti ti-share-2"></i> Compartir</button>
+  </div>
+</div>
+</div>
+
 <!-- ══════════════════════ APP SHELL ══════════════════════ -->
 <div class="app" id="app-shell">
 <nav class="sidebar">
@@ -2578,7 +2597,10 @@ a{color:inherit}
           <div class="streak-dash-best" id="streak-best">Mejor racha: 0 días</div>
           <div class="streak-week-dots" id="streak-week-dots"></div>
         </div>
-        <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
+          <button class="btn btn-white btn-sm" onclick="openStreakStoryModal()"><i class="ti ti-camera"></i> Compartir racha</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-head">
@@ -3292,6 +3314,7 @@ a{color:inherit}
       <div class="profile-streak-badge-num" id="profile-streak-n">0</div>
       <div class="profile-streak-badge-lbl">días racha</div>
       <div class="profile-streak-badge-best" id="profile-streak-best"></div>
+      <button class="profile-streak-badge-share" onclick="event.stopPropagation();openStreakStoryModal()"><i class="ti ti-share-2"></i> Compartir</button>
     </div>
     <div class="profile-hero-top">
       <div class="profile-av-wrap">
@@ -12967,6 +12990,197 @@ async function shareShelfieStoryImage(){
     registerStoryShare();
   }catch(e){
     if(e?.name!=='AbortError')console.error('shareShelfieStoryImage failed:',e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// STORY DE RACHA — celebra la racha de lectura con el mismo lenguaje visual
+// (color, degradado) que la insignia de racha del perfil, para que se sienta
+// como el mismo "trofeo" llevado a formato compartible.
+// ═══════════════════════════════════════════════
+function hexToRgba(hex,alpha){
+  const h=hex.replace('#','');
+  const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function streakTierGradientStops(tier){
+  const stops={
+    'tier-spark':['#92400E','#B45309'],
+    'tier-ember':['#9A3412','#EA580C','#FBBF24'],
+    'tier-blaze':['#7F1D1D','#DC2626','#F97316'],
+    'tier-inferno':['#581C87','#C026D3','#F97316'],
+    'tier-legend':['#B45309','#DC2626','#C026D3','#2563EB','#B45309'],
+  };
+  return stops[tier]||stops['tier-spark'];
+}
+function streakTierTagline(tier,streak){
+  if(tier==='tier-legend')return '🏆 Racha legendaria';
+  if(tier==='tier-inferno')return '💜 Nivel imparable';
+  if(tier==='tier-blaze')return '🔥 En llamas';
+  if(tier==='tier-ember')return '⚡ Cogiendo ritmo';
+  return streak>0?'✨ Cada día cuenta':'📖 Hoy empieza la racha';
+}
+
+let _streakStoryBlob=null;
+let _streakStoryBlobUrl=null;
+
+async function openStreakStoryModal(){
+  await generateStreakStoryImage();
+}
+
+async function generateStreakStoryImage(){
+  const streak=calculateCurrentStreak();
+  const best=Math.max(calculateBestStreak(),streak);
+  const isRecord=streak>0&&streak===best;
+  const tier=streakTierClass(streak);
+  const stops=streakTierGradientStops(tier);
+
+  const canvas=document.createElement('canvas');
+  canvas.width=1080;canvas.height=1920;
+  const ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+
+  // Fondo negro con resplandor cálido a juego con el nivel de racha actual
+  ctx.fillStyle='#0A0A0A';
+  ctx.fillRect(0,0,1080,1920);
+  let glow=ctx.createRadialGradient(540,760,0,540,760,760);
+  glow.addColorStop(0,hexToRgba(stops[Math.floor(stops.length/2)],0.4));
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+  glow=ctx.createRadialGradient(160,1780,0,160,1780,520);
+  glow.addColorStop(0,hexToRgba(stops[0],0.3));
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,1080,1920);
+
+  // Logo + wordmark + usuario
+  ctx.fillStyle='#FFFFFF';
+  const logoScale=34/24;
+  SHELFIE_LOGO_BARS.forEach(([bx,by,bw,bh])=>{roundRectPath(ctx,80+bx*logoScale,86+by*logoScale,bw*logoScale,bh*logoScale,2);ctx.fill();});
+  ctx.font='700 40px Inter, Arial, sans-serif';
+  ctx.fillText('shelfie',150,132);
+  ctx.font='500 26px Inter, Arial, sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.textAlign='right';
+  ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
+  ctx.textAlign='left';
+
+  // Llama gigante con halo detrás (el halo es la misma llama, muy desenfocada)
+  ctx.save();
+  ctx.filter='blur(55px)';
+  ctx.font='440px serif';
+  ctx.textAlign='center';
+  ctx.globalAlpha=0.55;
+  ctx.fillText('🔥',540,880);
+  ctx.restore();
+  ctx.font='400px serif';
+  ctx.textAlign='center';
+  ctx.fillText('🔥',540,850);
+
+  // Número de racha, enorme, con el degradado del nivel actual — el mismo
+  // lenguaje de color que la insignia de racha del perfil (spark/ember/
+  // blaze/inferno/legend), para que se reconozca como "el mismo trofeo".
+  ctx.font='900 310px "Playfair Display", Georgia, serif';
+  ctx.textAlign='center';
+  const numGrad=ctx.createLinearGradient(240,0,840,0);
+  stops.forEach((c,i)=>numGrad.addColorStop(i/(stops.length-1||1),c));
+  ctx.fillStyle=numGrad;
+  ctx.fillText(String(streak),540,1195);
+
+  ctx.font='800 48px Inter, Arial, sans-serif';
+  ctx.fillStyle='#FFFFFF';
+  ctx.fillText(streak===1?'DÍA DE RACHA':'DÍAS DE RACHA',540,1268);
+
+  if(isRecord&&streak>0){
+    const pillText='🏆 ¡RÉCORD PERSONAL!';
+    ctx.font='700 32px Inter, Arial, sans-serif';
+    const pw=ctx.measureText(pillText).width+64;
+    roundRectPath(ctx,540-pw/2,1318,pw,66,33);
+    ctx.fillStyle='rgba(255,255,255,0.14)';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillText(pillText,540,1361);
+  }else if(best>0){
+    ctx.font='500 30px Inter, Arial, sans-serif';
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.fillText(`Mejor racha: ${best} día${best===1?'':'s'}`,540,1345);
+  }
+
+  // Tira de los últimos 7 días, mismo espíritu que streak-week-dots del dashboard
+  const dotsY=1470,dotSize=36,dotGap=28;
+  const totalW=7*dotSize+6*dotGap;
+  let dx=540-totalW/2;
+  const today=new Date();
+  for(let i=6;i>=0;i--){
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    const lit=READING_DAYS.has(todayKey(d));
+    ctx.beginPath();
+    ctx.arc(dx+dotSize/2,dotsY,dotSize/2,0,Math.PI*2);
+    if(lit){
+      const dotGrad=ctx.createLinearGradient(dx,dotsY-dotSize/2,dx+dotSize,dotsY+dotSize/2);
+      stops.forEach((c,i)=>dotGrad.addColorStop(i/(stops.length-1||1),c));
+      ctx.fillStyle=dotGrad;
+      ctx.fill();
+    }else{
+      ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=2;ctx.stroke();
+    }
+    dx+=dotSize+dotGap;
+  }
+
+  ctx.font='600 40px Inter, Arial, sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.85)';
+  ctx.textAlign='center';
+  ctx.fillText(streakTierTagline(tier,streak),540,1610);
+
+  // Línea decorativa con el mismo degradado del nivel, para anclar visualmente
+  // la firma de abajo en vez de dejar un hueco vacío tras la frase.
+  const lineGrad=ctx.createLinearGradient(440,0,640,0);
+  stops.forEach((c,i)=>lineGrad.addColorStop(i/(stops.length-1||1),c));
+  ctx.fillStyle=lineGrad;
+  roundRectPath(ctx,440,1710,200,4,2);ctx.fill();
+
+  ctx.font='500 26px Inter, Arial, sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.fillText('Tu shelfie social de lectura',540,1790);
+  ctx.font='700 30px Inter, Arial, sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.fillText('shelfie',540,1832);
+  ctx.textAlign='left';
+
+  const blob=await new Promise(res=>canvas.toBlob(res,'image/png',0.95));
+  if(!blob){toast('❌ No se pudo generar la imagen. Inténtalo de nuevo.');return;}
+  if(_streakStoryBlobUrl)URL.revokeObjectURL(_streakStoryBlobUrl);
+  _streakStoryBlob=blob;
+  _streakStoryBlobUrl=URL.createObjectURL(blob);
+  document.getElementById('streak-story-img').src=_streakStoryBlobUrl;
+  const shareBtn=document.getElementById('streak-story-share-btn');
+  if(shareBtn)shareBtn.style.display=(typeof navigator.share==='function')?'inline-flex':'none';
+  openModal('modal-streak-story');
+}
+
+function downloadStreakStoryImage(){
+  if(!_streakStoryBlobUrl)return;
+  const uname=(PROFILE?.username||'shelfie').toString().trim().toLowerCase().replace(/[^a-z0-9_-]+/g,'-')||'shelfie';
+  const a=document.createElement('a');
+  a.href=_streakStoryBlobUrl;
+  a.download=`shelfie-racha-${uname}-${new Date().toISOString().slice(0,10)}.png`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  registerStoryShare();
+  toast('✅ Imagen descargada');
+}
+
+async function shareStreakStoryImage(){
+  if(!_streakStoryBlob)return;
+  try{
+    const file=new File([_streakStoryBlob],'shelfie-racha.png',{type:'image/png'});
+    if(navigator.canShare&&!navigator.canShare({files:[file]})){
+      toast('Tu navegador no admite compartir esta imagen directamente. Descárgala y compártela desde tu galería.');
+      return;
+    }
+    const streak=calculateCurrentStreak();
+    await navigator.share({files:[file],title:'Mi racha en shelfie',text:`🔥 ${streak} día${streak===1?'':'s'} de racha leyendo en shelfie`});
+    registerStoryShare();
+  }catch(e){
+    if(e?.name!=='AbortError')console.error('shareStreakStoryImage failed:',e);
   }
 }
 
