@@ -5598,18 +5598,29 @@ function checkYearRollover(){
 // (box-shadow enorme alrededor del elemento real) que se desplaza de un
 // elemento a otro, en vez de una galería de diapositivas: así lo que se
 // enseña es literalmente el botón/zona que hay que usar, no una ilustración
-// aparte de ello.
+// aparte de ello. Recorre de verdad las secciones del menú (cada paso con
+// `nav` navega a esa página con el mismo go() que usa cualquier click real
+// del sidebar), no solo señala el menú desde Inicio.
 // ═══════════════════════════════════════════════
 const ONBOARDING_STEPS=[
-  {title:'¡Bienvenido a Shelfie! 👋',desc:'Vamos a enseñarte lo básico en menos de un minuto — puedes saltarte el tutorial cuando quieras.',target:null},
-  {title:'Tu menú',desc:'Desde aquí accedes a tu shelfie, el feed de la comunidad, retos, eventos de lectura, tus logros y tus estadísticas.',target:()=>{
+  {title:'¡Bienvenido a Shelfie! 👋',desc:'Vamos a recorrer las secciones principales en un minuto — puedes saltarte el tutorial cuando quieras.',nav:'home',target:null},
+  {title:'Tu menú',desc:'Desde aquí accedes a todas las secciones: tu shelfie, descubrir, eventos, el feed, retos y estadísticas. Vamos a verlas una a una.',nav:'home',target:()=>{
     const hamburger=document.querySelector('.mobile-menu-btn');
     return(hamburger&&getComputedStyle(hamburger).display!=='none')?'.mobile-menu-btn':'.sidebar .sb-logo';
   }},
-  {title:'Añade tus libros',desc:'Aquí añades cada libro: los que ya has leído, los que estás leyendo, los que quieres leer o los que has abandonado.',target:'#p-home .tb-right .btn-red'},
-  {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',target:'#streak-mark-btn'},
-  {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',target:'#p-home .stats-grid'},
-  {title:'¡Listo! 🎉',desc:'Eso es lo básico. Ve a añadir tu primer libro y empieza a construir tu shelfie.',target:null},
+  {title:'Mi shelfie',desc:'Aquí ves y organizas todos tus libros: leídos, leyendo, quiero leer y abandonados. Puedes arrastrarlos para colocarlos como quieras.',nav:'shelf',target:'#shelf-tabs'},
+  {title:'Descubrir',desc:'Busca cualquier libro o autor y encuentra recomendaciones pensadas para lo que ya has leído.',nav:'discover',target:'#disc-search-inp'},
+  {title:'Eventos',desc:'Encuentros de lectura, firmas y clubs cerca de ti — apúntate con un clic.',nav:'events',target:()=>{
+    const body=document.getElementById('events-body');
+    return(body&&getComputedStyle(body).display!=='none')?'#events-search-inp':'#events-no-city';
+  }},
+  {title:'Feed',desc:'Comparte lo que lees — reseñas, citas, tu shelfie del mes — y ve lo que publican los lectores a los que sigues.',nav:'feed',target:'.composer-card'},
+  {title:'Retos',desc:'Crea tus propios retos de lectura o únete a los de la comunidad — como leer un libro por país o superar tu récord de páginas.',nav:'retos',target:'#p-retos .tb .btn-red'},
+  {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... y puedes exportarlos en PDF o CSV.',nav:'stats',target:'.stats-hero-grid'},
+  {title:'Añade tus libros',desc:'Volvamos a Inicio. Aquí añades cada libro: los que ya has leído, los que estás leyendo, los que quieres leer o los que has abandonado.',nav:'home',target:'#p-home .tb-right .btn-red'},
+  {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',nav:'home',target:'#streak-mark-btn'},
+  {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',nav:'home',target:'#p-home .stats-grid'},
+  {title:'¡Listo! 🎉',desc:'Eso es todo. Ve a añadir tu primer libro y empieza a construir tu shelfie.',nav:'home',target:null},
 ];
 let _tourStep=0;
 let _tourActive=false;
@@ -5618,6 +5629,7 @@ function startOnboardingTour(){
   if(_tourActive)return;
   _tourActive=true;
   _tourStep=0;
+  NAV_STACK.length=0; // el recorrido navega de verdad entre páginas — no queremos que esos saltos queden en el historial real de "volver"
   document.getElementById('tour-overlay').style.display='block';
   renderTourStep();
   window.addEventListener('resize',_onTourReposition);
@@ -5630,6 +5642,8 @@ function endOnboardingTour(){
   document.getElementById('tour-overlay').style.display='none';
   window.removeEventListener('resize',_onTourReposition);
   window.removeEventListener('scroll',_onTourReposition,true);
+  NAV_STACK.length=0;
+  if(!document.getElementById('p-home')?.classList.contains('on'))go('home',nbFor('home'));
   if(PROFILE.onboardingSeen)return; // ya se había guardado (no debería pasar, pero por si acaso)
   PROFILE.onboardingSeen=true;
   if(SUPA_USER){
@@ -5650,6 +5664,9 @@ function prevTourStep(){
 
 function renderTourStep(){
   const step=ONBOARDING_STEPS[_tourStep];
+  if(step.nav&&!document.getElementById('p-'+step.nav)?.classList.contains('on')){
+    go(step.nav,nbFor(step.nav));
+  }
   const spotlight=document.getElementById('tour-spotlight');
   const card=document.getElementById('tour-card');
   const sel=typeof step.target==='function'?step.target():step.target;
