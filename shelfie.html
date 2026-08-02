@@ -864,6 +864,7 @@ a{color:inherit}
 .ach-modal-desc{font-size:12px;color:var(--ink3);margin-top:1px}
 .ach-modal-pct{font-size:11px;color:var(--ink3);margin-top:3px}
 .ach-modal-pct.earned{color:var(--red);font-weight:700}
+#ach-modal-earned-toggle.on{background:var(--red);color:white;border-color:var(--red)}
 /* profile reading-now banner */
 .profile-reading-now{background:linear-gradient(120deg,#F5F3EF,white);border:1px solid #E8E4DC;border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;gap:14px;align-items:center}
 .profile-reading-now-spine{width:42px;height:64px;border-radius:4px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding:4px;overflow:hidden;position:relative;box-shadow:0 4px 12px rgba(0,0,0,0.15)}
@@ -2067,9 +2068,11 @@ a{color:inherit}
 <div class="overlay" id="modal-achievements" style="display:none" onclick="if(event.target===this)closeModal('modal-achievements')">
 <div class="modal modal-lg">
   <button class="modal-close" onclick="closeModal('modal-achievements')"><i class="ti ti-x"></i></button>
-  <h2>🏅 Logros</h2>
-  <p class="sub" id="ach-modal-count">0 de 0 logros conseguidos</p>
-  <select class="stats-year-sel" id="ach-modal-filter" style="margin:4px 0 2px" onchange="renderAchievementsModalList(this.value)"></select>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-right:26px">
+    <div><h2 style="margin-bottom:2px">🏅 Logros</h2><p class="sub" id="ach-modal-count" style="margin:0">0 de 0 logros conseguidos</p></div>
+    <button class="btn btn-white btn-sm" id="ach-modal-earned-toggle" style="flex-shrink:0" onclick="toggleAchEarnedOnly()"><i class="ti ti-check"></i> Solo conseguidos</button>
+  </div>
+  <select class="stats-year-sel" id="ach-modal-filter" style="margin:10px 0 2px" onchange="renderAchievementsModalList(this.value)"></select>
   <div id="ach-modal-list" class="ach-modal-list"></div>
 </div>
 </div>
@@ -5719,6 +5722,7 @@ let upProfileShelfTab='leidos';
 let upProfileShelfView='shelf';
 let _upProfileBooks={leidos:[],leyendo:[],quiero:[],dnf:[]};
 let _upProfileSort='manual';
+let _upProfileAchCtx=null;
 function setUpProfileShelfView(v){
   upProfileShelfView=v;
   document.getElementById('upv-shelf').classList.toggle('on',v==='shelf');
@@ -5806,6 +5810,24 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
   // Actividad reciente: TODAS sus publicaciones completas, más nuevas primero (rollo Twitter)
   const activityHtml=posts.length?posts.map(p=>renderOnePost(p)).join(''):`<div class="empty" style="padding:16px"><i class="ti ti-news" style="font-size:24px"></i><p style="font-size:13px">Aún no ha publicado nada</p></div>`;
 
+  // Logros: solo los conseguidos (no tiene sentido enseñarle a un
+  // desconocido cuánto le falta a otra persona para el siguiente nivel), y
+  // solo con las secciones calculables a partir de lo que ya se carga para
+  // ver este perfil — ver computeAchievementContextForUser().
+  _upProfileAchCtx=computeAchievementContextForUser(profile,books,posts,following,followers);
+  const theirAchAll=computeAchievements(_upProfileAchCtx);
+  const theirAchEarned=theirAchAll.filter(a=>a.earned);
+  const theirAchStrip=collapseAchievementsByCategory(theirAchAll).filter(a=>a.earned).sort((a,b)=>ACH_TIER_ORDER.indexOf(a.tier)-ACH_TIER_ORDER.indexOf(b.tier)).slice(0,10);
+  const achHtml=theirAchEarned.length?`
+    <div class="card ach-card">
+      <div class="card-head">
+        <div class="card-title">🏅 Logros <span class="ach-count-pill">${theirAchEarned.length}</span></div>
+        <button class="card-link" onclick="openAchievementsModal(_upProfileAchCtx,true)">Ver todos →</button>
+      </div>
+      <div class="ach-strip">${theirAchStrip.map(achievementBadgeHtml).join('')}</div>
+    </div>
+  `:'';
+
   document.getElementById('user-profile-content').innerHTML=`
     <div class="profile-hero">
       <div class="profile-streak-badge ${streakTierClass(streak)==='tier-spark'?'':streakTierClass(streak)}" style="opacity:${streak>0?1:0.35}">
@@ -5832,6 +5854,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     </div>
     <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin:16px 0" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
 
+    ${achHtml}
     ${readingNowHtml}
 
     <div class="g2">
@@ -11214,11 +11237,90 @@ function computeAchievementContext(){
   };
 }
 
+// Misma idea que computeAchievementContext(), pero para el perfil de OTRA
+// persona: solo con lo que ya se carga para enseñar su perfil (sus libros,
+// sus publicaciones, seguidos/seguidores) — sin acceso a sus retos, clubes,
+// eventos, cuántos likes/comentarios da ella a otros, sus Stories
+// compartidas ni la fecha real de alta de su cuenta (eso no es público vía
+// la API), así que esas categorías quedan siempre en 0 para cualquier
+// perfil que no sea el tuyo. Los libros llegan tal cual de Supabase
+// (snake_case), a diferencia de los tuyos que ya se normalizan al cargarlos.
+function computeAchievementContextForUser(profile,books,posts,followingCount,followersCount){
+  const leidos=books.filter(b=>b.status==='leidos');
+  const dnf=books.filter(b=>b.status==='dnf');
+  const readingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
+
+  const totalPages=leidos.reduce((s,b)=>s+(b.pages||0),0);
+  const authorCounts={};
+  leidos.forEach(b=>{if(b.author)authorCounts[b.author]=(authorCounts[b.author]||0)+1;});
+  const genreCounts={};
+  leidos.forEach(b=>{(b.genres||[]).forEach(g=>{genreCounts[g]=(genreCounts[g]||0)+1;});});
+
+  const finishDates=[];
+  leidos.forEach(b=>{
+    const history=(b.read_history&&b.read_history.length)?b.read_history:[{finishedAt:b.finished_at||null}];
+    history.forEach(h=>{const d=parseEsDate(h.finishedAt);if(d)finishDates.push(d);});
+  });
+  const monthsByYear={};
+  finishDates.forEach(d=>{const y=d.getFullYear();(monthsByYear[y]=monthsByYear[y]||new Set()).add(d.getMonth());});
+  const maxMonthsCoverage=Object.values(monthsByYear).reduce((max,s)=>Math.max(max,s.size),0);
+  const fullCoverageYears=Object.values(monthsByYear).filter(s=>s.size>=12).length;
+
+  const decades=new Set();
+  leidos.forEach(b=>{const y=parseInt(b.edition_year||b.year,10);if(y)decades.add(Math.floor(y/10)*10);});
+
+  const finishDays=finishDates.map(d=>Math.floor(d.getTime()/86400000)).sort((a,b)=>a-b);
+  function maxBooksInWindow(days){
+    let best=0,left=0;
+    for(let right=0;right<finishDays.length;right++){
+      while(finishDays[right]-finishDays[left]>=days)left++;
+      best=Math.max(best,right-left+1);
+    }
+    return best;
+  }
+  const maratonWindows={};
+  [3,5,7,10,15,30].forEach(n=>{maratonWindows[n]=maxBooksInWindow(n);});
+
+  return{
+    totalLeidos:leidos.length,
+    totalPages,
+    bestStreak:Math.max(calculateBestStreak(readingDays),calculateCurrentStreak(readingDays)),
+    distinctAuthors:Object.keys(authorCounts).length,
+    maxByAuthor:Object.values(authorCounts).reduce((m,n)=>Math.max(m,n),0),
+    distinctGenres:Object.keys(genreCounts).length,
+    maxByGenre:Object.values(genreCounts).reduce((m,n)=>Math.max(m,n),0),
+    longestBook:leidos.reduce((m,b)=>Math.max(m,b.pages||0),0),
+    fiveStarCount:leidos.filter(b=>b.stars===5).length,
+    maxMonthsCoverage,
+    fullCoverageYears,
+    wishlistFollowThrough:leidos.filter(b=>b.came_from_quiero).length,
+    dnfRedeemed:leidos.filter(b=>b.came_from_dnf).length,
+    decadesCount:decades.size,
+    maratonWindows,
+    accountYears:0,
+    rereadCount:leidos.filter(b=>b.read_history&&b.read_history.length>1).length,
+    favCount:leidos.filter(b=>b.is_favorite).length,
+    dnfCount:dnf.length,
+    yearGoalCount:0,
+    retosCreated:0,retosJoined:0,retosCompleted:0,
+    clubsCount:0,
+    eventsCount:0,
+    postsCount:posts.length,
+    likesReceived:posts.reduce((s,p)=>s+(p.likes||0),0),
+    commentsReceived:posts.reduce((s,p)=>s+(p.comments?p.comments.length:0),0),
+    likesGiven:0,
+    commentsGiven:0,
+    storySharesCount:0,
+    followersCount:followersCount||0,
+    followingCount:followingCount||0,
+  };
+}
+
 // Aplana el catálogo en logros individuales con su progreso ya calculado —
 // lo consumen tanto la tira resumen del perfil como el modal con el listado
 // completo, para no calcular el contexto dos veces.
-function computeAchievements(){
-  const ctx=computeAchievementContext();
+function computeAchievements(ctxOverride){
+  const ctx=ctxOverride||computeAchievementContext();
   const flat=[];
   ACHIEVEMENT_CATALOG.forEach(group=>{
     group.items.forEach(a=>{
@@ -11227,6 +11329,22 @@ function computeAchievements(){
     });
   });
   return flat;
+}
+
+const ACH_TIER_ORDER=['cosmico','inmortal','mitico','leyenda','maestro','diamante','platino','oro','plata','bronce'];
+
+// Para la tira resumen (perfil propio o ajeno): en vez de enseñar cada
+// peldaño conseguido de una misma escalera (3 medallas de "Volumen" si ya
+// has llegado a Plata), se queda con el peldaño más alto conseguido de cada
+// categoría — o, si aún no has conseguido ninguno, el más cercano.
+function collapseAchievementsByCategory(all){
+  const byCat={};
+  all.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a);});
+  return Object.values(byCat).map(items=>{
+    const earnedItems=items.filter(a=>a.earned);
+    if(earnedItems.length)return earnedItems.slice().sort((a,b)=>ACH_TIER_ORDER.indexOf(a.tier)-ACH_TIER_ORDER.indexOf(b.tier))[0];
+    return items.slice().sort((a,b)=>(b.progress/b.target)-(a.progress/a.target))[0];
+  });
 }
 
 function renderProfileAchievements(){
@@ -11239,10 +11357,9 @@ function renderProfileAchievements(){
   // Vista previa: los conseguidos primero (los de más nivel delante, para
   // presumir), luego los más cerca de conseguirse — así la tira siempre
   // enseña algo relevante aunque tengas pocos logros todavía.
-  const tierOrder=['cosmico','inmortal','mitico','leyenda','maestro','diamante','platino','oro','plata','bronce'];
-  const preview=[...all].sort((a,b)=>{
+  const preview=collapseAchievementsByCategory(all).sort((a,b)=>{
     if(a.earned!==b.earned)return a.earned?-1:1;
-    if(a.earned)return tierOrder.indexOf(a.tier)-tierOrder.indexOf(b.tier);
+    if(a.earned)return ACH_TIER_ORDER.indexOf(a.tier)-ACH_TIER_ORDER.indexOf(b.tier);
     return(b.progress/b.target)-(a.progress/a.target);
   }).slice(0,10);
   stripEl.innerHTML=preview.map(achievementBadgeHtml).join('');
@@ -11261,8 +11378,17 @@ function achievementBadgeHtml(a){
 }
 
 let _achModalAll=[];
-function openAchievementsModal(){
-  _achModalAll=computeAchievements();
+let _achModalOnlyEarned=false;
+let _achModalForceEarnedOnly=false;
+
+// ctxOverride: pásalo al ver el perfil de otra persona (su propio contexto,
+// calculado con computeAchievementContextForUser). forceEarnedOnly: true
+// cuando es el perfil de otra persona — solo tiene sentido presumir de lo
+// conseguido, no enseñarle a un desconocido cuánto le falta para el siguiente.
+function openAchievementsModal(ctxOverride,forceEarnedOnly){
+  _achModalAll=computeAchievements(ctxOverride);
+  _achModalForceEarnedOnly=!!forceEarnedOnly;
+  _achModalOnlyEarned=_achModalForceEarnedOnly;
   const earned=_achModalAll.filter(a=>a.earned).length;
   document.getElementById('ach-modal-count').textContent=`${earned} de ${_achModalAll.length} logros conseguidos`;
   // Categorías en el mismo orden en que aparecen en el catálogo, no
@@ -11275,12 +11401,33 @@ function openAchievementsModal(){
     return `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${e}/${n})</option>`;
   }).join('');
   filterSel.value='all';
+  const toggleBtn=document.getElementById('ach-modal-earned-toggle');
+  toggleBtn.style.display=_achModalForceEarnedOnly?'none':'inline-flex';
+  updateAchEarnedToggleLabel();
   renderAchievementsModalList('all');
   openModal('modal-achievements');
 }
 
+function toggleAchEarnedOnly(){
+  if(_achModalForceEarnedOnly)return;
+  _achModalOnlyEarned=!_achModalOnlyEarned;
+  updateAchEarnedToggleLabel();
+  renderAchievementsModalList(document.getElementById('ach-modal-filter').value);
+}
+function updateAchEarnedToggleLabel(){
+  const btn=document.getElementById('ach-modal-earned-toggle');
+  if(!btn)return;
+  btn.innerHTML=_achModalOnlyEarned?'<i class="ti ti-list-check"></i> Ver todos':'<i class="ti ti-check"></i> Solo conseguidos';
+  btn.classList.toggle('on',_achModalOnlyEarned);
+}
+
 function renderAchievementsModalList(filterCat){
-  const filtered=filterCat==='all'?_achModalAll:_achModalAll.filter(a=>a.cat===filterCat);
+  let filtered=filterCat==='all'?_achModalAll:_achModalAll.filter(a=>a.cat===filterCat);
+  if(_achModalOnlyEarned)filtered=filtered.filter(a=>a.earned);
+  if(!filtered.length){
+    document.getElementById('ach-modal-list').innerHTML=`<div class="empty" style="padding:24px"><i class="ti ti-medal" style="font-size:24px"></i><p style="font-size:13px">${_achModalOnlyEarned?'Todavía no hay logros conseguidos aquí.':'Sin logros en esta sección.'}</p></div>`;
+    return;
+  }
   const byCat={};
   filtered.forEach(a=>{(byCat[a.cat]=byCat[a.cat]||[]).push(a);});
   document.getElementById('ach-modal-list').innerHTML=Object.entries(byCat).map(([cat,items])=>`
