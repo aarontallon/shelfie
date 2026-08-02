@@ -239,7 +239,16 @@ a{color:inherit}
    rompe el position:sticky de cualquier cosa dentro de .main (como el mapa
    de Eventos, que dejaba de quedarse fijo y se desplazaba con la lista). El
    overflow-x:hidden de body ya evita el scroll horizontal igualmente. */
-.main{position:relative}
+/* min-width:0 (no overflow-x — ver el comentario de arriba sobre por qué eso
+   rompe el position:sticky) — .main es la celda de una CSS grid
+   (.app{grid-template-columns:230px 1fr}), y una celda de grid nunca se
+   encoge por debajo del ancho mínimo de su contenido a menos que se le
+   diga explícitamente min-width:0. Sin esto, CUALQUIER fila sin wrap en
+   cualquier página (p.ej. una fila de lomos de estantería con más libros
+   de los que caben) empujaba la celda entera — y por tanto toda la
+   página — más ancha que la pantalla en móvil, con scroll horizontal y
+   todo cortado por el lado derecho.*/
+.main{position:relative;min-width:0}
 .mobile-topbar{display:none;align-items:center;justify-content:space-between;padding:12px 16px;position:fixed;top:0;left:0;right:0;height:56px;background:var(--paper);border-bottom:1px solid var(--border);z-index:200}
 .mobile-menu-btn{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:8px}
 .mobile-menu-btn:hover{background:var(--paper)}
@@ -465,7 +474,12 @@ a{color:inherit}
 .shelf-theme-swatch-label{font-size:12.5px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
 /* Legacy single-row shelf (used in posts and shelfie share preview) */
 .real-shelf{display:flex;align-items:flex-end;gap:3px;background:#FAFAFA;border-radius:8px 8px 0 0;padding:20px 12px 0;min-height:200px;overflow-x:auto}
-.real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none}
+/* overflow:hidden a propósito: el título va en writing-mode:vertical-rl +
+   white-space:nowrap (ver .real-shelf-spine-title), y Safari en iOS calcula
+   mal el ancho mínimo de ese texto en modo vertical — sin recortarlo aquí,
+   ese cálculo erróneo se filtraba hacia arriba y ensanchaba toda la fila
+   (y con .main sin min-width:0, hasta la página entera) más que la pantalla. */
+.real-shelf-spine{border-radius:3px 3px 0 0;position:relative;cursor:grab;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:transform 0.15s;user-select:none;overflow:hidden}
 .real-shelf-spine::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(90deg,rgba(255,255,255,0.22),rgba(255,255,255,0));border-radius:3px 0 0 0;pointer-events:none}
 .real-shelf-spine::after{content:'';position:absolute;right:0;top:0;width:2px;height:100%;background:rgba(0,0,0,0.15);pointer-events:none}
 .real-shelf-spine:hover{transform:translateY(-10px);box-shadow:0 16px 30px rgba(0,0,0,0.35)!important;z-index:2}
