@@ -605,3 +605,34 @@ alter table public.user_books add column if not exists came_from_dnf boolean def
 -- Contador para el logro "Embajador" — cuántas veces se ha descargado o
 -- compartido la imagen de Story del propio shelfie.
 alter table public.profiles add column if not exists story_shares integer default 0;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: tutorial guiado de bienvenida
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Default TRUE para que las cuentas ya existentes (que ejecuten esta
+-- migración) no se encuentren el tutorial de golpe — el propio trigger de
+-- alta, más abajo, lo pone explícitamente en FALSE solo para cuentas nuevas.
+alter table public.profiles add column if not exists onboarding_seen boolean default true;
+
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  base_username text;
+begin
+  base_username := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    '[^a-z0-9]', '', 'g'
+  ));
+  insert into public.profiles (id, name, username, onboarding_seen)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    base_username || '_reads',
+    false
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
