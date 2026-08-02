@@ -781,7 +781,7 @@ a{color:inherit}
 .upost-book-small-ref-txt{font-size:12px;color:var(--ink3)}
 .upost-book-small-ref-txt strong{color:var(--ink2);font-weight:600}
 
-.upost-actions{display:flex;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #EBEBEB;align-items:center}
+.upost-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #EBEBEB;align-items:center}
 
 /* spoiler blur — wraps ONLY the post body/content, never header or actions */
 .spoiler-body-wrap{position:relative}
@@ -5796,6 +5796,7 @@ function go(id,btn,extraId,_isBack){
   document.querySelector('.sidebar')?.classList.remove('mobile-open');
   document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
   document.querySelectorAll('.overlay').forEach(o=>{o.style.display='none';});
+  window.scrollTo(0,0);
   persistCurrentPage(id,extraId);
   if(id==='bookdetail'){
     CURRENT_ENTITY.bookdetail=extraId;
