@@ -2097,6 +2097,32 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: CUENTA ══════════════════════ -->
+<div class="overlay" id="modal-account" style="display:none" onclick="if(event.target===this)closeModal('modal-account')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-account')"><i class="ti ti-x"></i></button>
+  <h2>Cuenta</h2>
+  <p class="sub">Seguridad y datos de acceso</p>
+
+  <div class="f-row"><label class="f-label">Cambiar contraseña</label>
+    <input class="f-input" type="password" id="acc-new-pw" placeholder="Nueva contraseña" autocomplete="new-password" style="margin-bottom:8px">
+    <input class="f-input" type="password" id="acc-new-pw2" placeholder="Repite la nueva contraseña" autocomplete="new-password">
+  </div>
+  <button class="btn btn-white w-full" id="acc-pw-btn" onclick="changeAccountPassword()"><i class="ti ti-lock"></i> Actualizar contraseña</button>
+
+  <div class="f-row" style="margin-top:20px"><label class="f-label">Email de acceso</label>
+    <input class="f-input" type="email" id="acc-new-email" autocomplete="email">
+  </div>
+  <button class="btn btn-white w-full" id="acc-email-btn" onclick="changeAccountEmail()"><i class="ti ti-mail"></i> Actualizar email</button>
+
+  <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+    <label class="f-label" style="color:var(--red)">Zona de peligro</label>
+    <p class="sub" style="margin:4px 0 12px">Eliminar tu cuenta borra tu perfil, tus libros, publicaciones y toda tu actividad en Shelfie. No se puede deshacer.</p>
+    <button class="btn btn-danger w-full" id="acc-delete-btn" onclick="deleteAccountFlow()"><i class="ti ti-trash"></i> Eliminar mi cuenta</button>
+  </div>
+</div>
+</div>
+
 <!-- ══════════════════════ TUTORIAL DE BIENVENIDA ══════════════════════ -->
 <div class="tour-overlay" id="tour-overlay">
   <div class="tour-spotlight no-target" id="tour-spotlight"></div>
@@ -3151,7 +3177,10 @@ a{color:inherit}
 <!-- ── PERFIL (con ranking público visible) ── -->
 <div id="p-profile" class="page">
   <div class="tb"><div><h1>Mi perfil</h1><p>Así te ven otros lectores</p></div>
-    <button class="btn btn-white" onclick="openProfileEdit()"><i class="ti ti-edit"></i> Editar perfil</button>
+    <div class="flex gap-2">
+      <button class="btn btn-white" onclick="openAccountSettings()"><i class="ti ti-settings"></i> Cuenta</button>
+      <button class="btn btn-white" onclick="openProfileEdit()"><i class="ti ti-edit"></i> Editar perfil</button>
+    </div>
   </div>
   <div class="profile-hero">
     <!-- Streak badge top-right -->
@@ -5747,6 +5776,83 @@ async function doLogout(){
   document.getElementById('app-shell').classList.remove('on');
   showAuth('login');
   toast('Sesión cerrada');
+}
+
+// ═══════════════════════════════════════════════
+// CUENTA — contraseña, email, borrado
+// ═══════════════════════════════════════════════
+function openAccountSettings(){
+  document.getElementById('acc-new-pw').value='';
+  document.getElementById('acc-new-pw2').value='';
+  document.getElementById('acc-new-email').value=PROFILE.email||SUPA_USER?.email||'';
+  openModal('modal-account');
+}
+
+async function changeAccountPassword(){
+  const pw1=document.getElementById('acc-new-pw').value;
+  const pw2=document.getElementById('acc-new-pw2').value;
+  if(!pw1||pw1.length<6){toast('❌ La contraseña debe tener al menos 6 caracteres.');return;}
+  if(pw1!==pw2){toast('❌ Las contraseñas no coinciden.');return;}
+  const btn=document.getElementById('acc-pw-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Actualizando...';
+  const{error}=await supa.auth.updateUser({password:pw1});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){console.error('password update failed:',error);toast('❌ No se pudo actualizar la contraseña.');return;}
+  document.getElementById('acc-new-pw').value='';
+  document.getElementById('acc-new-pw2').value='';
+  toast('✓ Contraseña actualizada');
+}
+
+async function changeAccountEmail(){
+  const email=document.getElementById('acc-new-email').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('❌ Introduce un email válido.');return;}
+  if(email===(PROFILE.email||SUPA_USER?.email)){toast('Ese ya es tu email actual.');return;}
+  const btn=document.getElementById('acc-email-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Actualizando...';
+  const{error}=await supa.auth.updateUser({email});
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){console.error('email update failed:',error);toast('❌ No se pudo actualizar el email.');return;}
+  toast('✓ Revisa tu correo (el actual y el nuevo) para confirmar el cambio');
+}
+
+// Requiere escribir el @username exacto en vez de un simple sí/no — un borrado
+// de cuenta no se puede deshacer, así que el listón de confirmación es más alto
+// que el confirmModal genérico que usa el resto de la app.
+async function deleteAccountFlow(){
+  if(!SUPA_USER)return;
+  const typed=await promptModal(`Esto borrará tu cuenta, tus libros, publicaciones y toda tu actividad para siempre. Escribe tu usuario (@${PROFILE.username}) para confirmar.`);
+  if(!typed)return;
+  if(typed.replace(/^@/,'').trim().toLowerCase()!==(PROFILE.username||'').toLowerCase()){
+    toast('❌ El usuario no coincide. No se ha eliminado nada.');
+    return;
+  }
+  const btn=document.getElementById('acc-delete-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Eliminando...';
+  try{
+    const{error}=await supa.functions.invoke('delete-account');
+    if(error)throw error;
+  }catch(e){
+    console.error('delete account failed:',e);
+    btn.disabled=false;btn.innerHTML=prevHtml;
+    toast('❌ No se pudo eliminar la cuenta. Inténtalo de nuevo más tarde.');
+    return;
+  }
+  closeModal('modal-account');
+  await supa.auth.signOut();
+  isLoggedIn=false;
+  SUPA_USER=null;
+  DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
+  USER_POSTS=[];
+  READING_DAYS=new Set();
+  RETOS=[];
+  PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
+  DEMO_SEEDED=false;
+  document.getElementById('app-shell').classList.remove('on');
+  showAuth('login');
+  toast('Tu cuenta se ha eliminado');
 }
 
 // ═══════════════════════════════════════════════
@@ -13615,7 +13721,7 @@ function escapeHtml(s){
 // KEYBOARD
 // ═══════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-reto','modal-friends','modal-people','modal-notifications','modal-reactions','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
+  if(e.key==='Escape')['modal-add','modal-profile-edit','modal-account','modal-reto','modal-friends','modal-people','modal-notifications','modal-reactions','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
 });
 
 // enter key on auth forms
