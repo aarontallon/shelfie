@@ -2196,6 +2196,26 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: REPORTAR ══════════════════════ -->
+<div class="overlay" id="modal-report" style="display:none" onclick="if(event.target===this)closeModal('modal-report')">
+<div class="modal">
+  <button class="modal-close" onclick="closeModal('modal-report')"><i class="ti ti-x"></i></button>
+  <h2>Reportar</h2>
+  <p class="sub" id="report-modal-sub">Cuéntanos qué pasa — lo revisamos a mano</p>
+  <div class="f-row"><label class="f-label">Motivo</label>
+    <select class="f-input" id="report-reason">
+      <option value="spam">Spam o publicidad</option>
+      <option value="acoso">Acoso o comportamiento abusivo</option>
+      <option value="inapropiado">Contenido inapropiado</option>
+      <option value="suplantacion">Suplantación de identidad</option>
+      <option value="otro">Otro</option>
+    </select>
+  </div>
+  <div class="f-row"><label class="f-label">Detalles <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><textarea class="f-input" id="report-details" style="height:70px;resize:none" placeholder="Cualquier detalle que nos ayude a revisarlo"></textarea></div>
+  <button class="btn btn-red w-full" id="report-submit-btn" onclick="submitReport()"><i class="ti ti-flag"></i> Enviar reporte</button>
+</div>
+</div>
+
 <!-- ══════════════════════ TUTORIAL DE BIENVENIDA ══════════════════════ -->
 <div class="tour-overlay" id="tour-overlay">
   <div class="tour-spotlight no-target" id="tour-spotlight"></div>
@@ -3744,7 +3764,9 @@ function postRowToObject(row){
     editedAt:row.edited_at?new Date(row.edited_at).getTime():null,
     likes:(row.likes||[]).length,
     likedByMe:SUPA_USER?(row.likes||[]).some(l=>l.user_id===SUPA_USER.id):false,
-    comments:(row.comments||[]).map(c=>{
+    // Bloqueado en cualquier dirección = su comentario no se muestra, aunque el
+    // post en sí (de otra persona) siga siendo visible.
+    comments:(row.comments||[]).filter(c=>!isBlockedEitherWay(c.user_id)).map(c=>{
       const ca=authorFromId(c.user_id)||{name:'Un lector',initials:'??',bg:'#EEE'};
       return{id:c.id,userId:c.user_id,name:ca.name,text:c.text,initials:ca.initials,color:ca.bg,likes:0,likedByMe:false};
     }),
@@ -3759,7 +3781,7 @@ function postRowToObject(row){
 
 // Feed = your posts + the posts of everyone you follow, newest first.
 async function loadSupaPosts(){
-  const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
+  const authorIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(id=>id&&!isBlockedEitherWay(id));
   const{data,error}=await supa.from('posts')
     .select('*, comments(*), likes(*)')
     .in('user_id',authorIds)
@@ -4111,6 +4133,8 @@ async function _supaEnterApp(){
   }catch(e){console.error('organizer check failed:',e);}
   try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
   try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
+  // Blocks must be loaded before friends/posts — both filter out blocked people.
+  try{await loadSupaBlocks();}catch(e){console.error('loadSupaBlocks failed:',e);}
   // Friends must be loaded before posts — the feed query needs FRIENDS to know
   // whose posts (besides your own) belong in it.
   try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
@@ -5998,6 +6022,90 @@ async function deleteAccountFlow(){
 }
 
 // ═══════════════════════════════════════════════
+// REPORTAR Y BLOQUEAR
+// ═══════════════════════════════════════════════
+// BLOCKED_IDS: gente que TÚ has bloqueado. BLOCKED_BY_IDS: gente que te ha
+// bloqueado a TI — no se enseña en ningún sitio como lista, solo sirve para
+// ocultar tu propio contenido a quien te bloqueó (comentarios, feed).
+let BLOCKED_IDS=new Set();
+let BLOCKED_BY_IDS=new Set();
+
+async function loadSupaBlocks(){
+  if(!SUPA_USER)return;
+  const{data,error}=await supa.from('blocks').select('blocker_id,blocked_id').or(`blocker_id.eq.${SUPA_USER.id},blocked_id.eq.${SUPA_USER.id}`);
+  if(error){console.error('loadSupaBlocks failed:',error);return;}
+  BLOCKED_IDS=new Set((data||[]).filter(r=>r.blocker_id===SUPA_USER.id).map(r=>r.blocked_id));
+  BLOCKED_BY_IDS=new Set((data||[]).filter(r=>r.blocked_id===SUPA_USER.id).map(r=>r.blocker_id));
+}
+
+function isBlockedEitherWay(userId){
+  return BLOCKED_IDS.has(userId)||BLOCKED_BY_IDS.has(userId);
+}
+
+async function blockUserProfile(userId,name){
+  if(!SUPA_USER||!userId)return;
+  if(!await confirmModal(`¿Bloquear a ${name}? Dejaréis de seguiros y no verás su actividad, ni ella la tuya.`,{acceptLabel:'Bloquear',title:'Bloquear usuario'}))return;
+  const{error}=await supa.from('blocks').insert({blocker_id:SUPA_USER.id,blocked_id:userId});
+  if(error){console.error('blockUserProfile failed:',error);toast('❌ No se pudo bloquear. Inténtalo de nuevo.');return;}
+  BLOCKED_IDS.add(userId);
+  // El trigger de la base de datos ya deshizo el "seguir" en ambos sentidos —
+  // reflejamos lo mismo aquí para no esperar a un reload.
+  FRIENDS=FRIENDS.filter(f=>f.id!==userId);
+  FOLLOWERS=FOLLOWERS.filter(f=>f.id!==userId);
+  USER_POSTS=USER_POSTS.filter(p=>p.authorId!==userId);
+  updateProfileStats();
+  toast(`✓ Has bloqueado a ${name}`);
+  closeAllMoveMenus();
+  const cur=CURRENT_ENTITY.userprofile;
+  if(cur)renderUserProfilePage(cur);
+}
+
+async function unblockUserProfile(userId,name){
+  if(!SUPA_USER||!userId)return;
+  if(!await confirmModal(`¿Desbloquear a ${name}?`,{acceptLabel:'Desbloquear'}))return;
+  const{error}=await supa.from('blocks').delete().eq('blocker_id',SUPA_USER.id).eq('blocked_id',userId);
+  if(error){console.error('unblockUserProfile failed:',error);toast('❌ No se pudo desbloquear. Inténtalo de nuevo.');return;}
+  BLOCKED_IDS.delete(userId);
+  toast(`✓ Has desbloqueado a ${name}`);
+  closeAllMoveMenus();
+  const cur=CURRENT_ENTITY.userprofile;
+  if(cur)renderUserProfilePage(cur);
+}
+
+let _reportTarget=null; // {type:'user'|'post', id, userId}
+function openReportModal(type,id,userId,label){
+  if(!SUPA_USER){toast('Inicia sesión para poder reportar.');return;}
+  _reportTarget={type,id,userId};
+  document.getElementById('report-modal-sub').textContent=label?`Vas a reportar ${label} — lo revisamos a mano`:'Cuéntanos qué pasa — lo revisamos a mano';
+  document.getElementById('report-reason').value='spam';
+  document.getElementById('report-details').value='';
+  closeAllMoveMenus();
+  openModal('modal-report');
+}
+
+async function submitReport(){
+  if(!SUPA_USER||!_reportTarget)return;
+  const reason=document.getElementById('report-reason').value;
+  const details=document.getElementById('report-details').value.trim();
+  const btn=document.getElementById('report-submit-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Enviando...';
+  const{error}=await supa.from('reports').insert({
+    reporter_id:SUPA_USER.id,
+    target_type:_reportTarget.type,
+    target_id:String(_reportTarget.id),
+    target_user_id:_reportTarget.userId||null,
+    reason,
+    details:details||null,
+  });
+  btn.disabled=false;btn.innerHTML=prevHtml;
+  if(error){console.error('submitReport failed:',error);toast('❌ No se pudo enviar el reporte. Inténtalo de nuevo.');return;}
+  closeModal('modal-report');
+  _reportTarget=null;
+  toast('✓ Reporte enviado — gracias por avisarnos');
+}
+
+// ═══════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);}
@@ -6127,6 +6235,11 @@ async function renderUserProfilePage(username){
     const{data:profile,error}=await supa.from('profiles').select('*').eq('username',username).single();
     if(error||!profile)throw error||new Error('profile not found');
     const cached=cacheUser(profile);
+    if(isBlockedEitherWay(profile.id)){
+      const blockedByMe=BLOCKED_IDS.has(profile.id);
+      cont.innerHTML=`<div class="empty" style="padding:60px 0"><i class="ti ti-ban"></i><p>${blockedByMe?'Has bloqueado a este usuario.':'Este perfil no está disponible.'}</p>${blockedByMe?`<button class="btn btn-white btn-sm" style="margin-top:10px" onclick="unblockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')">Desbloquear</button>`:''}</div>`;
+      return;
+    }
     const[booksRes,postsRes,followingRes,followersRes]=await Promise.all([
       supa.from('user_books').select('*').eq('user_id',profile.id),
       supa.from('posts').select('*, comments(*), likes(*)').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(100),
@@ -6285,7 +6398,16 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
         <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
       </div>
     </div>
-    <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="margin:16px 0" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+    <div style="display:flex;gap:8px;margin:16px 0">
+      <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+      ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
+        <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-${profile.id}')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+        <div class="move-menu-dropdown" id="move-menu-up-${profile.id}">
+          <button onclick="openReportModal('user','${profile.id}','${profile.id}','a @${escapeHtml(profile.username)}')"><i class="ti ti-flag"></i> Reportar usuario</button>
+          <button onclick="blockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')" style="color:var(--red)"><i class="ti ti-ban"></i> Bloquear</button>
+        </div>
+      </div>`:''}
+    </div>
 
     ${achHtml}
     ${readingNowHtml}
@@ -8134,7 +8256,12 @@ function closeAllMoveMenus(){
   const menu=document.getElementById('g-book-menu');
   if(menu){menu.style.display='none';menu.innerHTML='';}
   _gmenuBookId=null;
-  document.querySelectorAll('.move-menu-dropdown').forEach(d=>{d.classList.remove('show');d.style.display='none';});
+  // Visibility is driven entirely by the .show class (CSS default is display:none) —
+  // ALSO setting an inline display:none here used to leave a stale inline override
+  // behind that a later classList.add('show') can never win against (inline style
+  // always beats a class selector), so reopening the very same dropdown silently
+  // did nothing.
+  document.querySelectorAll('.move-menu-dropdown').forEach(d=>d.classList.remove('show'));
 }
 
 function toggleMoveMenu(e,id){
@@ -10386,7 +10513,7 @@ async function searchFriends(q){
       .limit(15);
     if(error)throw error;
     if(token!==_friendSearchToken)return; // a newer search superseded this response
-    renderFriendResults(data||[]);
+    renderFriendResults((data||[]).filter(r=>!isBlockedEitherWay(r.id)));
   }catch(e){
     console.error('searchFriends failed:',e);
     if(token===_friendSearchToken)res.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-wifi-off"></i><p>No se pudo buscar. Comprueba tu conexión e inténtalo de nuevo.</p></div>';
@@ -13627,7 +13754,7 @@ function renderOnePost(p){
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
         <button class="fc-action-btn" onclick="event.stopPropagation();toggleReactionPicker('${p.id}',this)"><i class="ti ti-mood-plus"></i> Reaccionar</button>
         ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
-        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:''}
+        <button class="fc-action-btn" onclick="deleteUserPost('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button>`:(SUPA_USER?`<button class="fc-action-btn" onclick="openReportModal('post','${p.id}','${author.id||''}','esta publicación')"><i class="ti ti-flag"></i> Reportar</button>`:'')}
       </div>
       <div style="${needsOwnPadding?'padding:0 18px 16px':''}">
         ${commentsHtml}

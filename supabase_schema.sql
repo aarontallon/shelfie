@@ -636,3 +636,85 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: reportar y bloquear usuarios
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid references public.profiles(id) on delete cascade not null,
+  target_type text not null check (target_type in ('user','post')),
+  target_id text not null, -- id de profiles (uuid) o de posts (id de texto)
+  target_user_id uuid references public.profiles(id) on delete cascade, -- a quién se reporta, para poder revisar rápido sin resolver target_id
+  reason text not null,
+  details text,
+  status text not null default 'pending' check (status in ('pending','reviewed','dismissed')),
+  created_at timestamptz default now()
+);
+alter table public.reports enable row level security;
+-- Solo puedes crear reportes en tu nombre, y solo puedes leer los tuyos —
+-- no hay panel de moderación en la app todavía, así que estas filas se
+-- revisan a mano desde el SQL Editor de Supabase.
+drop policy if exists "reports_insert" on public.reports;
+create policy "reports_insert" on public.reports for insert with check (auth.uid() = reporter_id);
+drop policy if exists "reports_select" on public.reports;
+create policy "reports_select" on public.reports for select using (auth.uid() = reporter_id);
+
+create table if not exists public.blocks (
+  blocker_id uuid references public.profiles(id) on delete cascade not null,
+  blocked_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+alter table public.blocks enable row level security;
+-- Puedes gestionar (crear/borrar) solo tus propios bloqueos. La lectura
+-- también permite ver las filas donde TÚ eres el bloqueado — no para
+-- enseñarte una lista de "quién me ha bloqueado" en la UI (no se hace),
+-- sino porque el cliente necesita poder comprobar esa dirección para
+-- ocultar su propio contenido a quien le ha bloqueado.
+drop policy if exists "blocks_select" on public.blocks;
+create policy "blocks_select" on public.blocks for select using (auth.uid() = blocker_id or auth.uid() = blocked_id);
+drop policy if exists "blocks_insert" on public.blocks;
+create policy "blocks_insert" on public.blocks for insert with check (auth.uid() = blocker_id);
+drop policy if exists "blocks_delete" on public.blocks;
+create policy "blocks_delete" on public.blocks for delete using (auth.uid() = blocker_id);
+
+-- Bloquear a alguien deshace el "seguir" en ambos sentidos automáticamente.
+create or replace function public.handle_new_block()
+returns trigger as $$
+begin
+  delete from public.friendships
+  where (user_id = new.blocker_id and friend_id = new.blocked_id)
+     or (user_id = new.blocked_id and friend_id = new.blocker_id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_block_created on public.blocks;
+create trigger on_block_created
+  after insert on public.blocks
+  for each row execute function public.handle_new_block();
+
+-- Y mientras el bloqueo exista, no se puede volver a seguir en ningún sentido
+-- (defensa de verdad en la base de datos, no solo en el cliente).
+create or replace function public.prevent_follow_if_blocked()
+returns trigger as $$
+begin
+  if exists (
+    select 1 from public.blocks
+    where (blocker_id = new.user_id and blocked_id = new.friend_id)
+       or (blocker_id = new.friend_id and blocked_id = new.user_id)
+  ) then
+    raise exception 'No se puede seguir: hay un bloqueo entre estos dos usuarios.';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists before_friendship_insert on public.friendships;
+create trigger before_friendship_insert
+  before insert on public.friendships
+  for each row execute function public.prevent_follow_if_blocked();
