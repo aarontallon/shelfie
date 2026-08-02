@@ -2188,6 +2188,11 @@ a{color:inherit}
   </div>
   <button class="btn btn-white w-full" id="acc-email-btn" onclick="changeAccountEmail()"><i class="ti ti-mail"></i> Actualizar email</button>
 
+  <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600"><input type="checkbox" id="acc-is-private" onchange="toggleAccountPrivacy(this)"> Cuenta privada</label>
+    <p class="sub" style="margin:4px 0 0">Con la cuenta privada, solo quien te sigue puede ver tu shelfie y tus publicaciones. Quien quiera seguirte tendrá que esperar a que aceptes su solicitud.</p>
+  </div>
+
   <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
     <label class="f-label" style="color:var(--red)">Zona de peligro</label>
     <p class="sub" style="margin:4px 0 12px">Eliminar tu cuenta borra tu perfil, tus libros, publicaciones y toda tu actividad en Shelfie. No se puede deshacer.</p>
@@ -3589,6 +3594,7 @@ async function loadSupaProfile(){
   PROFILE.shelfPublicView=data.shelf_public_view||'shelf';
   PROFILE.storyShares=data.story_shares||0;
   PROFILE.onboardingSeen=data.onboarding_seen!==false;
+  PROFILE.isPrivate=!!data.is_private;
   applyOwnShelfTheme();
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
@@ -5951,7 +5957,24 @@ function openAccountSettings(){
   document.getElementById('acc-new-pw').value='';
   document.getElementById('acc-new-pw2').value='';
   document.getElementById('acc-new-email').value=PROFILE.email||SUPA_USER?.email||'';
+  document.getElementById('acc-is-private').checked=!!PROFILE.isPrivate;
   openModal('modal-account');
+}
+
+async function toggleAccountPrivacy(checkbox){
+  if(!SUPA_USER){checkbox.checked=!checkbox.checked;return;}
+  const next=checkbox.checked;
+  checkbox.disabled=true;
+  const{error}=await supa.from('profiles').update({is_private:next}).eq('id',SUPA_USER.id);
+  checkbox.disabled=false;
+  if(error){
+    console.error('toggleAccountPrivacy failed:',error);
+    checkbox.checked=!next;
+    toast('❌ No se pudo cambiar la privacidad de la cuenta.');
+    return;
+  }
+  PROFILE.isPrivate=next;
+  toast(next?'✓ Tu cuenta ahora es privada':'✓ Tu cuenta ahora es pública');
 }
 
 async function changeAccountPassword(){
@@ -6240,11 +6263,12 @@ async function renderUserProfilePage(username){
       cont.innerHTML=`<div class="empty" style="padding:60px 0"><i class="ti ti-ban"></i><p>${blockedByMe?'Has bloqueado a este usuario.':'Este perfil no está disponible.'}</p>${blockedByMe?`<button class="btn btn-white btn-sm" style="margin-top:10px" onclick="unblockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')">Desbloquear</button>`:''}</div>`;
       return;
     }
-    const[booksRes,postsRes,followingRes,followersRes]=await Promise.all([
+    const[booksRes,postsRes,followingRes,followersRes,pendingReqRes]=await Promise.all([
       supa.from('user_books').select('*').eq('user_id',profile.id),
       supa.from('posts').select('*, comments(*), likes(*)').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(100),
       supa.from('friendships').select('friend_id',{count:'exact',head:true}).eq('user_id',profile.id),
       supa.from('friendships').select('user_id',{count:'exact',head:true}).eq('friend_id',profile.id),
+      supa.from('follow_requests').select('requester_id').eq('requester_id',SUPA_USER.id).eq('target_id',profile.id).maybeSingle(),
     ]);
     if(booksRes.error)throw booksRes.error;
     const rows=postsRes.data||[];
@@ -6257,7 +6281,7 @@ async function renderUserProfilePage(username){
     });
     await loadPostReactionsInto(rows.map(r=>r.id));
     await loadCommentLikesInto(rows.flatMap(r=>(r.comments||[]).map(c=>c.id)));
-    renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached);
+    renderUserProfileView(profile,booksRes.data||[],posts,followingRes.count||0,followersRes.count||0,cached,!!pendingReqRes.data);
   }catch(e){
     console.error('renderUserProfilePage failed:',e);
     cont.innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-user-x"></i><p>No se pudo cargar este perfil. Comprueba tu conexión.</p></div>';
@@ -6288,9 +6312,46 @@ function renderUpProfileShelfieContent(){
   el.innerHTML=shelfieSectionContentHtml(_upProfileBooks[upProfileShelfTab]||[],upProfileShelfView,upProfileShelfTab,false,_upProfileSort);
 }
 
-function renderUserProfileView(profile,books,posts,following,followers,cached){
+function renderUserProfileView(profile,books,posts,following,followers,cached,hasPendingRequest){
   const isFriend=!!FRIENDS.find(f=>f.username===profile.username);
   const followsMe=!!FOLLOWERS.find(f=>f.username===profile.username);
+  // Cuenta privada + no la sigues = ni shelfie ni publicaciones ni logros, solo
+  // la ficha básica y el botón para pedir seguir. La base de datos ya bloquea
+  // esos datos por RLS (books/posts llegan vacíos igualmente), esto es solo
+  // para que la pantalla lo explique en vez de parecer una cuenta inactiva.
+  if(profile.is_private&&!isFriend){
+    const followBtnHtml=hasPendingRequest
+      ?`<button class="btn btn-ghost btn-lg" style="flex:1" disabled>Solicitud enviada</button>`
+      :`<button class="btn btn-red btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)">Seguir</button>`;
+    document.getElementById('user-profile-content').innerHTML=`
+      <div class="profile-hero">
+        <div class="profile-hero-top">
+          <div class="profile-av-wrap"><div class="profile-av" id="up-av" style="background-color:${cached.bg||'var(--ink)'};color:${cached.tc||'#fff'}">${escapeHtml(cached.initials||'??')}</div></div>
+          <div class="profile-hero-info">
+            <div class="profile-name">${escapeHtml(profile.name||profile.username)}</div>
+            <div class="profile-handle">@${escapeHtml(profile.username)}${followsMe?'<span class="profile-visibility-badge">Te sigue</span>':''}</div>
+            ${profile.bio?`<div class="profile-bio-text">${escapeHtml(profile.bio)}</div>`:''}
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="ps"><div class="ps-n">${following}</div><div class="ps-l">Siguiendo</div></div>
+          <div class="ps"><div class="ps-n">${followers}</div><div class="ps-l">Seguidores</div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin:16px 0">
+        ${followBtnHtml}
+        ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
+          <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+          <div class="move-menu-dropdown" id="move-menu-up-actions">
+            <button onclick="openReportModal('user','${profile.id}','${profile.id}','a @${escapeHtml(profile.username)}')"><i class="ti ti-flag"></i> Reportar usuario</button>
+            <button onclick="blockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')" style="color:var(--red)"><i class="ti ti-ban"></i> Bloquear</button>
+          </div>
+        </div>`:''}
+      </div>
+      <div class="empty" style="padding:60px 0"><i class="ti ti-lock"></i><p>Esta cuenta es privada.<br>Síguela para ver su shelfie y sus publicaciones.</p></div>
+    `;
+    return;
+  }
   const theirReadingDays=new Set(Array.isArray(profile.reading_days)?profile.reading_days:[]);
   const streak=calculateCurrentStreak(theirReadingDays);
   const bestStreak=Math.max(calculateBestStreak(theirReadingDays),streak);
@@ -6401,8 +6462,8 @@ function renderUserProfileView(profile,books,posts,following,followers,cached){
     <div style="display:flex;gap:8px;margin:16px 0">
       <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
       ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
-        <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-${profile.id}')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
-        <div class="move-menu-dropdown" id="move-menu-up-${profile.id}">
+        <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
+        <div class="move-menu-dropdown" id="move-menu-up-actions">
           <button onclick="openReportModal('user','${profile.id}','${profile.id}','a @${escapeHtml(profile.username)}')"><i class="ti ti-flag"></i> Reportar usuario</button>
           <button onclick="blockUserProfile('${profile.id}','${escapeHtml(profile.name||profile.username)}')" style="color:var(--red)"><i class="ti ti-ban"></i> Bloquear</button>
         </div>
@@ -10440,6 +10501,30 @@ async function addFriend(username,btn){
   if(!r)return;
   if(btn){btn.disabled=true;btn.textContent='...';}
   if(SUPA_USER&&r.id){
+    // Las cuentas privadas no se siguen al instante — se manda una solicitud
+    // que la otra persona tiene que aceptar (comprobación en vivo, no fiada de
+    // datos en caché que podrían estar desactualizados).
+    let isPrivate=false;
+    try{
+      const{data}=await supa.from('profiles').select('is_private').eq('id',r.id).single();
+      isPrivate=!!data?.is_private;
+    }catch(e){console.error('addFriend privacy check failed:',e);}
+    if(isPrivate){
+      try{
+        const{error}=await supa.from('follow_requests').insert({requester_id:SUPA_USER.id,target_id:r.id});
+        if(error)throw error;
+      }catch(e){
+        console.error('follow request failed:',e);
+        if(btn){btn.disabled=false;btn.textContent='Seguir';}
+        toast('❌ No se pudo enviar la solicitud. Inténtalo de nuevo.');
+        return;
+      }
+      supa.from('notifications').insert({user_id:r.id,actor_id:SUPA_USER.id,type:'follow_request'})
+        .then(({error})=>{if(error)console.error('notify follow-request failed:',error);});
+      if(btn){btn.textContent='Solicitud enviada';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
+      toast(`✓ Solicitud enviada a ${r.name}`);
+      return;
+    }
     try{
       const{error}=await supa.from('friendships').insert({user_id:SUPA_USER.id,friend_id:r.id});
       if(error)throw error;
@@ -10458,6 +10543,51 @@ async function addFriend(username,btn){
   updateProfileStats();renderFriends();
   loadFriendsBooksCache().catch(e=>console.error('loadFriendsBooksCache failed:',e));
   toast(`✓ Ahora sigues a ${r.name}`);
+}
+
+// Acepta desde una notificación de solicitud de seguimiento — usa la función
+// security definer accept_follow_request(), porque la política de inserción
+// de friendships solo te deja crear filas donde TÚ eres quien sigue, no en
+// nombre del solicitante.
+async function acceptFollowRequest(requesterId,notifId,btn){
+  if(!SUPA_USER)return;
+  const card=btn.closest('.friend-card');
+  if(card)card.style.opacity='0.5';
+  try{
+    const{error}=await supa.rpc('accept_follow_request',{p_requester_id:requesterId});
+    if(error)throw error;
+  }catch(e){
+    console.error('acceptFollowRequest failed:',e);
+    if(card)card.style.opacity='1';
+    toast('❌ No se pudo aceptar la solicitud.');
+    return;
+  }
+  supa.from('notifications').insert({user_id:requesterId,actor_id:SUPA_USER.id,type:'follow_accepted'})
+    .then(({error})=>{if(error)console.error('notify follow-accepted failed:',error);});
+  try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
+  NOTIFICATIONS=NOTIFICATIONS.filter(n=>n.id!==notifId);
+  renderNotifications();
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+  toast('✓ Solicitud aceptada');
+}
+
+async function declineFollowRequest(requesterId,notifId,btn){
+  if(!SUPA_USER)return;
+  const card=btn.closest('.friend-card');
+  if(card)card.style.opacity='0.5';
+  try{
+    const{error}=await supa.from('follow_requests').delete().eq('requester_id',requesterId).eq('target_id',SUPA_USER.id);
+    if(error)throw error;
+  }catch(e){
+    console.error('declineFollowRequest failed:',e);
+    if(card)card.style.opacity='1';
+    toast('❌ No se pudo rechazar la solicitud.');
+    return;
+  }
+  NOTIFICATIONS=NOTIFICATIONS.filter(n=>n.id!==notifId);
+  renderNotifications();
+  setNotifBadge(NOTIFICATIONS.filter(n=>!n.read).length);
+  toast('Solicitud rechazada');
 }
 
 async function removeFriend(username){
@@ -11402,8 +11532,16 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':'interactuó contigo';
-    const followBtn=n.type==='follow'?`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`:'';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':'interactuó contigo';
+    let followBtn='';
+    if(n.type==='follow'){
+      followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+    }else if(n.type==='follow_request'){
+      followBtn=`<div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm btn-red" onclick="event.stopPropagation();acceptFollowRequest('${n.actor.id}','${n.id}',this)">Aceptar</button>
+        <button class="btn btn-sm btn-white" onclick="event.stopPropagation();declineFollowRequest('${n.actor.id}','${n.id}',this)">Rechazar</button>
+      </div>`;
+    }
     return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${n.actor.username}')"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1;min-width:0"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div></div>${followBtn}</div>`;
   }).join('');
 }
