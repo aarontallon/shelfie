@@ -2,7 +2,7 @@
 // dependencias estáticas (CDN) para que cargue más rápido en visitas
 // repetidas. NO cachea llamadas a Supabase — los datos siempre tienen que
 // venir de red, esto es una app con datos en vivo, no un sitio estático.
-const CACHE = 'shelfie-v1';
+const CACHE = 'shelfie-v2';
 // Rutas relativas al scope del propio sw.js (p.ej. https://x.github.io/shelfie/),
 // nunca con "/" inicial — este sitio vive en un subdirectorio de GitHub Pages,
 // no en la raíz del dominio, así que una ruta absoluta apuntaría a otro sitio.
@@ -29,13 +29,20 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname.includes('supabase.co')) return; // nunca cachear datos en vivo
 
   if (req.mode === 'navigate') {
-    // Shell HTML: red primero (siempre la versión más reciente), y si no hay
-    // conexión, cae a la copia cacheada en vez de la página de error del navegador.
+    // Shell HTML: cache primero (abre al instante) + red de refresco en segundo
+    // plano para la próxima vez — antes era red primero, así que CADA apertura
+    // de la app esperaba a descargarse el HTML entero (pesa ~1.3MB) antes de
+    // pintar nada, aunque la copia en caché ya estuviera al día. El coste es
+    // que un cambio recién publicado tarda una apertura más en verse (la
+    // siguiente vez ya sale actualizado); a cambio, abrir la app es instantáneo.
     e.respondWith(
-      fetch(req).then((res) => {
-        caches.open(CACHE).then((c) => c.put(SHELL_HTML_URL, res.clone()));
-        return res;
-      }).catch(() => caches.match(SHELL_HTML_URL))
+      caches.match(SHELL_HTML_URL).then((cached) => {
+        const network = fetch(req).then((res) => {
+          if (res && res.ok) caches.open(CACHE).then((c) => c.put(SHELL_HTML_URL, res.clone()));
+          return res;
+        }).catch(() => cached);
+        return cached || network;
+      })
     );
     return;
   }

@@ -28,9 +28,12 @@
 <meta name="twitter:image" content="https://aarontallon.github.io/shelfie/og-image.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet + OpenStreetMap: mapa de eventos, gratis y sin API key (a diferencia de Google Maps JS).
+     Solo hace falta en las páginas de Eventos, así que no debe bloquear la carga del resto de
+     la app: el script se difiere (no retrasa el parseo del bloque JS principal, mucho más
+     grande) y la hoja de estilos se carga sin bloquear el render con el truco media="print". -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <!-- Exportar Estadísticas a PDF/Excel con diseño propio (antes era un window.print()
      del propio DOM, que salía con la barra del navegador, el pie de la URL y cortaba
      las tarjetas por la mitad entre páginas) -->
@@ -1313,6 +1316,7 @@ a{color:inherit}
 .edit-cover-current-wrap{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
 .edit-cover-current{width:100px;height:150px;border-radius:8px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,0.12)}
 .edit-cover-current .grid-cover{width:100%;height:100%;border-radius:8px}
+.edit-cover-current-loading{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:20px;background:var(--shelf-bg);border-radius:8px}
 .edit-cover-editions-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:260px;overflow-y:auto;padding:2px}
 .edit-cover-option{aspect-ratio:2/3;border-radius:6px;background-size:cover;background-position:center;background-color:var(--shelf-bg);cursor:pointer;border:2px solid transparent;transition:all .12s}
 .edit-cover-option:hover{transform:translateY(-2px)}
@@ -2691,7 +2695,7 @@ a{color:inherit}
   </div>
   <div class="edit-cover-editions-grid" id="edit-cover-editions-grid"></div>
 
-  <button class="btn btn-red w-full" style="margin-top:16px" onclick="saveEditCover()"><i class="ti ti-check"></i> Guardar portada</button>
+  <button class="btn btn-red w-full" id="edit-cover-save-btn" style="margin-top:16px" onclick="saveEditCover()"><i class="ti ti-check"></i> Guardar portada</button>
 </div>
 </div>
 
@@ -4465,24 +4469,32 @@ function handleReactionRealtime(type,payload){
 // (ver handle_new_user en supabase_schema.sql) — así que la primera vez que
 // detectamos una sesión, miramos primero si es un organizador y, si lo es,
 // entramos directamente a su panel en vez de al flujo normal de lector.
+// Antes cada carga esperaba a que terminase la anterior (11 idas y vueltas a
+// Supabase en fila) — con eso, entrar en la app tardaba la suma de las 11
+// latencias en vez de la del más lento. Solo hay dos dependencias reales:
+// loadSupaPosts necesita FRIENDS (para saber de quién más mostrar posts) y
+// BLOCKED_IDS (para filtrar) ya resueltos, y loadFriendsBooksCache necesita
+// FRIENDS. Todo lo demás es independiente y puede pedirse a la vez.
+function _safeLoad(fn,label){return fn().catch(e=>console.error(`${label} failed:`,e));}
 async function _supaEnterApp(){
   try{
     const{data:orgRow}=await supa.from('organizers').select('*').eq('id',SUPA_USER.id).maybeSingle();
     if(orgRow){await _organizerEnterApp(orgRow);return;}
   }catch(e){console.error('organizer check failed:',e);}
-  try{await loadSupaProfile();}catch(e){console.error('loadSupaProfile failed:',e);}
-  try{await loadSupaBooks();}catch(e){console.error('loadSupaBooks failed:',e);}
-  // Blocks must be loaded before friends/posts — both filter out blocked people.
-  try{await loadSupaBlocks();}catch(e){console.error('loadSupaBlocks failed:',e);}
-  // Friends must be loaded before posts — the feed query needs FRIENDS to know
-  // whose posts (besides your own) belong in it.
-  try{await loadSupaFriends();}catch(e){console.error('loadSupaFriends failed:',e);}
-  try{await loadFriendsBooksCache();}catch(e){console.error('loadFriendsBooksCache failed:',e);}
-  try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
-  try{await loadSupaPosts();}catch(e){console.error('loadSupaPosts failed:',e);}
-  try{await loadSupaNotifications();}catch(e){console.error('loadSupaNotifications failed:',e);}
-  try{await loadSupaRetos();}catch(e){console.error('loadSupaRetos failed:',e);}
-  try{await loadSupaClubs();}catch(e){console.error('loadSupaClubs failed:',e);}
+
+  const profileP=_safeLoad(loadSupaProfile,'loadSupaProfile');
+  const booksP=_safeLoad(loadSupaBooks,'loadSupaBooks');
+  const blocksP=_safeLoad(loadSupaBlocks,'loadSupaBlocks');
+  const friendsP=_safeLoad(loadSupaFriends,'loadSupaFriends');
+  const followersP=_safeLoad(loadSupaFollowers,'loadSupaFollowers');
+  const notificationsP=_safeLoad(loadSupaNotifications,'loadSupaNotifications');
+  const retosP=_safeLoad(loadSupaRetos,'loadSupaRetos');
+  const clubsP=_safeLoad(loadSupaClubs,'loadSupaClubs');
+  const postsP=Promise.all([blocksP,friendsP]).then(()=>_safeLoad(loadSupaPosts,'loadSupaPosts'));
+  const friendsBooksP=friendsP.then(()=>_safeLoad(loadFriendsBooksCache,'loadFriendsBooksCache'));
+
+  await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,friendsBooksP]);
+
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{subscribeToFeedRealtime();}catch(e){console.error('subscribeToFeedRealtime failed:',e);}
   // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
@@ -7886,10 +7898,22 @@ function openEditCoverModal(bookId){
   loadEditCoverEditions(`${book.title} ${book.author||''}`.trim());
 }
 
+// Un <img> real (no background-image) para poder mostrar un spinner mientras
+// carga la nueva portada elegida — con background-image no hay forma de saber
+// cuándo termina de cargar, así que antes se quedaba "sin cambios visibles"
+// unos segundos y parecía que no había pasado nada.
 function renderEditCoverPreview(){
   const book=allBooks().find(b=>b.id===_editCoverBookId);
   if(!book)return;
-  document.getElementById('edit-cover-current').innerHTML=cvr({...book,cover:_editCoverPendingCover},'grid');
+  const el=document.getElementById('edit-cover-current');
+  const cover=_editCoverPendingCover;
+  if(!cover){el.innerHTML=cvr({...book,cover:null},'grid');return;}
+  el.innerHTML='<div class="edit-cover-current-loading"><i class="ti ti-loader-2 spin"></i></div>';
+  const img=new Image();
+  img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;display:block';
+  img.onload=()=>{if(_editCoverPendingCover===cover){el.innerHTML='';el.appendChild(img);}};
+  img.onerror=()=>{if(_editCoverPendingCover===cover)el.innerHTML=cvr({...book,cover:null},'grid');};
+  img.src=cover;
 }
 
 // Varios candidatos ordenados por edition_count (proxy de popularidad/edición
@@ -7940,11 +7964,21 @@ function removeEditCoverCover(){
 async function saveEditCover(){
   const book=allBooks().find(b=>b.id===_editCoverBookId);
   if(!book)return;
+  const btn=document.getElementById('edit-cover-save-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Guardando...';
   book.cover=_editCoverPendingCover||null;
-  await saveSupaBook(book);
+  const ok=await saveSupaBook(book);
+  btn.disabled=false;
+  btn.innerHTML=prevHtml;
+  if(ok===false)return; // saveSupaBook ya muestra su propio toast de error — el modal se queda abierto para reintentar
   closeModal('modal-edit-cover');
   updateAll();
   renderShelf();
+  // Si estás viendo la ficha de este mismo libro, refréscala ya — si no, se
+  // queda con la portada vieja hasta que navegas fuera y vuelves a entrar.
+  if(document.getElementById('p-book-detail')?.classList.contains('on')&&CURRENT_ENTITY.bookdetail===bookWorkKey(book))renderBookPage(CURRENT_ENTITY.bookdetail);
   toast('✅ Portada actualizada');
 }
 
