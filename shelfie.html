@@ -178,7 +178,7 @@ a{color:inherit}
   .landing-also-strip{padding:20px}
   .landing-section{padding:64px 24px}
   .landing-nav{padding:16px 20px;gap:8px}
-  .landing-nav-actions{gap:2px}
+  .landing-nav-actions{gap:2px;flex-wrap:wrap;justify-content:flex-end;row-gap:6px}
   .landing-nav-actions .btn-ghost-nav{font-size:12.5px;padding:8px 8px}
   .landing-nav-actions .btn{padding:8px 12px;font-size:12.5px}
   .landing-footer{padding:24px 20px}
@@ -1349,6 +1349,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('install')"><i class="ti ti-download nav-icon-hide"></i> <span class="nav-full-text">Instalar la app</span><span class="nav-short-text">Instalar</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('organizers-landing')"><i class="ti ti-building-store nav-icon-hide"></i> <span class="nav-full-text">Shelfie Eventos</span><span class="nav-short-text">Eventos</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('login')">Iniciar sesión</button>
       <button class="btn btn-red" onclick="showAuth('register')">Regístrate gratis</button>
@@ -1790,11 +1791,14 @@ a{color:inherit}
     <div class="content-page-body">
       <p>Estamos trabajando en una app nativa para iOS y Android. <strong>Mientras tanto</strong>, puedes instalar shelfie en tu móvil en unos segundos: se añade como un icono más en tu pantalla de inicio, abre a pantalla completa (sin la barra del navegador) y funciona igual que una app de verdad — sin pasar por ninguna tienda de aplicaciones.</p>
     </div>
+    <div class="subject-toggle" id="install-tabs" style="justify-content:center;margin:24px 0 0">
+      <button type="button" class="subject-toggle-btn on" onclick="setInstallTab(this,'ios')"><i class="ti ti-brand-apple"></i> iPhone / iPad</button>
+      <button type="button" class="subject-toggle-btn" onclick="setInstallTab(this,'android')"><i class="ti ti-brand-android"></i> Android</button>
+    </div>
   </div>
 
-  <section class="landing-section" style="padding-top:20px">
+  <section class="landing-section" style="padding-top:20px" id="install-ios-section">
     <div class="landing-section-head" style="margin-bottom:28px">
-      <div class="landing-section-eyebrow"><i class="ti ti-brand-apple"></i> En iPhone / iPad</div>
       <h2 class="landing-section-title">Con Safari, en tres pasos</h2>
       <p class="landing-section-sub">Tiene que ser desde <strong>Safari</strong> — Chrome y otros navegadores en iOS no pueden instalar la app.</p>
     </div>
@@ -1878,9 +1882,8 @@ a{color:inherit}
     </div>
   </section>
 
-  <section class="landing-section" style="padding-top:0">
+  <section class="landing-section" style="padding-top:20px;display:none" id="install-android-section">
     <div class="landing-section-head" style="margin-bottom:28px">
-      <div class="landing-section-eyebrow"><i class="ti ti-brand-android"></i> En Android</div>
       <h2 class="landing-section-title">Con Chrome, en tres pasos</h2>
       <p class="landing-section-sub">En algunos móviles Chrome muestra directamente un aviso de "Instalar app" — si lo ves, tócalo y te saltas los pasos siguientes.</p>
     </div>
@@ -5593,6 +5596,13 @@ function showAuth(which){
   // Cada pantalla es una vista nueva — si venías con scroll (p.ej. desde el pie de
   // una landing larga) no debe arrastrarse a la siguiente, que puede ser mucho más corta.
   window.scrollTo(0,0);
+}
+
+function setInstallTab(btn,platform){
+  document.querySelectorAll('#install-tabs .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('install-ios-section').style.display=platform==='ios'?'block':'none';
+  document.getElementById('install-android-section').style.display=platform==='android'?'block':'none';
 }
 
 // ── Landing page: interactive shelfie demo (tabs + drag-to-reorder) ──
