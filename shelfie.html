@@ -2421,7 +2421,9 @@ a{color:inherit}
   <h2>Cuenta</h2>
   <p class="sub">Seguridad y datos de acceso</p>
 
-  <div class="f-row"><label class="f-label">Cambiar contraseña</label>
+  <button class="btn btn-white w-full" onclick="closeModal('modal-account');startOnboardingTour()"><i class="ti ti-map"></i> Ver el tutorial de nuevo</button>
+
+  <div class="f-row" style="margin-top:20px"><label class="f-label">Cambiar contraseña</label>
     <input class="f-input" type="password" id="acc-new-pw" placeholder="Nueva contraseña" autocomplete="new-password" style="margin-bottom:8px">
     <input class="f-input" type="password" id="acc-new-pw2" placeholder="Repite la nueva contraseña" autocomplete="new-password">
   </div>
@@ -2954,7 +2956,7 @@ a{color:inherit}
       <input class="srch-inp" id="shelf-search" placeholder="Buscar por título, autor o etiqueta..." oninput="renderShelf()" autocomplete="off">
     </div>
     <div class="tb-right">
-      <button class="btn btn-white" onclick="openGoodreadsImportModal()" title="Importar desde Goodreads"><i class="ti ti-upload"></i></button>
+      <button class="btn btn-white" id="goodreads-import-btn" onclick="openGoodreadsImportModal()" title="Importar desde Goodreads"><i class="ti ti-upload"></i></button>
       <button class="btn btn-white" id="fix-covers-btn" onclick="fixMissingCovers()" title="Buscar portadas que faltan"><i class="ti ti-photo"></i></button>
       <button class="btn btn-white" id="shelf-theme-btn" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <div class="view-toggle">
@@ -2962,7 +2964,7 @@ a{color:inherit}
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setShelfPublicView('grid')" title="Vista cuadrícula"><i class="ti ti-layout-grid"></i></button>
         <button class="view-toggle-btn" id="view-toggle-list" onclick="setShelfPublicView('list')" title="Vista lista"><i class="ti ti-list"></i></button>
       </div>
-      <button class="btn btn-white" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
+      <button class="btn btn-white" id="shelf-share-btn" onclick="shareCurrentShelfTab()"><i class="ti ti-share-2"></i> Compartir</button>
       <select class="f-input" style="width:auto;flex-shrink:0;padding:8px 12px" id="shelf-sort" onchange="setProfilePublicSort(this.value)">
         <option value="manual">Mi orden</option><option value="titulo">Por título A–Z</option><option value="autor">Por autor</option><option value="valoracion">Por valoración</option>
       </select>
@@ -6183,7 +6185,9 @@ const ONBOARDING_STEPS=[
     const hamburger=document.querySelector('.mobile-menu-btn');
     return(hamburger&&getComputedStyle(hamburger).display!=='none')?'.mobile-menu-btn':'.sidebar .sb-logo';
   }},
-  {title:'Mi shelfie',desc:'Aquí ves y organizas todos tus libros: leídos, leyendo, quiero leer y abandonados. Puedes arrastrarlos para colocarlos como quieras.',nav:'shelf',target:'#shelf-tabs'},
+  {title:'Mi shelfie',desc:'Aquí ves y organizas todos tus libros: leídos, leyendo, quiero leer y abandonados. Arrástralos para colocarlos donde quieras (también funciona con el dedo en el móvil), y desde el menú de tres puntos de cada libro puedes cambiarle la portada o elegir otra edición.',nav:'shelf',target:'#shelf-tabs'},
+  {title:'Importa tu biblioteca',desc:'¿Ya tienes tu biblioteca en Goodreads? Súbela de una vez con este botón — leídos, pendientes y valoraciones incluidas. Si a algún libro le falta portada luego, el icono de la foto de al lado te busca una mejor automáticamente.',nav:'shelf',target:'#goodreads-import-btn'},
+  {title:'Comparte tu shelfie',desc:'Genera una story lista para Instagram con tu estantería, tu lista de pendientes o lo que estás leyendo ahora mismo — con tu racha y tu progreso si quieres.',nav:'shelf',target:'#shelf-share-btn'},
   {title:'Descubrir',desc:'Busca cualquier libro o autor y encuentra recomendaciones pensadas para lo que ya has leído.',nav:'discover',target:'#disc-search-inp'},
   {title:'Eventos',desc:'Encuentros de lectura, firmas y clubs cerca de ti — apúntate con un clic.',nav:'events',target:()=>{
     const body=document.getElementById('events-body');
@@ -6191,8 +6195,8 @@ const ONBOARDING_STEPS=[
   }},
   {title:'Feed',desc:'Comparte lo que lees — reseñas, citas, tu shelfie del mes — y ve lo que publican los lectores a los que sigues.',nav:'feed',target:'.composer-card'},
   {title:'Retos',desc:'Crea tus propios retos de lectura o únete a los de la comunidad — como leer un libro por país o superar tu récord de páginas.',nav:'retos',target:'#p-retos .tb .btn-red'},
-  {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... y puedes exportarlos en PDF o CSV.',nav:'stats',target:'.stats-hero-grid'},
-  {title:'Añade tus libros',desc:'Volvamos a Inicio. Aquí añades cada libro: los que ya has leído, los que estás leyendo, los que quieres leer o los que has abandonado.',nav:'home',target:'#p-home .tb-right .btn-red'},
+  {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... Toca un día del calendario de actividad para ver la fecha exacta, y desliza a los lados para ver meses anteriores. Puedes exportarlo todo en PDF o Excel.',nav:'stats',target:'.stats-hero-grid'},
+  {title:'Añade tus libros',desc:'Volvamos a Inicio. Aquí añades cada libro, y hay varias formas de encontrarlo: buscar por título o autor, por ISBN, escanear el código de barras con la cámara, o escribirlo tú mismo si no aparece.',nav:'home',target:'#p-home .tb-right .btn-red'},
   {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',nav:'home',target:'#streak-mark-btn'},
   {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',nav:'home',target:'#p-home .stats-grid'},
   {title:'¡Listo! 🎉',desc:'Eso es todo. Ve a añadir tu primer libro y empieza a construir tu shelfie.',nav:'home',target:null},
