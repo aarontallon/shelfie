@@ -184,8 +184,13 @@ a{color:inherit}
   .landing-footer{padding:24px 20px}
   .landing-floaty{display:none}
 }
-@media (max-width:400px){
+.landing-nav-actions .nav-short-text{display:none}
+@media (max-width:480px){
   .landing-nav .logo-text{display:none}
+  .landing-nav-actions .nav-back-text{display:none}
+  .landing-nav-actions .nav-icon-hide{display:none}
+  .landing-nav-actions .nav-full-text{display:none}
+  .landing-nav-actions .nav-short-text{display:inline}
 }
 
 /* ═══════ CONTENT PAGES (Acerca de / Términos / Privacidad) ═══════ */
@@ -861,7 +866,6 @@ a{color:inherit}
    la racha, más sube de nivel (color, brillo, animación), como un medidor de
    estatus pensado para presumir, no solo informar. */
 .profile-streak-badge{--glow:180,83,9;position:absolute;top:18px;right:24px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:2px;background:linear-gradient(145deg,#92400E,#B45309);border:2px solid rgba(255,255,255,0.2);border-radius:20px;padding:15px 22px;box-shadow:0 8px 26px rgba(var(--glow),0.4),0 0 0 1px rgba(255,255,255,0.1);overflow:hidden;isolation:isolate;animation:streakPulse 2.6s ease-in-out infinite;transition:opacity .3s,transform .2s}
-.profile-streak-badge::before{content:'';position:absolute;top:-60%;left:-70%;width:45%;height:220%;background:linear-gradient(75deg,transparent,rgba(255,255,255,0.5),transparent);animation:streakShine 3.4s ease-in-out infinite;z-index:-1}
 .profile-streak-badge.tier-ember{--glow:234,88,12;background:linear-gradient(145deg,#9A3412,#EA580C)}
 .profile-streak-badge.tier-blaze{--glow:220,38,38;background:linear-gradient(145deg,#7F1D1D,#DC2626)}
 .profile-streak-badge.tier-inferno{--glow:192,38,211;background:linear-gradient(145deg,#581C87,#C026D3)}
@@ -874,7 +878,6 @@ a{color:inherit}
 .profile-streak-badge-share:hover{background:rgba(255,255,255,0.3)}
 .profile-streak-badge-share i{font-size:11px}
 @keyframes streakPulse{0%,100%{box-shadow:0 8px 26px rgba(var(--glow),0.4),0 0 0 1px rgba(255,255,255,0.1)}50%{box-shadow:0 10px 34px rgba(var(--glow),0.7),0 0 0 4px rgba(255,255,255,0.12)}}
-@keyframes streakShine{0%,40%{left:-70%}75%,100%{left:150%}}
 @keyframes streakGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
 /* ═══ LOGROS ═══ */
@@ -1346,7 +1349,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="landing-nav-actions">
-      <button class="btn-ghost-nav" onclick="showAuth('organizers-landing')"><i class="ti ti-building-store"></i> Shelfie Eventos</button>
+      <button class="btn-ghost-nav" onclick="showAuth('organizers-landing')"><i class="ti ti-building-store nav-icon-hide"></i> <span class="nav-full-text">Shelfie Eventos</span><span class="nav-short-text">Eventos</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('login')">Iniciar sesión</button>
       <button class="btn btn-red" onclick="showAuth('register')">Regístrate gratis</button>
     </div>
@@ -1499,7 +1502,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em> eventos</div>
     </div>
     <div class="landing-nav-actions">
-      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> Volver a Shelfie</button>
+      <button class="btn-ghost-nav" onclick="showAuth('landing')"><i class="ti ti-arrow-left"></i> <span class="nav-back-text">Volver a Shelfie</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('organizer-login')">Ya tengo cuenta</button>
       <button class="btn btn-red" onclick="showAuth('organizer-register')"><i class="ti ti-building-store"></i> Registra tu evento</button>
     </div>
