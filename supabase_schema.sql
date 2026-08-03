@@ -791,11 +791,9 @@ $$ language plpgsql security definer;
 -- Aplica de verdad la privacidad a nivel de base de datos, no solo
 -- escondiendo cosas en la interfaz — quien no te sigue (y no eres tú
 -- mismo) ya no puede leer tus libros ni tus publicaciones si tu cuenta es
--- privada. (Los comentarios y "me gusta" de esas publicaciones siguen con
--- lectura pública por ahora — solo se llega a ellos sabiendo el id exacto
--- de la publicación, que no se expone en ningún sitio si el post en sí ya
--- no es visible; low priority pero queda anotado como pendiente de más
--- blindaje si hace falta.)
+-- privada. (Los comentarios, "me gusta", likes de comentario y reacciones
+-- de esas publicaciones quedan blindados igual más abajo, en la
+-- actualización "privacidad real también en comentarios, likes...".)
 drop policy if exists "user_books_select" on public.user_books;
 create policy "user_books_select" on public.user_books for select using (
   auth.uid() = user_id
@@ -816,3 +814,67 @@ create policy "posts_select" on public.posts for select using (
 -- ════════════════════════════════════════════════
 
 alter table public.profiles add column if not exists email_notifications boolean default true;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: privacidad real también en comentarios, likes, likes de
+-- comentario y reacciones — hasta ahora solo user_books/posts respetaban
+-- is_private a nivel de base de datos; estas cuatro tablas seguían siendo
+-- de lectura pública, así que alguien con el id exacto de un comentario o
+-- like de una cuenta privada podía leerlo sin ser amigo. Cada política
+-- resuelve hasta el post al que pertenece esa fila y aplica la misma regla
+-- que ya usan user_books_select/posts_select: dueño, cuenta pública, o
+-- amigo del dueño. Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+drop policy if exists "comments_select" on public.comments;
+create policy "comments_select" on public.comments for select using (
+  exists (
+    select 1 from public.posts po
+    where po.id = comments.post_id
+    and (
+      auth.uid() = po.user_id
+      or not exists (select 1 from public.profiles p where p.id = po.user_id and p.is_private = true)
+      or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = po.user_id)
+    )
+  )
+);
+
+drop policy if exists "likes_select" on public.likes;
+create policy "likes_select" on public.likes for select using (
+  exists (
+    select 1 from public.posts po
+    where po.id = likes.post_id
+    and (
+      auth.uid() = po.user_id
+      or not exists (select 1 from public.profiles p where p.id = po.user_id and p.is_private = true)
+      or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = po.user_id)
+    )
+  )
+);
+
+drop policy if exists "comment_likes_select" on public.comment_likes;
+create policy "comment_likes_select" on public.comment_likes for select using (
+  exists (
+    select 1 from public.comments c
+    join public.posts po on po.id = c.post_id
+    where c.id = comment_likes.comment_id
+    and (
+      auth.uid() = po.user_id
+      or not exists (select 1 from public.profiles p where p.id = po.user_id and p.is_private = true)
+      or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = po.user_id)
+    )
+  )
+);
+
+drop policy if exists "post_reactions_select" on public.post_reactions;
+create policy "post_reactions_select" on public.post_reactions for select using (
+  exists (
+    select 1 from public.posts po
+    where po.id = post_reactions.post_id
+    and (
+      auth.uid() = po.user_id
+      or not exists (select 1 from public.profiles p where p.id = po.user_id and p.is_private = true)
+      or exists (select 1 from public.friendships f where f.user_id = auth.uid() and f.friend_id = po.user_id)
+    )
+  )
+);

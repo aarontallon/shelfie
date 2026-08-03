@@ -7,7 +7,13 @@
 <meta name="description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura. La red social para gente que lee de verdad.">
 <link rel="canonical" href="https://aarontallon.github.io/shelfie/">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3D6B52">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shelfie">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Shelfie">
 <meta property="og:url" content="https://aarontallon.github.io/shelfie/">
@@ -11578,7 +11584,7 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':'interactuó contigo';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':'interactuó contigo';
     let followBtn='';
     if(n.type==='follow'){
       followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
@@ -13007,11 +13013,7 @@ function hexToRgba(hex,alpha){
 // El emoji se veía distinto (y peor) según el dispositivo/SO de quien genera
 // la story, porque canvas usa el set de emojis que tenga instalado ese
 // móvil/navegador. Esta forma es idéntica en cualquier sitio.
-function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
-  ctx.save();
-  if(blurred)ctx.filter='blur(46px)';
-  ctx.globalAlpha=alpha;
-
+function drawFlameShape(ctx,cx,baseY,w,h,stops){
   const grad=ctx.createLinearGradient(cx,baseY,cx,baseY-h);
   stops.forEach((c,i)=>grad.addColorStop(i/(stops.length-1||1),c));
   ctx.beginPath();
@@ -13027,21 +13029,18 @@ function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
 
   // Núcleo interior más claro/cálido, pegado a la base — el "corazón" de la
   // llama, como el interior amarillo del emoji original pero controlado.
-  if(!blurred){
-    const grad2=ctx.createLinearGradient(cx,baseY,cx,baseY-h*0.62);
-    grad2.addColorStop(0,'#FEF3C7');
-    grad2.addColorStop(1,stops[Math.max(0,stops.length-2)]);
-    ctx.beginPath();
-    ctx.moveTo(cx+w*0.02,baseY);
-    ctx.bezierCurveTo(cx-w*0.22,baseY-h*0.02, cx-w*0.22,baseY-h*0.22, cx-w*0.08,baseY-h*0.36);
-    ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.28, cx+w*0.03,baseY-h*0.22, cx+w*0.02,baseY-h*0.15);
-    ctx.bezierCurveTo(cx+w*0.08,baseY-h*0.3, cx+w*0.18,baseY-h*0.5, cx+w*0.14,baseY-h*0.62);
-    ctx.bezierCurveTo(cx+w*0.26,baseY-h*0.46, cx+w*0.28,baseY-h*0.2, cx+w*0.2,baseY);
-    ctx.closePath();
-    ctx.fillStyle=grad2;
-    ctx.fill();
-  }
-  ctx.restore();
+  const grad2=ctx.createLinearGradient(cx,baseY,cx,baseY-h*0.62);
+  grad2.addColorStop(0,'#FEF3C7');
+  grad2.addColorStop(1,stops[Math.max(0,stops.length-2)]);
+  ctx.beginPath();
+  ctx.moveTo(cx+w*0.02,baseY);
+  ctx.bezierCurveTo(cx-w*0.22,baseY-h*0.02, cx-w*0.22,baseY-h*0.22, cx-w*0.08,baseY-h*0.36);
+  ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.28, cx+w*0.03,baseY-h*0.22, cx+w*0.02,baseY-h*0.15);
+  ctx.bezierCurveTo(cx+w*0.08,baseY-h*0.3, cx+w*0.18,baseY-h*0.5, cx+w*0.14,baseY-h*0.62);
+  ctx.bezierCurveTo(cx+w*0.26,baseY-h*0.46, cx+w*0.28,baseY-h*0.2, cx+w*0.2,baseY);
+  ctx.closePath();
+  ctx.fillStyle=grad2;
+  ctx.fill();
 }
 function streakTierGradientStops(tier){
   const stops={
@@ -13104,12 +13103,23 @@ async function generateStreakStoryImage(){
   ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
   ctx.textAlign='left';
 
-  // Llama gigante con halo detrás — dibujada a mano con curvas, NO como el
-  // emoji 🔥 del sistema. El emoji se veía distinto (y peor) según el
-  // dispositivo/SO de quien genera la story; esta silueta es idéntica en
-  // cualquier móvil u ordenador, sin depender de qué set de emojis tenga.
-  drawFlameShape(ctx,540,890,520,620,stops,0.55,true); // halo desenfocado detrás
-  drawFlameShape(ctx,540,890,460,560,stops,1,false);
+  // Llama gigante — dibujada a mano con curvas, NO como el emoji 🔥 del
+  // sistema. El emoji se veía distinto (y peor) según el dispositivo/SO de
+  // quien genera la story; esta silueta es idéntica en cualquier móvil u
+  // ordenador, sin depender de qué set de emojis tenga.
+  //
+  // El halo de detrás NO usa ctx.filter='blur()' — esa API de canvas tiene
+  // soporte real inconsistente en Safari/iOS (llegó tarde y sigue fallando
+  // en versiones/webviews más viejos), así que en muchos móviles el halo
+  // salía sin desenfocar: una segunda llama semitransparente pegada a la
+  // nítida, un contorno feo y doble. Un resplandor con gradiente radial
+  // (sin filtro, solo color a transparente) da el mismo efecto de brillo y
+  // funciona igual en cualquier navegador.
+  let flameGlow=ctx.createRadialGradient(540,650,0,540,650,420);
+  flameGlow.addColorStop(0,hexToRgba(stops[Math.floor(stops.length/2)],0.5));
+  flameGlow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=flameGlow;ctx.fillRect(0,0,1080,1920);
+  drawFlameShape(ctx,540,890,460,560,stops);
 
   // Número de racha, enorme, con el degradado del nivel actual — el mismo
   // lenguaje de color que la insignia de racha del perfil (spark/ember/
@@ -14215,6 +14225,11 @@ async function togglePostLike(id,btn){
     btn.classList.toggle('on',post.likedByMe);
     btn.querySelector('span').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }else if(post.likedByMe&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    // Best-effort, igual que la notificación de "te sigue" — no bloquea la
+    // UI si falla, y nunca se avisa a uno mismo por darse like a su propio post.
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'like'})
+      .then(({error})=>{if(error)console.error('notify like failed:',error);});
   }
   _likeInFlight.delete(id);
 }
@@ -14260,6 +14275,10 @@ async function sendComment(id){
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
+  if(SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'comment'})
+      .then(({error})=>{if(error)console.error('notify comment failed:',error);});
+  }
   _commentInFlight.delete(id);
 }
 
@@ -14281,6 +14300,10 @@ async function toggleCommentLike(postId,commentId,btn){
     btn.classList.toggle('on',comment.likedByMe);
     btn.querySelector('span').textContent=comment.likes||'';
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }else if(comment.likedByMe&&SUPA_USER&&comment.userId&&comment.userId!==SUPA_USER.id){
+    // Al autor DEL COMENTARIO, no al del post — pueden ser personas distintas.
+    supa.from('notifications').insert({user_id:comment.userId,actor_id:SUPA_USER.id,type:'comment_like'})
+      .then(({error})=>{if(error)console.error('notify comment_like failed:',error);});
   }
   _commentLikeInFlight.delete(commentId);
 }
@@ -14326,6 +14349,9 @@ async function toggleReaction(id,emoji){
     applyOptimistic(removing?null:emoji,prev); // revert
     refreshPostCard(id);
     toast('❌ No se pudo guardar la reacción. Inténtalo de nuevo.');
+  }else if(!removing&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'reaction'})
+      .then(({error})=>{if(error)console.error('notify reaction failed:',error);});
   }
   _reactionInFlight.delete(id);
 }
@@ -14412,6 +14438,15 @@ document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='E
 document.getElementById('reg-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('reg-pass').focus();});
 
 // Session is handled entirely by onAuthStateChange (INITIAL_SESSION + SIGNED_IN)
+
+// Registro del service worker (PWA instalable + caché del shell). No se
+// registra en localhost/dev sin HTTPS porque los navegadores exigen un
+// origen seguro para service workers (localhost es la única excepción).
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW registration failed:',e));
+  });
+}
 </script>
 <!-- Global book action menu — single instance at body level, avoids transform stacking-context bugs -->
 <div id="g-book-menu"></div>
