@@ -13003,6 +13003,46 @@ function hexToRgba(hex,alpha){
   const r=parseInt(h.substring(0,2),16),g=parseInt(h.substring(2,4),16),b=parseInt(h.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+// Silueta de llama dibujada a mano con curvas — NO el emoji 🔥 del sistema.
+// El emoji se veía distinto (y peor) según el dispositivo/SO de quien genera
+// la story, porque canvas usa el set de emojis que tenga instalado ese
+// móvil/navegador. Esta forma es idéntica en cualquier sitio.
+function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
+  ctx.save();
+  if(blurred)ctx.filter='blur(46px)';
+  ctx.globalAlpha=alpha;
+
+  const grad=ctx.createLinearGradient(cx,baseY,cx,baseY-h);
+  stops.forEach((c,i)=>grad.addColorStop(i/(stops.length-1||1),c));
+  ctx.beginPath();
+  ctx.moveTo(cx-w*0.02,baseY);
+  ctx.bezierCurveTo(cx-w*0.48,baseY-h*0.02, cx-w*0.5,baseY-h*0.38, cx-w*0.22,baseY-h*0.58);
+  ctx.bezierCurveTo(cx-w*0.30,baseY-h*0.42, cx-w*0.20,baseY-h*0.28, cx-w*0.10,baseY-h*0.30);
+  ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.55, cx+w*0.10,baseY-h*0.88, cx+w*0.06,baseY-h*1.0);
+  ctx.bezierCurveTo(cx+w*0.28,baseY-h*0.84, cx+w*0.46,baseY-h*0.52, cx+w*0.42,baseY-h*0.26);
+  ctx.bezierCurveTo(cx+w*0.5,baseY-h*0.36, cx+w*0.46,baseY-h*0.08, cx+w*0.22,baseY);
+  ctx.closePath();
+  ctx.fillStyle=grad;
+  ctx.fill();
+
+  // Núcleo interior más claro/cálido, pegado a la base — el "corazón" de la
+  // llama, como el interior amarillo del emoji original pero controlado.
+  if(!blurred){
+    const grad2=ctx.createLinearGradient(cx,baseY,cx,baseY-h*0.62);
+    grad2.addColorStop(0,'#FEF3C7');
+    grad2.addColorStop(1,stops[Math.max(0,stops.length-2)]);
+    ctx.beginPath();
+    ctx.moveTo(cx+w*0.02,baseY);
+    ctx.bezierCurveTo(cx-w*0.22,baseY-h*0.02, cx-w*0.22,baseY-h*0.22, cx-w*0.08,baseY-h*0.36);
+    ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.28, cx+w*0.03,baseY-h*0.22, cx+w*0.02,baseY-h*0.15);
+    ctx.bezierCurveTo(cx+w*0.08,baseY-h*0.3, cx+w*0.18,baseY-h*0.5, cx+w*0.14,baseY-h*0.62);
+    ctx.bezierCurveTo(cx+w*0.26,baseY-h*0.46, cx+w*0.28,baseY-h*0.2, cx+w*0.2,baseY);
+    ctx.closePath();
+    ctx.fillStyle=grad2;
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function streakTierGradientStops(tier){
   const stops={
     'tier-spark':['#92400E','#B45309'],
@@ -13064,22 +13104,20 @@ async function generateStreakStoryImage(){
   ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
   ctx.textAlign='left';
 
-  // Llama gigante con halo detrás (el halo es la misma llama, muy desenfocada)
-  ctx.save();
-  ctx.filter='blur(55px)';
-  ctx.font='440px serif';
-  ctx.textAlign='center';
-  ctx.globalAlpha=0.55;
-  ctx.fillText('🔥',540,880);
-  ctx.restore();
-  ctx.font='400px serif';
-  ctx.textAlign='center';
-  ctx.fillText('🔥',540,850);
+  // Llama gigante con halo detrás — dibujada a mano con curvas, NO como el
+  // emoji 🔥 del sistema. El emoji se veía distinto (y peor) según el
+  // dispositivo/SO de quien genera la story; esta silueta es idéntica en
+  // cualquier móvil u ordenador, sin depender de qué set de emojis tenga.
+  drawFlameShape(ctx,540,890,520,620,stops,0.55,true); // halo desenfocado detrás
+  drawFlameShape(ctx,540,890,460,560,stops,1,false);
 
   // Número de racha, enorme, con el degradado del nivel actual — el mismo
   // lenguaje de color que la insignia de racha del perfil (spark/ember/
   // blaze/inferno/legend), para que se reconozca como "el mismo trofeo".
-  ctx.font='900 310px "Playfair Display", Georgia, serif';
+  // Sans-serif bien grueso en vez de la serif decorativa: a este tamaño los
+  // números de una display serif salen demasiado ornamentados (el "9" con
+  // un rabillo enorme) y quedan menos legibles/modernos que un palo seco.
+  ctx.font='900 300px Inter, Arial, sans-serif';
   ctx.textAlign='center';
   const numGrad=ctx.createLinearGradient(240,0,840,0);
   stops.forEach((c,i)=>numGrad.addColorStop(i/(stops.length-1||1),c));
