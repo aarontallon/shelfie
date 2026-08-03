@@ -13009,7 +13009,7 @@ function hexToRgba(hex,alpha){
 // móvil/navegador. Esta forma es idéntica en cualquier sitio.
 function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
   ctx.save();
-  if(blurred)ctx.filter='blur(46px)';
+  if(blurred)ctx.filter='blur(28px)';
   ctx.globalAlpha=alpha;
 
   const grad=ctx.createLinearGradient(cx,baseY,cx,baseY-h);
@@ -13108,7 +13108,7 @@ async function generateStreakStoryImage(){
   // emoji 🔥 del sistema. El emoji se veía distinto (y peor) según el
   // dispositivo/SO de quien genera la story; esta silueta es idéntica en
   // cualquier móvil u ordenador, sin depender de qué set de emojis tenga.
-  drawFlameShape(ctx,540,890,520,620,stops,0.55,true); // halo desenfocado detrás
+  drawFlameShape(ctx,540,890,480,580,stops,0.45,true); // halo desenfocado detrás — más ceñido y tenue para no lavar el borde nítido de la llama
   drawFlameShape(ctx,540,890,460,560,stops,1,false);
 
   // Número de racha, enorme, con el degradado del nivel actual — el mismo
