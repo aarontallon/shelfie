@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Shelfie — Tu shelfie social</title>
 <meta name="description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura. La red social para gente que lee de verdad.">
 <link rel="canonical" href="https://aarontallon.github.io/shelfie/">
@@ -52,7 +52,7 @@
    contenedor de scroll compitiendo con body, y el position:sticky del sidebar
    se ancla entonces al equivocado — dejaba de quedarse fijo y se desplazaba
    hacia arriba junto con el resto de la página. */
-body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;overflow-y:scroll;scrollbar-gutter:stable}
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;overflow-y:scroll;scrollbar-gutter:stable;touch-action:manipulation}
 a{color:inherit}
 
 /* ═══════ AUTH SCREENS ═══════ */
@@ -1419,6 +1419,7 @@ a{color:inherit}
   #p-chat-detail.on{left:0;top:56px}
   .sidebar{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:230px;z-index:1000;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,0.3)}
   .sidebar.mobile-open{transform:translateX(0)}
+  body.no-scroll{overflow:hidden}
   .g2{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
   .promo-banner{flex-direction:column}
@@ -3388,7 +3389,8 @@ a{color:inherit}
 <!-- ── MENSAJES ── -->
 <div id="p-messages" class="page">
   <div class="tb"><div><h1>Mensajes</h1><p class="sub">Tus conversaciones directas</p></div></div>
-  <input class="f-input" id="messages-search" placeholder="Buscar conversaciones..." style="margin-bottom:14px" oninput="renderMessagesPage()">
+  <input class="f-input" id="messages-search" placeholder="Buscar conversaciones o gente nueva..." style="margin-bottom:10px" oninput="onMessagesSearchInput(this.value)">
+  <div id="messages-user-results" style="display:none;margin-bottom:14px"></div>
   <div class="subject-toggle" id="messages-tabs">
     <button type="button" class="subject-toggle-btn on" data-mtab="chats" onclick="setMessagesTab('chats')">Mensajes</button>
     <button type="button" class="subject-toggle-btn" data-mtab="requests" onclick="setMessagesTab('requests')">Solicitudes <span class="nb-badge" id="messages-requests-badge" style="display:none">0</span></button>
@@ -4400,7 +4402,11 @@ async function openChat(userId){
     CONVERSATIONS=CONVERSATIONS.filter(c=>c.id!==tempId);
     delete MESSAGES_BY_CONV[tempId];
     if(CURRENT_CHAT_CONV_ID===tempId){
-      toast('❌ No se pudo abrir la conversación. Comprueba tu conexión e inténtalo de nuevo.');
+      // Mensaje detallado (no solo "revisa tu conexión") — el error más probable
+      // aquí es que las tablas conversations/messages de Supabase aún no
+      // existen porque no se ha corrido el SQL, y sin ver esto en pantalla
+      // (nadie va a abrir la consola del móvil) es imposible saberlo.
+      toast('❌ No se pudo abrir la conversación: '+supaErrorMessage(e),6000);
       goBackFromChat();
     }
   }finally{
@@ -4625,6 +4631,43 @@ function handleMessageReactionRealtime(type,payload){
 }
 
 // ── Render ──
+// La misma caja de búsqueda hace dos cosas a la vez, como en Instagram:
+// filtra tus conversaciones ya existentes Y busca gente nueva a la que
+// escribir por primera vez (aunque no la sigas ni te siga).
+function onMessagesSearchInput(value){
+  renderMessagesPage();
+  searchChatUsers(value);
+}
+let _chatUserSearchToken=0;
+async function searchChatUsers(q){
+  const box=document.getElementById('messages-user-results');
+  const term=(q||'').trim();
+  if(term.length<2){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  const token=++_chatUserSearchToken;
+  if(!SUPA_USER){box.innerHTML='';return;}
+  box.innerHTML='<div class="s-loading"><i class="ti ti-loader-2 spin"></i> Buscando gente...</div>';
+  const safe=term.replace(/[%,()]/g,'');
+  try{
+    const{data,error}=await supa.from('profiles')
+      .select('id,name,username,photo,bio')
+      .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
+      .neq('id',SUPA_USER.id)
+      .not('username','is',null)
+      .limit(8);
+    if(error)throw error;
+    if(token!==_chatUserSearchToken)return;
+    const results=(data||[]).filter(r=>!isBlockedEitherWay(r.id));
+    box.innerHTML=!results.length?'':`<div class="f-label" style="margin-bottom:6px">Gente</div>${results.map(u=>{
+      const r=_userCache[u.username]||cacheUser(u);
+      const btn=`<button class="btn btn-sm btn-red" onclick="event.stopPropagation();openChat('${r.id}')"><i class="ti ti-send"></i> Mensaje</button>`;
+      return friendRowHtml(r,btn,36);
+    }).join('')}`;
+  }catch(e){
+    console.error('searchChatUsers failed:',e);
+    if(token===_chatUserSearchToken)box.innerHTML=`<div class="empty" style="padding:16px 10px"><i class="ti ti-wifi-off"></i><p>No se pudo buscar: ${escapeHtml(supaErrorMessage(e))}</p></div>`;
+  }
+}
 function setMessagesTab(tab){
   _messagesTab=tab;
   renderMessagesPage();
@@ -7164,7 +7207,14 @@ async function submitReport(){
 // ═══════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════
-function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);}
+function toast(msg,durationMs){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),durationMs||2800);}
+// Convierte un error de supabase-js/PostgREST en un texto legible en pantalla
+// — en móvil nadie va a abrir la consola, así que si esto no se ve aquí, no
+// hay forma de saber si falta una tabla, una política RLS, o es la red.
+function supaErrorMessage(e){
+  if(!e)return 'error desconocido';
+  return e.message||e.error_description||e.details||e.hint||e.code||(typeof e==='string'?e:JSON.stringify(e));
+}
 
 // ═══════════════════════════════════════════════
 // NAVIGATION
@@ -7177,9 +7227,18 @@ let CURRENT_ENTITY={}; // {bookdetail:id, authorpage:id, clubdetail:id, userprof
 const NB_INDEX={home:0,shelf:1,discover:2,events:3,feed:4,messages:5,friends:6,clubs:7,retos:8,stats:9};
 function nbFor(id){const i=NB_INDEX[id];return i!=null?document.querySelectorAll('.nb')[i]:null;}
 
+function openMobileNav(){
+  document.querySelector('.sidebar')?.classList.add('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.add('show');
+  document.body.classList.add('no-scroll');
+}
+function closeMobileNav(){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  document.body.classList.remove('no-scroll');
+}
 function toggleMobileNav(){
-  document.querySelector('.sidebar')?.classList.toggle('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.toggle('show');
+  if(document.querySelector('.sidebar')?.classList.contains('mobile-open'))closeMobileNav();else openMobileNav();
 }
 
 // Remembers the current page (+ open entity, for detail pages) across reloads,
@@ -7214,8 +7273,7 @@ function go(id,btn,extraId,_isBack){
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
-  document.querySelector('.sidebar')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  closeMobileNav();
   document.querySelectorAll('.overlay').forEach(o=>{o.style.display='none';});
   window.scrollTo(0,0);
   persistCurrentPage(id,extraId);
@@ -7587,8 +7645,7 @@ function openModal(id){
   // Cierra el menú lateral móvil primero — si se queda abierto detrás de un
   // modal, se ve mal (el menú y el overlay compiten por el mismo espacio/
   // z-index) y a veces bloquea el scroll o los taps del modal.
-  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
+  closeMobileNav();
   document.getElementById(id).style.display='flex';
   if(id==='modal-add')resetAddModal();
 }
@@ -7605,8 +7662,7 @@ function confirmModal(message,opts){
   // Este modal (y promptModal, justo debajo) montan su display:flex directamente,
   // sin pasar por openModal() — por eso se quedaban abriéndose detrás del menú
   // lateral móvil si seguía abierto (p.ej. "Cerrar sesión" desde el propio menú).
-  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
+  closeMobileNav();
   document.getElementById('modal-confirm').style.display='flex';
   return new Promise(res=>{_confirmModalResolve=res;});
 }
@@ -7620,8 +7676,7 @@ function promptModal(message,opts){
   document.getElementById('prompt-modal-title').textContent=message;
   const input=document.getElementById('prompt-modal-input');
   input.value=opts.defaultValue||'';
-  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
+  closeMobileNav();
   document.getElementById('modal-prompt').style.display='flex';
   setTimeout(()=>input.focus(),50);
   return new Promise(res=>{_promptModalResolve=res;});
@@ -12190,8 +12245,7 @@ function setFriendsTab(btn,tab){
 // Popup version of the Siguiendo/Seguidores lists, opened from your own profile stats.
 let _peopleModalKind='siguiendo';
 function openPeopleModal(kind){
-  document.querySelector('.sidebar')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  closeMobileNav();
   _peopleModalKind=kind;
   document.getElementById('people-modal-title').textContent=kind==='seguidores'?'Seguidores':'Siguiendo';
   const searchInp=document.getElementById('people-modal-search-inp');
@@ -13270,8 +13324,7 @@ function setNotifBadge(n){
 }
 
 async function openNotifications(){
-  document.querySelector('.sidebar')?.classList.remove('mobile-open');
-  document.querySelector('.mobile-nav-backdrop')?.classList.remove('show');
+  closeMobileNav();
   renderNotifications();
   openModal('modal-notifications');
   const unread=NOTIFICATIONS.filter(n=>!n.read);
@@ -16197,6 +16250,36 @@ document.addEventListener('keydown',e=>{
     const t=e.changedTouches[0];
     if(t.clientX-startX<THRESHOLD)return;
     if(document.getElementById('app-shell')?.classList.contains('on'))toggleMobileNav();
+  },{passive:true});
+})();
+
+// ═══ Swipe de derecha a izquierda → cierra el menú lateral (móvil) ═══
+// El gesto contrario al de arriba: con el menú ya abierto, arrastrar hacia
+// la izquierda en cualquier punto del menú o del fondo lo cierra — no hace
+// falta empezar desde un borde concreto, a diferencia del gesto de abrir.
+(function(){
+  const THRESHOLD=60;
+  let startX=null,startY=null,tracking=false;
+  document.addEventListener('touchstart',e=>{
+    if(window.innerWidth>900)return;
+    if(!document.querySelector('.sidebar.mobile-open'))return;
+    const t=e.touches[0];
+    startX=t.clientX;startY=t.clientY;tracking=true;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!tracking)return;
+    const t=e.touches[0];
+    const dx=t.clientX-startX,dy=t.clientY-startY;
+    if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
+    if(Math.abs(dy)>Math.abs(dx)){tracking=false;return;}
+    if(dx<-10)e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const t=e.changedTouches[0];
+    if(startX-t.clientX<THRESHOLD)return;
+    closeMobileNav();
   },{passive:true});
 })();
 
