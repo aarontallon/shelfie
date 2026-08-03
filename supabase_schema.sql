@@ -1071,3 +1071,32 @@ drop policy if exists "message_reactions_delete" on public.message_reactions;
 create policy "message_reactions_delete" on public.message_reactions for delete using (auth.uid() = user_id);
 
 do $$ begin alter publication supabase_realtime add table public.message_reactions; exception when others then null; end $$;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: notificaciones push (Web Push) — guarda una fila por
+-- cada dispositivo/navegador que activa las notificaciones, con las claves
+-- que hacen falta para poder enviarle un push cifrado (RFC 8291) más
+-- adelante desde la Edge Function send-push. Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  user_agent text,
+  created_at timestamptz default now()
+);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
+
+alter table public.push_subscriptions enable row level security;
+drop policy if exists "push_subscriptions_select" on public.push_subscriptions;
+create policy "push_subscriptions_select" on public.push_subscriptions for select using (auth.uid() = user_id);
+drop policy if exists "push_subscriptions_insert" on public.push_subscriptions;
+create policy "push_subscriptions_insert" on public.push_subscriptions for insert with check (auth.uid() = user_id);
+drop policy if exists "push_subscriptions_delete" on public.push_subscriptions;
+create policy "push_subscriptions_delete" on public.push_subscriptions for delete using (auth.uid() = user_id);
+-- Sin policy de update: para cambiar de claves, el cliente borra la fila
+-- vieja (por endpoint) e inserta una nueva — es como cambia el navegador
+-- una suscripción push, nunca hay que editar una ya existente en el sitio.

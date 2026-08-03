@@ -22,6 +22,43 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Notificaciones push (Web Push). El payload lo arma la Edge Function
+// send-push como JSON: { title, body, url, tag }. "url" es relativa al
+// scope del propio sw.js y es donde debe aterrizar la app al tocar la
+// notificación (p.ej. "./index.html?push=chat&user=<uuid>").
+self.addEventListener('push', (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: e.data ? e.data.text() : '' }; }
+  const title = data.title || 'Shelfie';
+  const url = new URL(data.url || './index.html', self.location).href;
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: new URL('./icon-192.png', self.location).href,
+      badge: new URL('./icon-192.png', self.location).href,
+      tag: data.tag,
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = e.notification.data && e.notification.data.url;
+  if (!url) return;
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.startsWith(new URL('./', self.location).href) && 'focus' in client) {
+          client.postMessage({ type: 'push-open', url });
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
