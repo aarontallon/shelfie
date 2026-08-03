@@ -11578,7 +11578,7 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':'interactuó contigo';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':'interactuó contigo';
     let followBtn='';
     if(n.type==='follow'){
       followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
@@ -14219,6 +14219,11 @@ async function togglePostLike(id,btn){
     btn.classList.toggle('on',post.likedByMe);
     btn.querySelector('span').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }else if(post.likedByMe&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    // Best-effort, igual que la notificación de "te sigue" — no bloquea la
+    // UI si falla, y nunca se avisa a uno mismo por darse like a su propio post.
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'like'})
+      .then(({error})=>{if(error)console.error('notify like failed:',error);});
   }
   _likeInFlight.delete(id);
 }
@@ -14264,6 +14269,10 @@ async function sendComment(id){
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
+  if(SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'comment'})
+      .then(({error})=>{if(error)console.error('notify comment failed:',error);});
+  }
   _commentInFlight.delete(id);
 }
 
@@ -14285,6 +14294,10 @@ async function toggleCommentLike(postId,commentId,btn){
     btn.classList.toggle('on',comment.likedByMe);
     btn.querySelector('span').textContent=comment.likes||'';
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
+  }else if(comment.likedByMe&&SUPA_USER&&comment.userId&&comment.userId!==SUPA_USER.id){
+    // Al autor DEL COMENTARIO, no al del post — pueden ser personas distintas.
+    supa.from('notifications').insert({user_id:comment.userId,actor_id:SUPA_USER.id,type:'comment_like'})
+      .then(({error})=>{if(error)console.error('notify comment_like failed:',error);});
   }
   _commentLikeInFlight.delete(commentId);
 }
@@ -14330,6 +14343,9 @@ async function toggleReaction(id,emoji){
     applyOptimistic(removing?null:emoji,prev); // revert
     refreshPostCard(id);
     toast('❌ No se pudo guardar la reacción. Inténtalo de nuevo.');
+  }else if(!removing&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
+    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'reaction'})
+      .then(({error})=>{if(error)console.error('notify reaction failed:',error);});
   }
   _reactionInFlight.delete(id);
 }
