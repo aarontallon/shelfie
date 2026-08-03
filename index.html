@@ -1043,19 +1043,38 @@ a{color:inherit}
 .club-av:first-child{margin-left:0}
 
 /* ══ CLUB DETAIL PAGE ══ */
-.club-detail-header{background:var(--ink);border-radius:16px;padding:24px 28px;margin-bottom:18px;color:white}
-.club-detail-title{font-family:'Inter',sans-serif;font-size:24px;font-weight:500;margin-bottom:4px}
-.club-detail-desc{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5}
-.club-detail-stats{display:flex;gap:20px;flex-wrap:wrap}
-.club-detail-stat{text-align:center}
-.club-detail-stat-n{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;line-height:1}
-.club-detail-stat-l{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px}
-.club-members-preview{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1)}
-.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:20px}
-.club-detail-tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s;white-space:nowrap}
+.club-detail-body{padding:0 28px 28px}
+.club-detail-header{background:#1A1A1A;border-radius:20px;padding:28px 32px;margin-bottom:18px;color:white;position:relative;overflow:hidden}
+.club-detail-header::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 85% 15%,rgba(61,107,82,0.16) 0%,transparent 70%);pointer-events:none}
+.club-detail-hero-top{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.club-detail-hero-left{min-width:0}
+.club-detail-emoji{font-size:38px;margin-bottom:8px}
+.club-detail-title{font-family:'Inter',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:6px}
+.club-detail-desc{font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:14px;line-height:1.5;max-width:440px}
+.club-detail-reading-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border-radius:10px;padding:7px 12px;margin-bottom:14px;font-size:13px;color:white}
+.club-detail-stats{display:flex;position:relative;z-index:2;background:rgba(255,255,255,0.05);border-radius:14px;overflow:hidden;width:fit-content;max-width:100%}
+.club-detail-stat{text-align:center;padding:12px 18px;border-right:1px solid rgba(255,255,255,0.07)}
+.club-detail-stat:last-child{border-right:none}
+.club-detail-stat-n{font-family:'Inter',sans-serif;font-size:21px;font-weight:700;line-height:1;letter-spacing:-0.03em}
+.club-detail-stat-l{font-size:10.5px;color:rgba(255,255,255,0.35);margin-top:4px;white-space:nowrap}
+.club-members-preview{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);position:relative;z-index:2}
+.club-detail-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;position:relative;z-index:2;flex-shrink:0}
+.club-detail-next-meeting{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right}
+.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.club-detail-tabs::-webkit-scrollbar{display:none}
+.club-detail-tabs.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
+.club-detail-tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s;white-space:nowrap;flex-shrink:0}
 .club-detail-tab.on{color:var(--red);border-bottom-color:var(--red)}
 .club-detail-panel{display:none}
 .club-detail-panel.on{display:block}
+@media (max-width:640px){
+  .club-detail-body{padding:0 16px 16px}
+  .club-detail-header{padding:20px 18px}
+  .club-detail-hero-top{flex-direction:column}
+  .club-detail-actions{align-items:flex-start;width:100%}
+  .club-detail-next-meeting{text-align:left}
+  .club-detail-tab{padding:10px 12px;font-size:12.5px}
+}
 
 /* ══ THREADS / DEBATES ══ */
 .thread-card{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:box-shadow 0.12s}
@@ -1091,8 +1110,10 @@ a{color:inherit}
 .club-reto-emoji{font-size:26px;flex-shrink:0}
 .club-reto-participants{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
 .club-reto-member-row{display:flex;align-items:center;gap:10px;padding:6px 0}
-.club-reto-member-prog{flex:1;background:#EDEDED;border-radius:4px;height:6px;overflow:hidden}
+.club-reto-member-name{font-size:12px;font-weight:500;color:var(--ink);width:90px;flex-shrink:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.club-reto-member-prog{flex:1;min-width:24px;background:#EDEDED;border-radius:4px;height:6px;overflow:hidden}
 .club-reto-member-bar{height:100%;background:var(--red);border-radius:4px}
+@media (max-width:480px){.club-reto-member-name{width:56px}}
 .member-admin-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #EBEBEB}
 .member-admin-row:last-child{border-bottom:none}
 .member-stats-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
@@ -1272,6 +1293,17 @@ a{color:inherit}
 .srch-inp{width:100%;padding:10px 12px 10px 36px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;color:var(--ink);background:white;outline:none}
 .srch-inp:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(75,111,165,0.1)}
 .srch-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--ink3);pointer-events:none}
+/* Safari en iOS hace zoom automático al enfocar cualquier campo de texto con
+   letra por debajo de 16px, y ese zoom se queda "pegado" al desenfocar,
+   descuadrando el resto de la página (cabeceras y botones cortados por los
+   bordes) hasta que se recarga. Hay decenas de inputs/selects por la app con
+   su propio font-size más pequeño (12px, 13px...) para encajar en su sitio,
+   así que en vez de perseguir cada uno se fuerza 16px de forma global en
+   móvil — el único sitio donde este bug existe — con !important para ganar
+   siempre a cualquier estilo en línea que ya tuviera un tamaño menor.       */
+@media (max-width:900px){
+  input,select,textarea{font-size:16px!important}
+}
 .srch-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--border);border-radius:12px;z-index:600;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.1);max-height:320px;overflow-y:auto}
 .s-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EBEBEB;transition:background 0.1s;cursor:pointer}
 .s-item:last-child{border-bottom:none}
@@ -3355,7 +3387,7 @@ a{color:inherit}
     <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="goBack('clubs')"><i class="ti ti-arrow-left"></i> Volver</button>
     <div id="club-detail-hero"></div>
   </div>
-  <div style="padding:0 28px 28px">
+  <div class="club-detail-body">
     <div class="club-detail-tabs" id="club-detail-tabs">
       <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
       <button class="club-detail-tab" data-tab="foro" onclick="setClubTab(this,'foro')"><i class="ti ti-layout-list"></i> Foro</button>
@@ -10298,6 +10330,21 @@ function discoverQuickAdd(id,btnEl){
   if(btnEl)btnEl.outerHTML='<button class="disc-add-btn added" disabled>✓ En tu shelfie</button>';
 }
 
+// Añade un difuminado al borde derecho de una fila con scroll horizontal
+// (pestañas, filtros...) mientras queden elementos fuera de la vista, y lo
+// quita al llegar al final — solo hace algo si de verdad hay overflow.
+function bindScrollFade(el){
+  if(!el||el._scrollFadeBound)return;
+  el._scrollFadeBound=true;
+  const update=()=>{
+    const hasMore=el.scrollWidth-el.clientWidth-el.scrollLeft>4;
+    el.classList.toggle('scroll-fade',hasMore);
+  };
+  el.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  setTimeout(update,0);
+}
+
 function renderDiscover(){
   _discoverQuery='';
   const searchInp=document.getElementById('disc-search-inp');
@@ -10325,17 +10372,7 @@ function renderDiscover(){
   // Difumina el borde derecho de las pestañas de género mientras queden más
   // categorías fuera de la vista (en móvil no caben todas), para que no
   // parezca que la lista se corta sin más — solo se ve si de verdad hay overflow.
-  const genresEl=document.querySelector('.disc-genres');
-  if(genresEl&&!genresEl._scrollFadeBound){
-    genresEl._scrollFadeBound=true;
-    const updateGenresFade=()=>{
-      const hasMore=genresEl.scrollWidth-genresEl.clientWidth-genresEl.scrollLeft>4;
-      genresEl.classList.toggle('scroll-fade',hasMore);
-    };
-    genresEl.addEventListener('scroll',updateGenresFade,{passive:true});
-    window.addEventListener('resize',updateGenresFade);
-    setTimeout(updateGenresFade,0);
-  }
+  bindScrollFade(document.querySelector('.disc-genres'));
 
   // ── Listas curadas ──
   document.getElementById('disc-lists').innerHTML=DISCOVER_LISTS.map((l,i)=>`
@@ -11922,12 +11959,12 @@ function renderClubDetail(id){
 
   const avs=club.members.slice(0,6).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc};width:28px;height:28px;font-size:10px">${m.initials}</div>`).join('');
   document.getElementById('club-detail-hero').innerHTML=`
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-top:44px">
-      <div>
-        <div style="font-size:38px;margin-bottom:8px">${club.emoji}</div>
+    <div class="club-detail-hero-top" style="padding-top:44px">
+      <div class="club-detail-hero-left">
+        <div class="club-detail-emoji">${club.emoji}</div>
         <div class="club-detail-title">${escapeHtml(club.name)}</div>
         <div class="club-detail-desc">${escapeHtml(club.desc)}</div>
-        ${reading?`<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.10);border-radius:10px;padding:7px 12px;margin-bottom:12px;font-size:13px;color:white"><span style="font-size:18px">📖</span> <span>Leyendo ahora: <strong>${escapeHtml(reading.title)}</strong></span></div>`:''}
+        ${reading?`<div class="club-detail-reading-tag"><span style="font-size:18px">📖</span> <span>Leyendo ahora: <strong>${escapeHtml(reading.title)}</strong></span></div>`:''}
         <div class="club-detail-stats">
           <div class="club-detail-stat"><div class="club-detail-stat-n">${mc}</div><div class="club-detail-stat-l">miembros</div></div>
           <div class="club-detail-stat"><div class="club-detail-stat-n">${(club.threads||[]).length}</div><div class="club-detail-stat-l">debates</div></div>
@@ -11936,10 +11973,10 @@ function renderClubDetail(id){
         </div>
         <div class="club-members-preview">${avs}<span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:6px">${mc>6?'+' + (mc-6) + ' más':''}</span></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <div class="club-detail-actions">
         ${club.myRole==='admin'?`<button class="btn btn-white btn-sm" onclick="openModal('modal-invite-member')"><i class="ti ti-user-plus"></i> Invitar</button>`:''}
         ${club.myRole==='admin'?`<button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:none" onclick="deleteClub('${club.id}')"><i class="ti ti-trash"></i> Eliminar club</button>`:`<button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:none" onclick="leaveClub('${club.id}')"><i class="ti ti-logout"></i> Salir del club</button>`}
-        ${club.nextMeeting?`<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right"><div style="font-weight:700;color:white;margin-bottom:2px">📅 Próxima reunión</div>${escapeHtml(club.nextMeeting.date)}<br><span style="color:rgba(255,255,255,0.45)">${escapeHtml(club.nextMeeting.place)}</span></div>`:''}
+        ${club.nextMeeting?`<div class="club-detail-next-meeting"><div style="font-weight:700;color:white;margin-bottom:2px">📅 Próxima reunión</div>${escapeHtml(club.nextMeeting.date)}<br><span style="color:rgba(255,255,255,0.45)">${escapeHtml(club.nextMeeting.place)}</span></div>`:''}
       </div>
     </div>`;
 
@@ -11947,6 +11984,7 @@ function renderClubDetail(id){
   document.querySelector('.club-detail-tab[data-tab="debates"]').classList.add('on');
   document.querySelectorAll('.club-detail-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById('club-panel-debates').classList.add('on');
+  bindScrollFade(document.getElementById('club-detail-tabs'));
 
   renderClubDebates(club);
   renderClubForo(club);
@@ -12407,7 +12445,7 @@ function renderClubRetos(club){
           <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Progreso por miembro</div>
           ${parts.map(p=>`<div class="club-reto-member-row">
             <div class="club-av" style="background:${p.bg};color:${p.tc};width:26px;height:26px;font-size:9px;flex-shrink:0">${p.initials}</div>
-            <div style="font-size:12px;font-weight:500;color:var(--ink);width:90px;flex-shrink:0">${escapeHtml(p.name)}</div>
+            <div class="club-reto-member-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
             <div class="club-reto-member-prog"><div class="club-reto-member-bar" style="width:${Math.min(100,Math.round((p.progress||0)/(r.goal||1)*100))}%;${p.done?'background:var(--green)':''}"></div></div>
             <div style="font-size:11px;color:var(--ink3);white-space:nowrap">${p.progress||0}/${r.goal}</div>
             ${p.done?'<span style="color:var(--green);font-size:14px">✅</span>':''}
