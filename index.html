@@ -1186,6 +1186,7 @@ a{color:inherit}
 .disc-search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:16px;pointer-events:none}
 .disc-genres{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
 .disc-genres::-webkit-scrollbar{display:none}
+.disc-genres.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
 .dg-tab{flex-shrink:0;font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all .15s}
 .dg-tab.on{background:var(--ink);color:white;border-color:var(--ink)}
 .dg-tab:hover:not(.on){border-color:var(--ink);color:var(--ink)}
@@ -1203,8 +1204,8 @@ a{color:inherit}
 .disc-book-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .disc-stars{font-size:10px;color:var(--amber)}
 .disc-readers{font-size:10px;color:var(--ink3)}
-.disc-add-btn{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 9px;border-radius:6px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:all .15s}
-.disc-add-btn:hover{border-color:var(--red);color:var(--red)}
+.disc-add-btn{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1.5px solid var(--red);background:var(--red);color:white;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:all .15s}
+.disc-add-btn:hover{background:var(--red-dark);border-color:var(--red-dark)}
 .disc-add-btn.added{background:var(--green-light);border-color:var(--green);color:var(--green);cursor:default}
 .disc-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .disc-list-card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:box-shadow .15s}
@@ -10003,6 +10004,21 @@ function renderDiscover(){
     sel.appendChild(o);
   });
   if(prev)sel.value=prev;
+
+  // Difumina el borde derecho de las pestañas de género mientras queden más
+  // categorías fuera de la vista (en móvil no caben todas), para que no
+  // parezca que la lista se corta sin más — solo se ve si de verdad hay overflow.
+  const genresEl=document.querySelector('.disc-genres');
+  if(genresEl&&!genresEl._scrollFadeBound){
+    genresEl._scrollFadeBound=true;
+    const updateGenresFade=()=>{
+      const hasMore=genresEl.scrollWidth-genresEl.clientWidth-genresEl.scrollLeft>4;
+      genresEl.classList.toggle('scroll-fade',hasMore);
+    };
+    genresEl.addEventListener('scroll',updateGenresFade,{passive:true});
+    window.addEventListener('resize',updateGenresFade);
+    setTimeout(updateGenresFade,0);
+  }
 
   // ── Listas curadas ──
   document.getElementById('disc-lists').innerHTML=DISCOVER_LISTS.map((l,i)=>`
