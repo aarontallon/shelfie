@@ -178,7 +178,7 @@ a{color:inherit}
   .landing-also-strip{padding:20px}
   .landing-section{padding:64px 24px}
   .landing-nav{padding:16px 20px;gap:8px}
-  .landing-nav-actions{gap:2px}
+  .landing-nav-actions{gap:2px;flex-wrap:wrap;justify-content:flex-end;row-gap:6px}
   .landing-nav-actions .btn-ghost-nav{font-size:12.5px;padding:8px 8px}
   .landing-nav-actions .btn{padding:8px 12px;font-size:12.5px}
   .landing-footer{padding:24px 20px}
@@ -486,10 +486,16 @@ a{color:inherit}
 .shelf-cells-row{display:flex;gap:8px}
 .shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:var(--shelf-bg);padding:30px 16px 0;min-height:270px;min-width:0}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:0}
+.shelf-cell.touch-drop-target{box-shadow:inset 0 0 0 2px var(--red)}
 /* Black divider walls between compartments, positioned exactly on the real flex
    boundary (accounting for the 16px gap) so they never drift off the actual edge */
 .shelf-wall{position:absolute;top:0;bottom:0;width:5px;background:var(--shelf-wall);transform:translateX(-50%);pointer-events:none;z-index:2}
-@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid var(--shelf-border)}.shelf-wall{display:none}}
+/* En móvil se mantienen las mismas 3 celdas en fila que en escritorio (misma
+   distribución de cubículos), solo que más estrechas — apilarlas en columna
+   convertía la estantería en algo completamente distinto a la de web/PWA, y
+   además dejaba prácticamente siempre 2 de los 3 huecos vacíos por fila (ver
+   computeShelfCompartmentWidth). */
+@media (max-width:760px){.shelf-cells-row{gap:4px}.shelf-cell{padding:18px 6px 0;min-height:230px}.shelf-wall{width:3px}}
 /* Estantería: personalización (fondo + baldas) */
 .shelf-theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 @media (max-width:560px){.shelf-theme-grid{grid-template-columns:repeat(2,1fr)}}
@@ -514,6 +520,12 @@ a{color:inherit}
 .real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.95);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.6);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.5px}
 .real-shelf-spine-actions{position:absolute;top:6px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
 .real-shelf-spine:hover .real-shelf-spine-actions{opacity:1}
+/* En pantallas táctiles no existe un :hover real que lo revele — antes el
+   botón de tres puntos era prácticamente intocable en móvil (invisible salvo
+   un instante de "hover" fantasma al tocar, que casi siempre perdía la
+   carrera contra el onclick de navegar a la ficha). Visible siempre en
+   cualquier dispositivo sin puntero de precisión. */
+@media (hover:none){.real-shelf-spine-actions{opacity:1}}
 .book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;backdrop-filter:blur(4px)}
 .book3dot-btn:hover{background:rgba(0,0,0,0.8)}
 /* Single global action menu — lives at <body> level so transforms on ancestors don't break position:fixed */
@@ -1349,6 +1361,7 @@ a{color:inherit}
       <div class="logo-text">shelf<em>ie</em></div>
     </div>
     <div class="landing-nav-actions">
+      <button class="btn-ghost-nav" onclick="showAuth('install')"><i class="ti ti-download nav-icon-hide"></i> <span class="nav-full-text">Instalar la app</span><span class="nav-short-text">Instalar</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('organizers-landing')"><i class="ti ti-building-store nav-icon-hide"></i> <span class="nav-full-text">Shelfie Eventos</span><span class="nav-short-text">Eventos</span></button>
       <button class="btn-ghost-nav" onclick="showAuth('login')">Iniciar sesión</button>
       <button class="btn btn-red" onclick="showAuth('register')">Regístrate gratis</button>
@@ -1790,11 +1803,14 @@ a{color:inherit}
     <div class="content-page-body">
       <p>Estamos trabajando en una app nativa para iOS y Android. <strong>Mientras tanto</strong>, puedes instalar shelfie en tu móvil en unos segundos: se añade como un icono más en tu pantalla de inicio, abre a pantalla completa (sin la barra del navegador) y funciona igual que una app de verdad — sin pasar por ninguna tienda de aplicaciones.</p>
     </div>
+    <div class="subject-toggle" id="install-tabs" style="justify-content:center;margin:24px 0 0">
+      <button type="button" class="subject-toggle-btn on" onclick="setInstallTab(this,'ios')"><i class="ti ti-brand-apple"></i> iPhone / iPad</button>
+      <button type="button" class="subject-toggle-btn" onclick="setInstallTab(this,'android')"><i class="ti ti-brand-android"></i> Android</button>
+    </div>
   </div>
 
-  <section class="landing-section" style="padding-top:20px">
+  <section class="landing-section" style="padding-top:20px" id="install-ios-section">
     <div class="landing-section-head" style="margin-bottom:28px">
-      <div class="landing-section-eyebrow"><i class="ti ti-brand-apple"></i> En iPhone / iPad</div>
       <h2 class="landing-section-title">Con Safari, en tres pasos</h2>
       <p class="landing-section-sub">Tiene que ser desde <strong>Safari</strong> — Chrome y otros navegadores en iOS no pueden instalar la app.</p>
     </div>
@@ -1812,13 +1828,14 @@ a{color:inherit}
           <rect x="102" y="92" width="104" height="8" rx="4" fill="#EDEDED"/>
           <line x1="24" y1="128" x2="276" y2="128" stroke="#EEE"/>
           <rect x="24" y="128" width="252" height="28" fill="#FAFAFA"/>
-          <path d="M52 138 L46 142 L52 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M74 138 L80 142 L74 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="150" cy="142" r="17" fill="#3D6B52"/>
-          <path d="M150 136 L150 145 M145.5 140 L150 135.5 L154.5 140" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="144.5" y="145" width="11" height="6" rx="1.5" stroke="#FFFFFF" stroke-width="1.6" fill="none"/>
-          <rect x="216" y="134" width="20" height="16" rx="4" stroke="#AAA" stroke-width="1.4" fill="none"/>
-          <text x="226" y="146" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#AAA" text-anchor="middle">1</text>
+          <path d="M48 138 L42 142 L48 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M68 138 L74 142 L68 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="150" cy="142" r="16" fill="#2563EB" fill-opacity="0.14"/>
+          <path d="M150 134.5 L150 145 M145.5 139 L150 134 L154.5 139" stroke="#2563EB" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="143" y="141" width="14" height="9" rx="2" stroke="#2563EB" stroke-width="1.6" fill="none"/>
+          <path d="M198 136 v11.5 a2 2 0 0 0 2 2 h4 v-15.5 h-4 a2 2 0 0 0 -2 2 z M204 134 h4 a2 2 0 0 1 2 2 v11.5 a2 2 0 0 1 -2 2 h-4 z" fill="none" stroke="#2563EB" stroke-width="1.3"/>
+          <rect x="228" y="134" width="15" height="15" rx="3.5" stroke="#2563EB" stroke-width="1.3" fill="none"/>
+          <rect x="224" y="138" width="15" height="15" rx="3.5" stroke="#2563EB" stroke-width="1.3" fill="#FAFAFA"/>
           <text x="182" y="152" font-family="Inter,sans-serif" font-size="17">👆</text>
         </svg>
         <div class="landing-feature-icon" style="background:var(--red-light);color:var(--red);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">1</div>
@@ -1828,17 +1845,24 @@ a{color:inherit}
       <div class="landing-feature-card">
         <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
           <rect width="300" height="170" fill="#EFF6FF"/>
-          <rect x="24" y="14" width="252" height="142" rx="16" fill="#E8EEF6"/>
-          <rect x="24" y="44" width="252" height="112" rx="16" fill="#FFFFFF" stroke="#EEE"/>
-          <rect x="132" y="52" width="36" height="4" rx="2" fill="#DDD"/>
-          <line x1="40" y1="66" x2="260" y2="66" stroke="#F0F0F0"/>
-          <text x="48" y="80" font-family="Inter,sans-serif" font-size="10" fill="#BBB">Copiar</text>
-          <line x1="40" y1="90" x2="260" y2="90" stroke="#F0F0F0"/>
-          <text x="48" y="104" font-family="Inter,sans-serif" font-size="10" fill="#BBB">Añadir a favoritos</text>
-          <rect x="36" y="112" width="228" height="32" rx="8" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.4"/>
-          <rect x="46" y="121" width="14" height="14" rx="3" stroke="#2563EB" stroke-width="1.6" fill="none"/>
-          <path d="M53 125 L53 132 M49.5 128.5 L56.5 128.5" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
-          <text x="70" y="133" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#2563EB">Añadir a pantalla de inicio</text>
+          <rect x="24" y="10" width="252" height="150" rx="16" fill="#1C1C1E"/>
+          <rect x="132" y="18" width="36" height="4" rx="2" fill="#48484A"/>
+          <rect x="36" y="28" width="26" height="26" rx="5" fill="#3D6B52"/>
+          <rect x="42" y="42" width="3" height="8" fill="#FFFFFF"/>
+          <rect x="47" y="38" width="3" height="12" fill="#FFFFFF"/>
+          <rect x="52" y="44" width="3" height="6" fill="#FFFFFF"/>
+          <text x="70" y="40" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#FFFFFF">Shelfie — Tu shelfie...</text>
+          <text x="70" y="51" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93">aarontallon.github.io</text>
+          <line x1="36" y1="62" x2="264" y2="62" stroke="#38383A"/>
+          <text x="44" y="76" font-family="Inter,sans-serif" font-size="9" fill="#8E8E93">Añadir marcador</text>
+          <line x1="36" y1="84" x2="264" y2="84" stroke="#2C2C2E"/>
+          <text x="44" y="98" font-family="Inter,sans-serif" font-size="9" fill="#8E8E93">Añadir a favoritos</text>
+          <line x1="36" y1="106" x2="264" y2="106" stroke="#2C2C2E"/>
+          <rect x="30" y="112" width="240" height="30" rx="8" fill="#2563EB" fill-opacity="0.2" stroke="#4A9BFF" stroke-width="1.3"/>
+          <rect x="42" y="120" width="14" height="14" rx="3" stroke="#7DB6FF" stroke-width="1.6" fill="none"/>
+          <path d="M49 124 L49 132 M45 128 L53 128" stroke="#7DB6FF" stroke-width="1.6" stroke-linecap="round"/>
+          <text x="66" y="132" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#FFFFFF">Añadir a pantalla de inicio</text>
+          <text x="150" y="155" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93" text-anchor="middle">︾ hay más opciones debajo</text>
         </svg>
         <div class="landing-feature-icon" style="background:var(--blue-light);color:var(--blue);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">2</div>
         <div class="landing-feature-title">"Añadir a pantalla de inicio"</div>
@@ -1847,29 +1871,25 @@ a{color:inherit}
       <div class="landing-feature-card">
         <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
           <rect width="300" height="170" fill="#FFFBEB"/>
-          <rect x="52" y="14" width="196" height="118" rx="14" fill="#FFFFFF" stroke="#EEE"/>
-          <text x="150" y="34" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1A1A1A" text-anchor="middle">Añadir a inicio</text>
-          <rect x="122" y="42" width="56" height="56" rx="13" fill="#1A1A1A"/>
-          <rect x="132" y="78" width="3.4" height="12" fill="#FFFFFF"/>
-          <rect x="138" y="72" width="3.4" height="18" fill="#FFFFFF"/>
-          <rect x="144" y="81" width="3.4" height="9" fill="#FFFFFF"/>
-          <rect x="150" y="68" width="3.4" height="22" fill="#FFFFFF"/>
-          <rect x="156" y="76" width="3.4" height="14" fill="#FFFFFF"/>
-          <rect x="163" y="82" width="3.4" height="8" fill="#FFFFFF"/>
-          <text x="150" y="110" font-family="Inter,sans-serif" font-size="9.5" fill="#666" text-anchor="middle">Shelfie</text>
-          <line x1="52" y1="114" x2="248" y2="114" stroke="#F0F0F0"/>
-          <line x1="150" y1="114" x2="150" y2="132" stroke="#F0F0F0"/>
-          <text x="101" y="127" font-family="Inter,sans-serif" font-size="10" fill="#999" text-anchor="middle">Cancelar</text>
-          <text x="199" y="127" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#D97706" text-anchor="middle">Añadir</text>
-          <circle cx="60" cy="152" r="4" fill="#F0F0F0"/>
-          <circle cx="90" cy="152" r="4" fill="#F0F0F0"/>
-          <circle cx="120" cy="152" r="14" fill="#1A1A1A"/>
-          <rect x="115" y="158" width="2.4" height="6" fill="#FFFFFF"/>
-          <rect x="119" y="155" width="2.4" height="9" fill="#FFFFFF"/>
-          <rect x="123" y="159" width="2.4" height="5" fill="#FFFFFF"/>
-          <circle cx="150" cy="152" r="14" fill="none" stroke="#D97706" stroke-width="1.4" stroke-dasharray="2 2"/>
-          <path d="M144 152 L149 157 L157 147" stroke="#D97706" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="180" cy="152" r="4" fill="#F0F0F0"/>
+          <rect x="20" y="14" width="260" height="142" rx="16" fill="#1C1C1E"/>
+          <text x="36" y="34" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A9BFF">Cancelar</text>
+          <text x="150" y="34" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">Añadir a inicio</text>
+          <text x="264" y="34" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#4A9BFF" text-anchor="end">Añadir</text>
+          <line x1="20" y1="46" x2="280" y2="46" stroke="#38383A"/>
+          <rect x="36" y="58" width="42" height="42" rx="10" fill="#0A0A0A"/>
+          <rect x="45" y="86" width="3" height="10" fill="#FFFFFF"/>
+          <rect x="50" y="81" width="3" height="15" fill="#FFFFFF"/>
+          <rect x="55" y="88" width="3" height="8" fill="#FFFFFF"/>
+          <rect x="60" y="78" width="3" height="18" fill="#FFFFFF"/>
+          <rect x="65" y="83" width="3" height="13" fill="#FFFFFF"/>
+          <rect x="90" y="64" width="140" height="16" rx="4" fill="#2C2C2E"/>
+          <text x="98" y="76" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF">Shelfie</text>
+          <text x="90" y="95" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93">aarontallon.github.io/shelfie</text>
+          <line x1="36" y1="110" x2="264" y2="110" stroke="#2C2C2E"/>
+          <text x="36" y="124" font-family="Inter,sans-serif" font-size="8" fill="#8E8E93">Se añadirá un icono a la pantalla</text>
+          <text x="36" y="135" font-family="Inter,sans-serif" font-size="8" fill="#8E8E93">de inicio para acceder más rápido.</text>
+          <circle cx="150" cy="148" r="9" fill="none" stroke="#5A9E7E" stroke-width="1.4" stroke-dasharray="2 2"/>
+          <path d="M145.5 148 L149 151.5 L155.5 144.5" stroke="#5A9E7E" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div class="landing-feature-icon" style="background:var(--amber-light);color:var(--amber);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">3</div>
         <div class="landing-feature-title">Toca "Añadir"</div>
@@ -1878,9 +1898,8 @@ a{color:inherit}
     </div>
   </section>
 
-  <section class="landing-section" style="padding-top:0">
+  <section class="landing-section" style="padding-top:20px;display:none" id="install-android-section">
     <div class="landing-section-head" style="margin-bottom:28px">
-      <div class="landing-section-eyebrow"><i class="ti ti-brand-android"></i> En Android</div>
       <h2 class="landing-section-title">Con Chrome, en tres pasos</h2>
       <p class="landing-section-sub">En algunos móviles Chrome muestra directamente un aviso de "Instalar app" — si lo ves, tócalo y te saltas los pasos siguientes.</p>
     </div>
@@ -5595,6 +5614,13 @@ function showAuth(which){
   window.scrollTo(0,0);
 }
 
+function setInstallTab(btn,platform){
+  document.querySelectorAll('#install-tabs .subject-toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('install-ios-section').style.display=platform==='ios'?'block':'none';
+  document.getElementById('install-android-section').style.display=platform==='android'?'block':'none';
+}
+
 // ── Landing page: interactive shelfie demo (tabs + drag-to-reorder) ──
 // Pure decoration for logged-out visitors, so they can feel the real drag-and-
 // drop shelf before creating an account. No backend involved — resets on reload.
@@ -6783,7 +6809,15 @@ function populateComposerRetoSelect(){
 // ═══════════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════════
-function openModal(id){document.getElementById(id).style.display='flex';if(id==='modal-add')resetAddModal();}
+function openModal(id){
+  // Cierra el menú lateral móvil primero — si se queda abierto detrás de un
+  // modal, se ve mal (el menú y el overlay compiten por el mismo espacio/
+  // z-index) y a veces bloquea el scroll o los taps del modal.
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
+  document.getElementById(id).style.display='flex';
+  if(id==='modal-add')resetAddModal();
+}
 function closeModal(id){document.getElementById(id).style.display='none';}
 
 // In-app replacements for the native confirm()/prompt() dialogs — those show the
@@ -6794,6 +6828,11 @@ function confirmModal(message,opts){
   document.getElementById('confirm-modal-title').textContent=opts.title||'¿Estás seguro?';
   document.getElementById('confirm-modal-msg').textContent=message;
   document.getElementById('confirm-modal-accept-btn').textContent=opts.acceptLabel||'Aceptar';
+  // Este modal (y promptModal, justo debajo) montan su display:flex directamente,
+  // sin pasar por openModal() — por eso se quedaban abriéndose detrás del menú
+  // lateral móvil si seguía abierto (p.ej. "Cerrar sesión" desde el propio menú).
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
   document.getElementById('modal-confirm').style.display='flex';
   return new Promise(res=>{_confirmModalResolve=res;});
 }
@@ -6807,6 +6846,8 @@ function promptModal(message,opts){
   document.getElementById('prompt-modal-title').textContent=message;
   const input=document.getElementById('prompt-modal-input');
   input.value=opts.defaultValue||'';
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
   document.getElementById('modal-prompt').style.display='flex';
   setTimeout(()=>input.focus(),50);
   return new Promise(res=>{_promptModalResolve=res;});
@@ -8166,7 +8207,7 @@ function spineDims(b){
 // is recomputed from real spine widths on every render.
 function editableSpineHtml(b,statusArr){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
-  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}"
+  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-status="${statusArr}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
     ondragstart="shelfCellDragStart(event,'${b.id}')" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnSpine(event,'${statusArr}','${b.id}')" ondragend="shelfCellDragEnd(event)"
@@ -8275,7 +8316,7 @@ function openShelfThemeMenu(){
 async function setShelfTheme(themeKey){
   PROFILE.shelfTheme=themeKey;
   applyOwnShelfTheme();
-  renderShelfThemeMenu();
+  closeModal('modal-shelf-theme');
   if(!SUPA_USER)return;
   const{error}=await supa.from('profiles').update({shelf_theme:themeKey}).eq('id',SUPA_USER.id);
   if(error){console.error('setShelfTheme failed:',error);toast('❌ No se pudo guardar el tema. Comprueba tu conexión.');}
@@ -8306,17 +8347,14 @@ function computeShelfCompartmentWidth(containerId){
   // restar 320px ahí habría sido tan erróneo como el problema de las 3
   // columnas de abajo.
   const total=(el&&el.clientWidth)||(window.innerWidth<=900?Math.max(280,window.innerWidth-32):Math.max(320,window.innerWidth-320));
-  // Por debajo de 760px las 3 celdas se apilan en vertical en vez de ir en
-  // fila (ver @media (max-width:760px) de .shelf-cells-row) — cada una pasa
-  // a ocupar el ancho completo, no un tercio. Sin este ajuste el cálculo de
-  // capacidad seguía asumiendo 3 columnas también en móvil, así que cada
-  // fila solo recibía sitio para un puñado de libros y el resto del ancho
-  // real (ya completo, no un tercio) se quedaba vacío mostrando de fondo el
-  // patrón del tema — de ahí las estanterías con muchísimo hueco en móvil.
-  const cols=window.innerWidth<=760?1:3;
-  const outerGap=cols>1?8:0; // gap entre celdas cuando van en fila (0 en columna, ver CSS)
-  const cellPadding=32; // .shelf-cell padding horizontal, 16px por lado
-  return Math.max(120,Math.floor((total-outerGap*(cols-1))/cols)-cellPadding);
+  // Siempre 3 columnas, en móvil también — la estantería tiene que verse como
+  // la misma distribución de cubículos que en web/PWA, solo que más estrecha,
+  // no una lista apilada distinta (ver @media (max-width:760px) de
+  // .shelf-cells-row, que ya no cambia a flex-direction:column).
+  const mobile=window.innerWidth<=760;
+  const outerGap=mobile?4:8; // gap real entre celdas (ver CSS)
+  const cellPadding=mobile?12:32; // .shelf-cell padding horizontal (6px/16px por lado)
+  return Math.max(60,Math.floor((total-outerGap*2)/3)-cellPadding);
 }
 // respectPins=false is used whenever a real sort criterion (título/autor/valoración) is
 // active: the criterion always wins over wherever a book was last dragged, so a book
@@ -8387,7 +8425,11 @@ function shelfRerender(statusArr){
 // for the plain single-row case (no .shelf-cell ancestor), meaning "no limit to check".
 function shelfCellUsedWidth(cellEl,arr,excludeId){
   if(!cellEl)return null;
-  const availableWidth=cellEl.clientWidth-32; // minus the 16px+16px horizontal padding
+  // Debe coincidir con el padding horizontal real de .shelf-cell — 16px+16px en
+  // escritorio, 6px+6px en móvil (ver @media max-width:760px) — o esta comprobación
+  // de "no cabe" se equivoca justo en el tamaño donde más falta hace acertar.
+  const cellPadding=window.innerWidth<=760?12:32;
+  const availableWidth=cellEl.clientWidth-cellPadding;
   const ids=[...cellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==excludeId);
   const usedWidth=ids.map(id=>arr.find(b=>b.id===id)).filter(Boolean).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
   return{availableWidth,usedWidth};
@@ -8395,14 +8437,14 @@ function shelfCellUsedWidth(cellEl,arr,excludeId){
 // Dropped directly on another spine: adopts that spine's compartment (or just reorders,
 // if already in the same one) — compartments are fully independent, this never touches
 // any other book's placement. Real-width capacity check applies inside a compartment cell.
-function shelfCellDropOnSpine(e,statusArr,targetBookId){
-  e.preventDefault();e.stopPropagation();
+// Extraída de un DOM Event (targetCellEl) para que tanto el drop nativo por ratón como el
+// touch-drag propio de móvil (ver shelfSpineTouchEnd) llamen a la misma lógica real.
+function shelfDropOnSpineCore(targetCellEl,statusArr,targetBookId){
   if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
   const target=arr.find(b=>b.id===targetBookId);
   if(!book||!target){_shelfDragBookId=null;return;}
-  const targetCellEl=e.currentTarget.closest('.shelf-cell');
   const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
   if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
@@ -8421,19 +8463,21 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
   _shelfDragBookId=null;
   shelfRerender(statusArr);
 }
+function shelfCellDropOnSpine(e,statusArr,targetBookId){
+  e.preventDefault();e.stopPropagation();
+  shelfDropOnSpineCore(e.currentTarget.closest('.shelf-cell'),statusArr,targetBookId);
+}
 // Dropped on empty space within a compartment (or an entirely empty one): the book's
 // (level,col) is set explicitly to this cell, so it actually lands here regardless of
 // whether an earlier compartment still has room — only blocked if it doesn't really fit.
 // Compartments are fully independent: this never moves any other book. Within the same
 // compartment, removing a book from the middle just closes up naturally on re-render —
 // there's no fixed per-book slot, so nothing needs to shift explicitly.
-function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
-  e.preventDefault();e.stopPropagation();
+function shelfDropOnEmptyCore(targetCellEl,statusArr,levelIdx,colIdx){
   if(_shelfDragBookId===null)return;
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
   if(!book){_shelfDragBookId=null;return;}
-  const targetCellEl=e.currentTarget.closest('.shelf-cell');
   const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
   if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
@@ -8454,6 +8498,113 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
   _shelfDragBookId=null;
   shelfRerender(statusArr);
 }
+function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
+  e.preventDefault();e.stopPropagation();
+  shelfDropOnEmptyCore(e.currentTarget.closest('.shelf-cell'),statusArr,levelIdx,colIdx);
+}
+
+// ═══ Arrastrar libros con el dedo (móvil/PWA) ═══
+// El drag-and-drop nativo de HTML5 (dragstart/dragover/drop, usado arriba para ratón)
+// nunca dispara desde una pantalla táctil — ningún navegador móvil lo implementa así,
+// así que los libros eran completamente inamovibles en móvil/PWA pese a llevar
+// draggable="true". Esto reimplementa el mismo gesto con eventos táctiles: una
+// pulsación mantenida (no un toque rápido) inicia el arrastre, para que un tap normal
+// siga abriendo la ficha del libro y un swipe vertical siga haciendo scroll con
+// normalidad. Una vez iniciado, una copia semitransparente sigue al dedo y, al soltar,
+// se resuelve qué hay debajo con elementFromPoint y se reutiliza la misma lógica de
+// shelfDropOnSpineCore/shelfDropOnEmptyCore que ya usa el camino de ratón.
+let _shelfTouchDrag=null;
+let _suppressNextSpineClick=false;
+document.addEventListener('click',function(e){
+  if(_suppressNextSpineClick&&e.target.closest('.real-shelf-spine')){
+    e.preventDefault();e.stopPropagation();
+    if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+  }
+  _suppressNextSpineClick=false;
+},true);
+function shelfSpineTouchStart(e){
+  if(e.touches.length!==1||_shelfTouchDrag)return;
+  const spine=e.target.closest('.real-shelf-spine');
+  if(!spine||!spine.dataset.status)return; // solo estanterías editables (los perfiles ajenos son de solo lectura)
+  if(e.target.closest('.real-shelf-spine-actions'))return; // el botón de tres puntos tiene su propio tap
+  const touch=e.touches[0];
+  const drag={spine,startX:touch.clientX,startY:touch.clientY,active:false,ghost:null,offsetX:0,offsetY:0,timer:null};
+  drag.timer=setTimeout(()=>{
+    if(_shelfTouchDrag!==drag)return;
+    drag.active=true;
+    _suppressNextSpineClick=true;
+    _shelfDragBookId=spine.dataset.id;
+    spine.classList.add('dragging');
+    const rect=spine.getBoundingClientRect();
+    const ghost=spine.cloneNode(true);
+    ghost.classList.remove('dragging');
+    ghost.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;margin:0;pointer-events:none;z-index:9999;opacity:0.9;transform:scale(1.05);box-shadow:0 20px 40px rgba(0,0,0,0.4)`;
+    document.body.appendChild(ghost);
+    drag.ghost=ghost;
+    drag.offsetX=touch.clientX-rect.left;
+    drag.offsetY=touch.clientY-rect.top;
+    if(navigator.vibrate)navigator.vibrate(10);
+  },260);
+  _shelfTouchDrag=drag;
+}
+function shelfSpineTouchMove(e){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  const touch=e.touches[0];
+  if(!d.active){
+    // Aún no ha pasado el tiempo de espera — si se mueve antes de tiempo es un
+    // scroll normal, no un intento de arrastre: se cancela sin bloquear nada.
+    if(Math.abs(touch.clientX-d.startX)>10||Math.abs(touch.clientY-d.startY)>10){
+      clearTimeout(d.timer);
+      _shelfTouchDrag=null;
+    }
+    return;
+  }
+  e.preventDefault(); // ya se está arrastrando: bloquea el scroll de la página
+  d.ghost.style.left=(touch.clientX-d.offsetX)+'px';
+  d.ghost.style.top=(touch.clientY-d.offsetY)+'px';
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  // pointer-events:none en el ghost hace que elementFromPoint lo ignore y "vea" a través de él
+  const below=document.elementFromPoint(touch.clientX,touch.clientY);
+  const cell=below&&below.closest('.shelf-cell');
+  if(cell)cell.classList.add('touch-drop-target');
+}
+function shelfSpineTouchEnd(e){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  clearTimeout(d.timer);
+  _shelfTouchDrag=null;
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  if(!d.active)return; // tap corto: se deja pasar el click normal (abre la ficha del libro)
+  d.spine.classList.remove('dragging');
+  const touch=e.changedTouches[0];
+  const below=document.elementFromPoint(touch.clientX,touch.clientY);
+  d.ghost.remove();
+  if(!below){_shelfDragBookId=null;return;}
+  const targetSpine=below.closest('.real-shelf-spine');
+  const cell=below.closest('.shelf-cell');
+  if(targetSpine&&targetSpine!==d.spine&&targetSpine.dataset.status){
+    shelfDropOnSpineCore(targetSpine.closest('.shelf-cell'),targetSpine.dataset.status,targetSpine.dataset.id);
+  }else if(cell&&cell.dataset.level!==undefined){
+    shelfDropOnEmptyCore(cell,cell.dataset.status,parseInt(cell.dataset.level,10),parseInt(cell.dataset.col,10));
+  }else{
+    _shelfDragBookId=null;
+  }
+}
+function shelfSpineTouchCancel(){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  clearTimeout(d.timer);
+  d.spine.classList.remove('dragging');
+  d.ghost?.remove();
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  _shelfDragBookId=null;
+  _shelfTouchDrag=null;
+}
+document.addEventListener('touchstart',shelfSpineTouchStart,{passive:true});
+document.addEventListener('touchmove',shelfSpineTouchMove,{passive:false});
+document.addEventListener('touchend',shelfSpineTouchEnd,{passive:true});
+document.addEventListener('touchcancel',shelfSpineTouchCancel,{passive:true});
 
 function shelfViewHtml(books,statusArr,editable,containerId,sortMode){
   if(!books.length)return editable?'':`<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
@@ -8480,7 +8631,7 @@ function shelfViewHtml(books,statusArr,editable,containerId,sortMode){
     <div class="shelf-level">
       <div class="shelf-cells-row">
         ${level.map((cellBooks,ci)=>`
-          <div class="shelf-cell">
+          <div class="shelf-cell" data-status="${statusArr}" data-level="${li}" data-col="${ci}">
             ${cellBooks.map(spineHtml).join('')}
             ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}',${li},${ci})"></div>`:''}
           </div>`).join('')}
