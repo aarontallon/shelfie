@@ -486,10 +486,16 @@ a{color:inherit}
 .shelf-cells-row{display:flex;gap:8px}
 .shelf-cell{flex:1;display:flex;align-items:flex-end;gap:3px;background:var(--shelf-bg);padding:30px 16px 0;min-height:270px;min-width:0}
 .shelf-cell-empty{flex:1;align-self:stretch;min-width:0}
+.shelf-cell.touch-drop-target{box-shadow:inset 0 0 0 2px var(--red)}
 /* Black divider walls between compartments, positioned exactly on the real flex
    boundary (accounting for the 16px gap) so they never drift off the actual edge */
 .shelf-wall{position:absolute;top:0;bottom:0;width:5px;background:var(--shelf-wall);transform:translateX(-50%);pointer-events:none;z-index:2}
-@media (max-width:760px){.shelf-cells-row{flex-direction:column;gap:0}.shelf-cell{border-bottom:1px solid var(--shelf-border)}.shelf-wall{display:none}}
+/* En móvil se mantienen las mismas 3 celdas en fila que en escritorio (misma
+   distribución de cubículos), solo que más estrechas — apilarlas en columna
+   convertía la estantería en algo completamente distinto a la de web/PWA, y
+   además dejaba prácticamente siempre 2 de los 3 huecos vacíos por fila (ver
+   computeShelfCompartmentWidth). */
+@media (max-width:760px){.shelf-cells-row{gap:4px}.shelf-cell{padding:18px 6px 0;min-height:230px}.shelf-wall{width:3px}}
 /* Estantería: personalización (fondo + baldas) */
 .shelf-theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 @media (max-width:560px){.shelf-theme-grid{grid-template-columns:repeat(2,1fr)}}
@@ -514,6 +520,12 @@ a{color:inherit}
 .real-shelf-spine-title{writing-mode:vertical-rl;text-orientation:mixed;color:rgba(255,255,255,0.95);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,0.6);max-height:88%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0.5px}
 .real-shelf-spine-actions{position:absolute;top:6px;left:50%;transform:translateX(-50%);opacity:0;transition:opacity 0.18s;z-index:3}
 .real-shelf-spine:hover .real-shelf-spine-actions{opacity:1}
+/* En pantallas táctiles no existe un :hover real que lo revele — antes el
+   botón de tres puntos era prácticamente intocable en móvil (invisible salvo
+   un instante de "hover" fantasma al tocar, que casi siempre perdía la
+   carrera contra el onclick de navegar a la ficha). Visible siempre en
+   cualquier dispositivo sin puntero de precisión. */
+@media (hover:none){.real-shelf-spine-actions{opacity:1}}
 .book3dot-btn{background:rgba(0,0,0,0.55);border:none;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;backdrop-filter:blur(4px)}
 .book3dot-btn:hover{background:rgba(0,0,0,0.8)}
 /* Single global action menu — lives at <body> level so transforms on ancestors don't break position:fixed */
@@ -6797,7 +6809,15 @@ function populateComposerRetoSelect(){
 // ═══════════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════════
-function openModal(id){document.getElementById(id).style.display='flex';if(id==='modal-add')resetAddModal();}
+function openModal(id){
+  // Cierra el menú lateral móvil primero — si se queda abierto detrás de un
+  // modal, se ve mal (el menú y el overlay compiten por el mismo espacio/
+  // z-index) y a veces bloquea el scroll o los taps del modal.
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
+  document.getElementById(id).style.display='flex';
+  if(id==='modal-add')resetAddModal();
+}
 function closeModal(id){document.getElementById(id).style.display='none';}
 
 // In-app replacements for the native confirm()/prompt() dialogs — those show the
@@ -8180,7 +8200,7 @@ function spineDims(b){
 // is recomputed from real spine widths on every render.
 function editableSpineHtml(b,statusArr){
   const{pages,widthPx,heightPx,fontSize}=spineDims(b);
-  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}"
+  return `<div class="real-shelf-spine" draggable="true" data-id="${b.id}" data-status="${statusArr}"
     style="width:${widthPx}px;flex-shrink:0;height:${heightPx}px;background:${b.color};box-shadow:2px 0 6px rgba(0,0,0,0.25),inset -2px 0 4px rgba(0,0,0,0.18)"
     onclick="go('bookdetail',null,'${bkKey(b)}')"
     ondragstart="shelfCellDragStart(event,'${b.id}')" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnSpine(event,'${statusArr}','${b.id}')" ondragend="shelfCellDragEnd(event)"
@@ -8289,7 +8309,7 @@ function openShelfThemeMenu(){
 async function setShelfTheme(themeKey){
   PROFILE.shelfTheme=themeKey;
   applyOwnShelfTheme();
-  renderShelfThemeMenu();
+  closeModal('modal-shelf-theme');
   if(!SUPA_USER)return;
   const{error}=await supa.from('profiles').update({shelf_theme:themeKey}).eq('id',SUPA_USER.id);
   if(error){console.error('setShelfTheme failed:',error);toast('❌ No se pudo guardar el tema. Comprueba tu conexión.');}
@@ -8320,17 +8340,14 @@ function computeShelfCompartmentWidth(containerId){
   // restar 320px ahí habría sido tan erróneo como el problema de las 3
   // columnas de abajo.
   const total=(el&&el.clientWidth)||(window.innerWidth<=900?Math.max(280,window.innerWidth-32):Math.max(320,window.innerWidth-320));
-  // Por debajo de 760px las 3 celdas se apilan en vertical en vez de ir en
-  // fila (ver @media (max-width:760px) de .shelf-cells-row) — cada una pasa
-  // a ocupar el ancho completo, no un tercio. Sin este ajuste el cálculo de
-  // capacidad seguía asumiendo 3 columnas también en móvil, así que cada
-  // fila solo recibía sitio para un puñado de libros y el resto del ancho
-  // real (ya completo, no un tercio) se quedaba vacío mostrando de fondo el
-  // patrón del tema — de ahí las estanterías con muchísimo hueco en móvil.
-  const cols=window.innerWidth<=760?1:3;
-  const outerGap=cols>1?8:0; // gap entre celdas cuando van en fila (0 en columna, ver CSS)
-  const cellPadding=32; // .shelf-cell padding horizontal, 16px por lado
-  return Math.max(120,Math.floor((total-outerGap*(cols-1))/cols)-cellPadding);
+  // Siempre 3 columnas, en móvil también — la estantería tiene que verse como
+  // la misma distribución de cubículos que en web/PWA, solo que más estrecha,
+  // no una lista apilada distinta (ver @media (max-width:760px) de
+  // .shelf-cells-row, que ya no cambia a flex-direction:column).
+  const mobile=window.innerWidth<=760;
+  const outerGap=mobile?4:8; // gap real entre celdas (ver CSS)
+  const cellPadding=mobile?12:32; // .shelf-cell padding horizontal (6px/16px por lado)
+  return Math.max(60,Math.floor((total-outerGap*2)/3)-cellPadding);
 }
 // respectPins=false is used whenever a real sort criterion (título/autor/valoración) is
 // active: the criterion always wins over wherever a book was last dragged, so a book
@@ -8401,7 +8418,11 @@ function shelfRerender(statusArr){
 // for the plain single-row case (no .shelf-cell ancestor), meaning "no limit to check".
 function shelfCellUsedWidth(cellEl,arr,excludeId){
   if(!cellEl)return null;
-  const availableWidth=cellEl.clientWidth-32; // minus the 16px+16px horizontal padding
+  // Debe coincidir con el padding horizontal real de .shelf-cell — 16px+16px en
+  // escritorio, 6px+6px en móvil (ver @media max-width:760px) — o esta comprobación
+  // de "no cabe" se equivoca justo en el tamaño donde más falta hace acertar.
+  const cellPadding=window.innerWidth<=760?12:32;
+  const availableWidth=cellEl.clientWidth-cellPadding;
   const ids=[...cellEl.querySelectorAll('.real-shelf-spine')].map(s=>s.dataset.id).filter(id=>id!==excludeId);
   const usedWidth=ids.map(id=>arr.find(b=>b.id===id)).filter(Boolean).reduce((s,b)=>s+spineDims(b).widthPx+SHELF_CELL_GAP,0);
   return{availableWidth,usedWidth};
@@ -8409,14 +8430,14 @@ function shelfCellUsedWidth(cellEl,arr,excludeId){
 // Dropped directly on another spine: adopts that spine's compartment (or just reorders,
 // if already in the same one) — compartments are fully independent, this never touches
 // any other book's placement. Real-width capacity check applies inside a compartment cell.
-function shelfCellDropOnSpine(e,statusArr,targetBookId){
-  e.preventDefault();e.stopPropagation();
+// Extraída de un DOM Event (targetCellEl) para que tanto el drop nativo por ratón como el
+// touch-drag propio de móvil (ver shelfSpineTouchEnd) llamen a la misma lógica real.
+function shelfDropOnSpineCore(targetCellEl,statusArr,targetBookId){
   if(_shelfDragBookId===null||_shelfDragBookId===targetBookId){_shelfDragBookId=null;return;}
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
   const target=arr.find(b=>b.id===targetBookId);
   if(!book||!target){_shelfDragBookId=null;return;}
-  const targetCellEl=e.currentTarget.closest('.shelf-cell');
   const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
   if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
@@ -8435,19 +8456,21 @@ function shelfCellDropOnSpine(e,statusArr,targetBookId){
   _shelfDragBookId=null;
   shelfRerender(statusArr);
 }
+function shelfCellDropOnSpine(e,statusArr,targetBookId){
+  e.preventDefault();e.stopPropagation();
+  shelfDropOnSpineCore(e.currentTarget.closest('.shelf-cell'),statusArr,targetBookId);
+}
 // Dropped on empty space within a compartment (or an entirely empty one): the book's
 // (level,col) is set explicitly to this cell, so it actually lands here regardless of
 // whether an earlier compartment still has room — only blocked if it doesn't really fit.
 // Compartments are fully independent: this never moves any other book. Within the same
 // compartment, removing a book from the middle just closes up naturally on re-render —
 // there's no fixed per-book slot, so nothing needs to shift explicitly.
-function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
-  e.preventDefault();e.stopPropagation();
+function shelfDropOnEmptyCore(targetCellEl,statusArr,levelIdx,colIdx){
   if(_shelfDragBookId===null)return;
   const arr=DB[statusArr];
   const book=arr.find(b=>b.id===_shelfDragBookId);
   if(!book){_shelfDragBookId=null;return;}
-  const targetCellEl=e.currentTarget.closest('.shelf-cell');
   const cap=shelfCellUsedWidth(targetCellEl,arr,_shelfDragBookId);
   if(cap&&cap.usedWidth+spineDims(book).widthPx+SHELF_CELL_GAP>cap.availableWidth){
     toast('No cabe: el libro es demasiado grande para el hueco que queda ahí');
@@ -8468,6 +8491,113 @@ function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
   _shelfDragBookId=null;
   shelfRerender(statusArr);
 }
+function shelfCellDropOnEmpty(e,statusArr,levelIdx,colIdx){
+  e.preventDefault();e.stopPropagation();
+  shelfDropOnEmptyCore(e.currentTarget.closest('.shelf-cell'),statusArr,levelIdx,colIdx);
+}
+
+// ═══ Arrastrar libros con el dedo (móvil/PWA) ═══
+// El drag-and-drop nativo de HTML5 (dragstart/dragover/drop, usado arriba para ratón)
+// nunca dispara desde una pantalla táctil — ningún navegador móvil lo implementa así,
+// así que los libros eran completamente inamovibles en móvil/PWA pese a llevar
+// draggable="true". Esto reimplementa el mismo gesto con eventos táctiles: una
+// pulsación mantenida (no un toque rápido) inicia el arrastre, para que un tap normal
+// siga abriendo la ficha del libro y un swipe vertical siga haciendo scroll con
+// normalidad. Una vez iniciado, una copia semitransparente sigue al dedo y, al soltar,
+// se resuelve qué hay debajo con elementFromPoint y se reutiliza la misma lógica de
+// shelfDropOnSpineCore/shelfDropOnEmptyCore que ya usa el camino de ratón.
+let _shelfTouchDrag=null;
+let _suppressNextSpineClick=false;
+document.addEventListener('click',function(e){
+  if(_suppressNextSpineClick&&e.target.closest('.real-shelf-spine')){
+    e.preventDefault();e.stopPropagation();
+    if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+  }
+  _suppressNextSpineClick=false;
+},true);
+function shelfSpineTouchStart(e){
+  if(e.touches.length!==1||_shelfTouchDrag)return;
+  const spine=e.target.closest('.real-shelf-spine');
+  if(!spine||!spine.dataset.status)return; // solo estanterías editables (los perfiles ajenos son de solo lectura)
+  if(e.target.closest('.real-shelf-spine-actions'))return; // el botón de tres puntos tiene su propio tap
+  const touch=e.touches[0];
+  const drag={spine,startX:touch.clientX,startY:touch.clientY,active:false,ghost:null,offsetX:0,offsetY:0,timer:null};
+  drag.timer=setTimeout(()=>{
+    if(_shelfTouchDrag!==drag)return;
+    drag.active=true;
+    _suppressNextSpineClick=true;
+    _shelfDragBookId=spine.dataset.id;
+    spine.classList.add('dragging');
+    const rect=spine.getBoundingClientRect();
+    const ghost=spine.cloneNode(true);
+    ghost.classList.remove('dragging');
+    ghost.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;margin:0;pointer-events:none;z-index:9999;opacity:0.9;transform:scale(1.05);box-shadow:0 20px 40px rgba(0,0,0,0.4)`;
+    document.body.appendChild(ghost);
+    drag.ghost=ghost;
+    drag.offsetX=touch.clientX-rect.left;
+    drag.offsetY=touch.clientY-rect.top;
+    if(navigator.vibrate)navigator.vibrate(10);
+  },260);
+  _shelfTouchDrag=drag;
+}
+function shelfSpineTouchMove(e){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  const touch=e.touches[0];
+  if(!d.active){
+    // Aún no ha pasado el tiempo de espera — si se mueve antes de tiempo es un
+    // scroll normal, no un intento de arrastre: se cancela sin bloquear nada.
+    if(Math.abs(touch.clientX-d.startX)>10||Math.abs(touch.clientY-d.startY)>10){
+      clearTimeout(d.timer);
+      _shelfTouchDrag=null;
+    }
+    return;
+  }
+  e.preventDefault(); // ya se está arrastrando: bloquea el scroll de la página
+  d.ghost.style.left=(touch.clientX-d.offsetX)+'px';
+  d.ghost.style.top=(touch.clientY-d.offsetY)+'px';
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  // pointer-events:none en el ghost hace que elementFromPoint lo ignore y "vea" a través de él
+  const below=document.elementFromPoint(touch.clientX,touch.clientY);
+  const cell=below&&below.closest('.shelf-cell');
+  if(cell)cell.classList.add('touch-drop-target');
+}
+function shelfSpineTouchEnd(e){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  clearTimeout(d.timer);
+  _shelfTouchDrag=null;
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  if(!d.active)return; // tap corto: se deja pasar el click normal (abre la ficha del libro)
+  d.spine.classList.remove('dragging');
+  const touch=e.changedTouches[0];
+  const below=document.elementFromPoint(touch.clientX,touch.clientY);
+  d.ghost.remove();
+  if(!below){_shelfDragBookId=null;return;}
+  const targetSpine=below.closest('.real-shelf-spine');
+  const cell=below.closest('.shelf-cell');
+  if(targetSpine&&targetSpine!==d.spine&&targetSpine.dataset.status){
+    shelfDropOnSpineCore(targetSpine.closest('.shelf-cell'),targetSpine.dataset.status,targetSpine.dataset.id);
+  }else if(cell&&cell.dataset.level!==undefined){
+    shelfDropOnEmptyCore(cell,cell.dataset.status,parseInt(cell.dataset.level,10),parseInt(cell.dataset.col,10));
+  }else{
+    _shelfDragBookId=null;
+  }
+}
+function shelfSpineTouchCancel(){
+  const d=_shelfTouchDrag;
+  if(!d)return;
+  clearTimeout(d.timer);
+  d.spine.classList.remove('dragging');
+  d.ghost?.remove();
+  document.querySelectorAll('.shelf-cell.touch-drop-target').forEach(c=>c.classList.remove('touch-drop-target'));
+  _shelfDragBookId=null;
+  _shelfTouchDrag=null;
+}
+document.addEventListener('touchstart',shelfSpineTouchStart,{passive:true});
+document.addEventListener('touchmove',shelfSpineTouchMove,{passive:false});
+document.addEventListener('touchend',shelfSpineTouchEnd,{passive:true});
+document.addEventListener('touchcancel',shelfSpineTouchCancel,{passive:true});
 
 function shelfViewHtml(books,statusArr,editable,containerId,sortMode){
   if(!books.length)return editable?'':`<div class="empty" style="padding:24px"><i class="ti ti-books" style="font-size:26px"></i><p style="font-size:13px">Nada aquí todavía</p></div>`;
@@ -8494,7 +8624,7 @@ function shelfViewHtml(books,statusArr,editable,containerId,sortMode){
     <div class="shelf-level">
       <div class="shelf-cells-row">
         ${level.map((cellBooks,ci)=>`
-          <div class="shelf-cell">
+          <div class="shelf-cell" data-status="${statusArr}" data-level="${li}" data-col="${ci}">
             ${cellBooks.map(spineHtml).join('')}
             ${editable?`<div class="shelf-cell-empty" ondragover="shelfCellHoverSpine(event)" ondrop="shelfCellDropOnEmpty(event,'${statusArr}',${li},${ci})"></div>`:''}
           </div>`).join('')}
