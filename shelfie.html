@@ -6828,6 +6828,11 @@ function confirmModal(message,opts){
   document.getElementById('confirm-modal-title').textContent=opts.title||'¿Estás seguro?';
   document.getElementById('confirm-modal-msg').textContent=message;
   document.getElementById('confirm-modal-accept-btn').textContent=opts.acceptLabel||'Aceptar';
+  // Este modal (y promptModal, justo debajo) montan su display:flex directamente,
+  // sin pasar por openModal() — por eso se quedaban abriéndose detrás del menú
+  // lateral móvil si seguía abierto (p.ej. "Cerrar sesión" desde el propio menú).
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
   document.getElementById('modal-confirm').style.display='flex';
   return new Promise(res=>{_confirmModalResolve=res;});
 }
@@ -6841,6 +6846,8 @@ function promptModal(message,opts){
   document.getElementById('prompt-modal-title').textContent=message;
   const input=document.getElementById('prompt-modal-input');
   input.value=opts.defaultValue||'';
+  document.querySelector('.sidebar.mobile-open')?.classList.remove('mobile-open');
+  document.querySelector('.mobile-nav-backdrop.show')?.classList.remove('show');
   document.getElementById('modal-prompt').style.display='flex';
   setTimeout(()=>input.focus(),50);
   return new Promise(res=>{_promptModalResolve=res;});
