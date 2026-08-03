@@ -909,3 +909,100 @@ do $$ begin alter publication supabase_realtime add table public.comments; excep
 do $$ begin alter publication supabase_realtime add table public.likes; exception when others then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.comment_likes; exception when others then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.post_reactions; exception when others then null; end $$;
+
+-- ════════════════════════════════════════════════
+-- MENSAJES DIRECTOS (estilo Instagram)
+-- Una conversación por pareja de usuarios. Empieza en 'pending' (solicitud
+-- de mensaje) salvo que quien responde no sea quien la inició — responder
+-- a una solicitud la acepta automáticamente, igual que en Instagram.
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.conversations (
+  id uuid primary key default gen_random_uuid(),
+  user1_id uuid references public.profiles(id) on delete cascade not null,
+  user2_id uuid references public.profiles(id) on delete cascade not null,
+  initiator_id uuid references public.profiles(id) on delete cascade not null,
+  status text not null default 'pending' check (status in ('pending','accepted')),
+  last_message text default '',
+  last_message_at timestamptz default now(),
+  created_at timestamptz default now(),
+  check (user1_id <> user2_id)
+);
+
+create unique index if not exists conversations_pair_idx on public.conversations (least(user1_id,user2_id), greatest(user1_id,user2_id));
+
+alter table public.conversations enable row level security;
+drop policy if exists "conversations_select" on public.conversations;
+create policy "conversations_select" on public.conversations for select using (auth.uid() = user1_id or auth.uid() = user2_id);
+drop policy if exists "conversations_insert" on public.conversations;
+create policy "conversations_insert" on public.conversations for insert with check (
+  auth.uid() = initiator_id
+  and (auth.uid() = user1_id or auth.uid() = user2_id)
+  and not exists (
+    select 1 from public.blocks b
+    where (b.blocker_id = user1_id and b.blocked_id = user2_id)
+       or (b.blocker_id = user2_id and b.blocked_id = user1_id)
+  )
+);
+drop policy if exists "conversations_update" on public.conversations;
+create policy "conversations_update" on public.conversations for update using (auth.uid() = user1_id or auth.uid() = user2_id);
+drop policy if exists "conversations_delete" on public.conversations;
+create policy "conversations_delete" on public.conversations for delete using (auth.uid() = user1_id or auth.uid() = user2_id);
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid references public.conversations(id) on delete cascade not null,
+  sender_id uuid references public.profiles(id) on delete cascade not null,
+  text text not null,
+  created_at timestamptz default now(),
+  read_at timestamptz
+);
+create index if not exists messages_conversation_idx on public.messages (conversation_id, created_at);
+
+alter table public.messages enable row level security;
+drop policy if exists "messages_select" on public.messages;
+create policy "messages_select" on public.messages for select using (
+  exists (select 1 from public.conversations c where c.id = messages.conversation_id and (c.user1_id = auth.uid() or c.user2_id = auth.uid()))
+);
+drop policy if exists "messages_insert" on public.messages;
+create policy "messages_insert" on public.messages for insert with check (
+  auth.uid() = sender_id
+  and exists (
+    select 1 from public.conversations c
+    where c.id = messages.conversation_id
+    and (c.user1_id = auth.uid() or c.user2_id = auth.uid())
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = c.user1_id and b.blocked_id = c.user2_id)
+         or (b.blocker_id = c.user2_id and b.blocked_id = c.user1_id)
+    )
+  )
+);
+-- Solo se usa para marcar read_at de los mensajes ajenos como leídos, nunca para tocar el texto.
+drop policy if exists "messages_update" on public.messages;
+create policy "messages_update" on public.messages for update using (
+  exists (select 1 from public.conversations c where c.id = messages.conversation_id and (c.user1_id = auth.uid() or c.user2_id = auth.uid()))
+);
+drop policy if exists "messages_delete" on public.messages;
+create policy "messages_delete" on public.messages for delete using (auth.uid() = sender_id);
+
+create or replace function public.handle_new_message()
+returns trigger as $$
+begin
+  update public.conversations
+  set last_message = new.text,
+      last_message_at = new.created_at,
+      status = case when initiator_id <> new.sender_id then 'accepted' else status end
+  where id = new.conversation_id;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_message_created on public.messages;
+create trigger on_message_created
+  after insert on public.messages
+  for each row execute function public.handle_new_message();
+
+do $$ begin alter publication supabase_realtime add table public.conversations; exception when others then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.messages; exception when others then null; end $$;
