@@ -1313,6 +1313,7 @@ a{color:inherit}
 .edit-cover-current-wrap{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
 .edit-cover-current{width:100px;height:150px;border-radius:8px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,0.12)}
 .edit-cover-current .grid-cover{width:100%;height:100%;border-radius:8px}
+.edit-cover-current-loading{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:20px;background:var(--shelf-bg);border-radius:8px}
 .edit-cover-editions-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:260px;overflow-y:auto;padding:2px}
 .edit-cover-option{aspect-ratio:2/3;border-radius:6px;background-size:cover;background-position:center;background-color:var(--shelf-bg);cursor:pointer;border:2px solid transparent;transition:all .12s}
 .edit-cover-option:hover{transform:translateY(-2px)}
@@ -2691,7 +2692,7 @@ a{color:inherit}
   </div>
   <div class="edit-cover-editions-grid" id="edit-cover-editions-grid"></div>
 
-  <button class="btn btn-red w-full" style="margin-top:16px" onclick="saveEditCover()"><i class="ti ti-check"></i> Guardar portada</button>
+  <button class="btn btn-red w-full" id="edit-cover-save-btn" style="margin-top:16px" onclick="saveEditCover()"><i class="ti ti-check"></i> Guardar portada</button>
 </div>
 </div>
 
@@ -7886,10 +7887,22 @@ function openEditCoverModal(bookId){
   loadEditCoverEditions(`${book.title} ${book.author||''}`.trim());
 }
 
+// Un <img> real (no background-image) para poder mostrar un spinner mientras
+// carga la nueva portada elegida — con background-image no hay forma de saber
+// cuándo termina de cargar, así que antes se quedaba "sin cambios visibles"
+// unos segundos y parecía que no había pasado nada.
 function renderEditCoverPreview(){
   const book=allBooks().find(b=>b.id===_editCoverBookId);
   if(!book)return;
-  document.getElementById('edit-cover-current').innerHTML=cvr({...book,cover:_editCoverPendingCover},'grid');
+  const el=document.getElementById('edit-cover-current');
+  const cover=_editCoverPendingCover;
+  if(!cover){el.innerHTML=cvr({...book,cover:null},'grid');return;}
+  el.innerHTML='<div class="edit-cover-current-loading"><i class="ti ti-loader-2 spin"></i></div>';
+  const img=new Image();
+  img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;display:block';
+  img.onload=()=>{if(_editCoverPendingCover===cover){el.innerHTML='';el.appendChild(img);}};
+  img.onerror=()=>{if(_editCoverPendingCover===cover)el.innerHTML=cvr({...book,cover:null},'grid');};
+  img.src=cover;
 }
 
 // Varios candidatos ordenados por edition_count (proxy de popularidad/edición
@@ -7940,11 +7953,21 @@ function removeEditCoverCover(){
 async function saveEditCover(){
   const book=allBooks().find(b=>b.id===_editCoverBookId);
   if(!book)return;
+  const btn=document.getElementById('edit-cover-save-btn');
+  const prevHtml=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Guardando...';
   book.cover=_editCoverPendingCover||null;
-  await saveSupaBook(book);
+  const ok=await saveSupaBook(book);
+  btn.disabled=false;
+  btn.innerHTML=prevHtml;
+  if(ok===false)return; // saveSupaBook ya muestra su propio toast de error — el modal se queda abierto para reintentar
   closeModal('modal-edit-cover');
   updateAll();
   renderShelf();
+  // Si estás viendo la ficha de este mismo libro, refréscala ya — si no, se
+  // queda con la portada vieja hasta que navegas fuera y vuelves a entrar.
+  if(document.getElementById('p-book-detail')?.classList.contains('on')&&CURRENT_ENTITY.bookdetail===bookWorkKey(book))renderBookPage(CURRENT_ENTITY.bookdetail);
   toast('✅ Portada actualizada');
 }
 
