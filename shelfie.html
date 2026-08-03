@@ -14435,6 +14435,42 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')['modal-add','modal-profile-edit','modal-account','modal-reto','modal-friends','modal-people','modal-notifications','modal-reactions','modal-create-club','modal-create-thread','modal-invite-member','modal-photo-crop'].forEach(id=>document.getElementById(id).style.display='none');
 });
 
+// ═══ Swipe desde el borde izquierdo → abre el menú lateral (móvil) ═══
+// Esto también arregla un problema serio: como esta SPA nunca usa
+// history.pushState para navegar entre pantallas, no hay un "atrás" real
+// al que volver — pero Safari/WKWebView igualmente reconocía el gesto de
+// deslizar desde el borde izquierdo como "volver atrás" y acababa
+// recargando la app entera desde cero (mostrando un instante la pantalla
+// de login mientras se restauraba la sesión). Al interceptar el gesto
+// nosotros mismos con preventDefault(), el navegador deja de tratarlo
+// como navegación.
+(function(){
+  const EDGE=24,THRESHOLD=60;
+  let startX=null,startY=null,tracking=false;
+  document.addEventListener('touchstart',e=>{
+    if(window.innerWidth>900)return;
+    if(document.querySelector('.sidebar.mobile-open'))return;
+    const t=e.touches[0];
+    if(t.clientX>EDGE)return;
+    startX=t.clientX;startY=t.clientY;tracking=true;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!tracking)return;
+    const t=e.touches[0];
+    const dx=t.clientX-startX,dy=t.clientY-startY;
+    if(Math.abs(dx)<8&&Math.abs(dy)<8)return;
+    if(Math.abs(dy)>Math.abs(dx)){tracking=false;return;}
+    if(dx>10)e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const t=e.changedTouches[0];
+    if(t.clientX-startX<THRESHOLD)return;
+    if(document.getElementById('app-shell')?.classList.contains('on'))toggleMobileNav();
+  },{passive:true});
+})();
+
 // enter key on auth forms
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
