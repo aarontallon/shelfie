@@ -2619,6 +2619,40 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: IMPORTAR DESDE GOODREADS ══════════════════════ -->
+<div class="overlay" id="modal-goodreads-import" style="display:none" onclick="if(event.target===this)closeModal('modal-goodreads-import')">
+<div class="modal" style="max-width:560px">
+  <button class="modal-close" onclick="closeModal('modal-goodreads-import')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-upload"></i> Importar desde Goodreads</h2>
+  <p class="sub" style="margin-bottom:18px">Sube el CSV que exportas desde Goodreads y añadimos tu biblioteca entera de una vez — leídos, leyendo, pendientes y valoraciones incluidas.</p>
+
+  <div id="gr-import-step-instructions">
+    <ol style="font-size:13px;color:var(--ink2);line-height:1.9;margin:0 0 18px 20px;padding:0">
+      <li>Ve a <a href="https://www.goodreads.com/review/import" target="_blank" rel="noopener">goodreads.com/review/import</a></li>
+      <li>Pulsa <strong>"Export Library"</strong> y espera a que Goodreads genere el archivo</li>
+      <li>Descarga el CSV y súbelo aquí abajo</li>
+    </ol>
+    <label class="btn btn-red w-full" style="cursor:pointer" for="gr-import-file"><i class="ti ti-file-upload"></i> Elegir archivo CSV</label>
+    <input type="file" id="gr-import-file" accept=".csv,text/csv" style="display:none" onchange="handleGoodreadsFile(event)">
+    <div id="gr-import-error" class="text-xs" style="color:var(--red);margin-top:10px;display:none"></div>
+  </div>
+
+  <div id="gr-import-step-preview" style="display:none">
+    <div id="gr-import-summary" class="text-sm" style="margin-bottom:12px"></div>
+    <div id="gr-import-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:16px"></div>
+    <div class="flex gap-2">
+      <button class="btn btn-white w-full" onclick="cancelGoodreadsImport()">Cancelar</button>
+      <button class="btn btn-red w-full" id="gr-import-confirm-btn" onclick="confirmGoodreadsImport()"><i class="ti ti-check"></i> Importar</button>
+    </div>
+  </div>
+
+  <div id="gr-import-step-progress" style="display:none;text-align:center;padding:24px 0">
+    <i class="ti ti-loader-2 spin" style="font-size:28px;color:var(--red)"></i>
+    <p style="margin-top:12px;font-size:13px;color:var(--ink2)" id="gr-import-progress-text">Importando…</p>
+  </div>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: VOLVER A LEER ══════════════════════ -->
 <div class="overlay" id="modal-reread" style="display:none" onclick="if(event.target===this)closeModal('modal-reread')">
 <div class="modal">
@@ -2874,6 +2908,7 @@ a{color:inherit}
       <input class="srch-inp" id="shelf-search" placeholder="Buscar por título, autor o etiqueta..." oninput="renderShelf()" autocomplete="off">
     </div>
     <div class="tb-right">
+      <button class="btn btn-white" onclick="openGoodreadsImportModal()" title="Importar desde Goodreads"><i class="ti ti-upload"></i></button>
       <button class="btn btn-white" id="shelf-theme-btn" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <div class="view-toggle">
         <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfPublicView('shelf')" title="Vista estantería"><i class="ti ti-books"></i></button>
@@ -7428,6 +7463,208 @@ function quickAddDirect(title,author,status,olKey,cover,color){
 }
 
 function clearQadd(){pendingBook=null;document.getElementById('qadd-panel').style.display='none';}
+
+// ═══════════════════════════════════════════════
+// IMPORTAR DESDE GOODREADS
+// El CSV que Goodreads exporta (goodreads.com/review/import → "Export
+// Library") es el único formato que soportamos — no hay una API pública de
+// Goodreads abierta a terceros desde que Amazon la cerró, así que el CSV es
+// la única vía real de sacar los datos de ahí.
+// ═══════════════════════════════════════════════
+let _goodreadsCandidates=[];
+
+// Parser CSV propio (no basta con partir por comas: Goodreads cita los
+// campos con comas dentro — títulos, reseñas — y las reseñas largas también
+// pueden traer saltos de línea dentro de las comillas).
+function parseCSV(text){
+  const rows=[];
+  let row=[],field='',inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQuotes){
+      if(c==='"'){
+        if(text[i+1]==='"'){field+='"';i++;}
+        else inQuotes=false;
+      }else field+=c;
+    }else{
+      if(c==='"')inQuotes=true;
+      else if(c===','){row.push(field);field='';}
+      else if(c==='\r'){/* el \n de después cierra la fila */}
+      else if(c==='\n'){row.push(field);rows.push(row);row=[];field='';}
+      else field+=c;
+    }
+  }
+  if(field.length||row.length){row.push(field);rows.push(row);}
+  if(!rows.length)return[];
+  const headers=rows[0].map(h=>h.trim());
+  return rows.slice(1).filter(r=>r.some(v=>v!=='')).map(r=>{
+    const obj={};
+    headers.forEach((h,i)=>{obj[h]=r[i]!==undefined?r[i]:'';});
+    return obj;
+  });
+}
+// Goodreads envuelve ISBN/ISBN13 como ="1234567890" (un truco para que Excel
+// no se los coma como número y les quite los ceros a la izquierda).
+function cleanGoodreadsField(v){
+  if(!v)return'';
+  // El campo llega como ="9780307474728" en el CSV crudo, pero para cuando
+  // nuestro parser ya ha interpretado las comillas como delimitador (no como
+  // texto literal), lo que queda en la práctica es =9780307474728 — las
+  // comillas ya no están, solo el "=" que las precedía.
+  return v.replace(/^=+/,'').trim();
+}
+function decodeHtmlEntities(s){
+  if(!s)return'';
+  const el=document.createElement('textarea');
+  el.innerHTML=s;
+  return el.value;
+}
+function mapGoodreadsRow(row){
+  const title=(row['Title']||'').trim();
+  const author=(row['Author']||'').trim();
+  if(!title||!author)return null;
+  const isbn13=cleanGoodreadsField(row['ISBN13']);
+  const isbn10=cleanGoodreadsField(row['ISBN']);
+  const isbn=isbn13||isbn10||null;
+  const pages=parseInt(row['Number of Pages'])||null;
+  const year=(row['Original Publication Year']||row['Year Published']||'').trim();
+  const stars=Math.max(0,Math.min(5,parseInt(row['My Rating'])||0));
+  const exclusiveShelf=(row['Exclusive Shelf']||'').toLowerCase().trim();
+  const allShelves=(row['Bookshelves']||'').toLowerCase();
+  let status='quiero';
+  if(/\b(dnf|abandon)/.test(allShelves))status='dnf';
+  else if(exclusiveShelf==='read')status='leidos';
+  else if(exclusiveShelf==='currently-reading')status='leyendo';
+  // cualquier otro valor (to-read, estanterías propias sin mapeo claro...) se
+  // trata como pendiente — nunca se pierde el libro, como mucho aterriza en
+  // la pestaña que no toca y se puede mover a mano después.
+  const dateReadRaw=(row['Date Read']||'').trim();
+  let finishedAt=null;
+  if(dateReadRaw){
+    const[y,m,d]=dateReadRaw.split('/').map(Number);
+    if(y&&m&&d)finishedAt=new Date(y,m-1,d).toLocaleDateString('es-ES');
+  }
+  const review=decodeHtmlEntities((row['My Review']||'').trim());
+  // ?default=false evita el placeholder feo de Open Library ("sin portada") —
+  // si el ISBN no tiene portada real, que falle en silencio (queda el color
+  // de fondo del lomo) en vez de mostrar ese cuadro genérico.
+  const cover=isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`:null;
+  return{title,author,isbn,pages,year,stars,status,finishedAt,review,cover,publisher:(row['Publisher']||'').trim()||null};
+}
+
+function openGoodreadsImportModal(){
+  _goodreadsCandidates=[];
+  document.getElementById('gr-import-file').value='';
+  document.getElementById('gr-import-error').style.display='none';
+  document.getElementById('gr-import-step-instructions').style.display='block';
+  document.getElementById('gr-import-step-preview').style.display='none';
+  document.getElementById('gr-import-step-progress').style.display='none';
+  openModal('modal-goodreads-import');
+}
+function cancelGoodreadsImport(){
+  _goodreadsCandidates=[];
+  document.getElementById('gr-import-step-instructions').style.display='block';
+  document.getElementById('gr-import-step-preview').style.display='none';
+}
+function handleGoodreadsFile(e){
+  const file=e.target.files[0];
+  const errEl=document.getElementById('gr-import-error');
+  errEl.style.display='none';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let rows;
+    try{rows=parseCSV(reader.result);}
+    catch(err){console.error('Goodreads CSV parse failed:',err);errEl.textContent='No se pudo leer el archivo. ¿Es el CSV que exporta Goodreads?';errEl.style.display='block';return;}
+    if(!rows.length||!('Title' in rows[0])){
+      errEl.textContent='Este archivo no parece el CSV de Goodreads (no encuentro la columna "Title"). Asegúrate de subir el que descargas con "Export Library".';
+      errEl.style.display='block';
+      return;
+    }
+    const existing=allBooks().map(b=>(b.title+'·'+b.author).toLowerCase());
+    const seen=new Set();
+    let skippedDup=0,skippedBad=0;
+    const candidates=[];
+    rows.forEach(row=>{
+      const mapped=mapGoodreadsRow(row);
+      if(!mapped){skippedBad++;return;}
+      const key=(mapped.title+'·'+mapped.author).toLowerCase();
+      if(existing.includes(key)||seen.has(key)){skippedDup++;return;}
+      seen.add(key);
+      candidates.push(mapped);
+    });
+    _goodreadsCandidates=candidates;
+    renderGoodreadsPreview(candidates,skippedDup,skippedBad);
+  };
+  reader.onerror=()=>{errEl.textContent='No se pudo leer el archivo.';errEl.style.display='block';};
+  reader.readAsText(file);
+}
+function renderGoodreadsPreview(candidates,skippedDup,skippedBad){
+  const counts={leidos:0,leyendo:0,quiero:0,dnf:0};
+  candidates.forEach(b=>counts[b.status]++);
+  document.getElementById('gr-import-summary').innerHTML=`
+    <strong>${candidates.length} libro${candidates.length===1?'':'s'}</strong> listo${candidates.length===1?'':'s'} para importar
+    (${counts.leidos} leídos, ${counts.leyendo} leyendo, ${counts.quiero} pendientes, ${counts.dnf} abandonados)${skippedDup?` · ${skippedDup} omitido${skippedDup===1?'':'s'} por estar ya en tu shelfie`:''}${skippedBad?` · ${skippedBad} fila${skippedBad===1?'':'s'} sin título o autor, ignorada${skippedBad===1?'':'s'}`:''}.`;
+  document.getElementById('gr-import-list').innerHTML=candidates.slice(0,200).map(b=>
+    `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 8px;font-size:12.5px;border-bottom:1px solid var(--border)">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${escapeHtml(b.title)}</strong> — ${escapeHtml(b.author)}</span>
+      <span style="color:var(--ink3);flex-shrink:0">${{leidos:'Leído',leyendo:'Leyendo',quiero:'Pendiente',dnf:'Abandonado'}[b.status]}</span>
+    </div>`
+  ).join('')+(candidates.length>200?`<div style="padding:8px;text-align:center;color:var(--ink3);font-size:12px">…y ${candidates.length-200} más</div>`:'');
+  document.getElementById('gr-import-confirm-btn').disabled=!candidates.length;
+  document.getElementById('gr-import-step-instructions').style.display='none';
+  document.getElementById('gr-import-step-preview').style.display='block';
+}
+// Un solo upsert por lote (en vez de uno por libro) — con cientos de libros de
+// golpe, cientos de peticiones individuales tardarían muchísimo más y sería
+// muy fácil que alguna fallase a medias sin enterarnos.
+async function saveSupaBooksBatch(books){
+  if(!SUPA_USER||!books.length)return;
+  const rows=books.map(book=>({
+    id:book.id,user_id:SUPA_USER.id,local_id:book.id,title:book.title,author:book.author,
+    cover:book.cover||null,color:book.color||null,status:book.status,stars:book.stars||0,
+    review:book.review||'',pages:book.pages||null,cur_page:0,year:book.year||'',genres:[],
+    read_history:book.readHistory||[],finished_at:book.finishedAt||null,is_favorite:false,
+    rank_pos:null,shelf_level:null,shelf_col:null,shelf_pinned:false,
+    publisher:book.publisher||null,isbn:book.isbn||null,edition_year:null,ol_key:null,
+    author_ol_key:null,synopsis:null,came_from_quiero:false,came_from_dnf:false,
+  }));
+  const CHUNK=300;
+  for(let i=0;i<rows.length;i+=CHUNK){
+    const{error}=await supa.from('user_books').upsert(rows.slice(i,i+CHUNK),{onConflict:'id'});
+    if(error){console.error('saveSupaBooksBatch failed:',error);toast('❌ Algunos libros no se pudieron guardar. Comprueba tu conexión e inténtalo de nuevo.');return false;}
+  }
+  return true;
+}
+async function confirmGoodreadsImport(){
+  const candidates=_goodreadsCandidates;
+  if(!candidates.length)return;
+  document.getElementById('gr-import-step-preview').style.display='none';
+  document.getElementById('gr-import-step-progress').style.display='block';
+  document.getElementById('gr-import-progress-text').textContent=`Importando ${candidates.length} libro${candidates.length===1?'':'s'}…`;
+  const books=candidates.map(c=>{
+    const book={
+      id:uuid(),title:c.title,author:c.author,year:c.year||'',status:c.status,stars:c.stars,
+      review:c.review,cover:c.cover,color:COLORS[(c.title.charCodeAt(0)||0)%COLORS.length],
+      addedAt:new Date().toLocaleDateString('es-ES'),pages:c.pages,curPage:0,rankPos:null,
+      publisher:c.publisher,isbn:c.isbn,
+    };
+    if(c.status==='leidos'){
+      book.finishedAt=c.finishedAt||new Date().toLocaleDateString('es-ES');
+      book.readHistory=[{stars:c.stars,finishedAt:book.finishedAt}];
+    }
+    return book;
+  });
+  books.forEach(book=>DB[book.status].unshift(book));
+  // A propósito NO se tocan los Retos ni el Shelfie del año — son libros ya
+  // leídos hace tiempo (historial importado), no lecturas de hoy, así que
+  // sumarlos a un reto/objetivo actual falsearía el progreso de golpe.
+  await saveSupaBooksBatch(books);
+  closeModal('modal-goodreads-import');
+  updateAll();
+  renderShelf();
+  toast(`✅ ${books.length} libro${books.length===1?'':'s'} importado${books.length===1?'':'s'} desde Goodreads`);
+}
 
 // ═══════════════════════════════════════════════
 // COVER UPLOAD
