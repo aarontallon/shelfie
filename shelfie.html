@@ -2914,6 +2914,7 @@ a{color:inherit}
     </div>
     <div class="tb-right">
       <button class="btn btn-white" onclick="openGoodreadsImportModal()" title="Importar desde Goodreads"><i class="ti ti-upload"></i></button>
+      <button class="btn btn-white" id="fix-covers-btn" onclick="fixMissingCovers()" title="Buscar portadas que faltan"><i class="ti ti-photo"></i></button>
       <button class="btn btn-white" id="shelf-theme-btn" onclick="openShelfThemeMenu()" title="Personalizar estantería"><i class="ti ti-palette"></i></button>
       <div class="view-toggle">
         <button class="view-toggle-btn on" id="view-toggle-shelf" onclick="setShelfPublicView('shelf')" title="Vista estantería"><i class="ti ti-books"></i></button>
@@ -7560,6 +7561,40 @@ function mapGoodreadsRow(row){
   return{title,author,isbn,pages,year,stars,status,finishedAt,review,cover,publisher:(row['Publisher']||'').trim()||null};
 }
 
+// La portada por ISBN falla muy a menudo (muchas ediciones concretas no
+// tienen cover en Open Library, o el ISBN del CSV viene vacío), y cuando
+// falla el usuario solo ve un lomo en blanco. Buscar por título+autor con
+// /search.json es mucho más fiable — es el mismo método que ya usa el resto
+// de la app (Descubrir, añadir manualmente) y casi siempre encuentra alguna
+// portada, aunque no sea la edición exacta.
+async function fetchOLCoverBySearch(title,author){
+  try{
+    const q=encodeURIComponent(`${title} ${author||''}`.trim());
+    const res=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`);
+    if(!res.ok)return null;
+    const d=await res.json();
+    const coverId=d.docs?.[0]?.cover_i;
+    return coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:null;
+  }catch(_){return null;}
+}
+// Resuelve portadas para todo el lote con un límite de peticiones en
+// paralelo — con cientos de libros de golpe, disparar todas las peticiones
+// a la vez satura la conexión y en la práctica tarda más que en tandas.
+async function resolveGoodreadsCovers(candidates,onProgress){
+  const CONCURRENCY=5;
+  let next=0,done=0;
+  async function worker(){
+    while(next<candidates.length){
+      const c=candidates[next++];
+      const found=await fetchOLCoverBySearch(c.title,c.author);
+      if(found)c.cover=found;
+      done++;
+      if(onProgress)onProgress(done,candidates.length);
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(CONCURRENCY,candidates.length)},worker));
+}
+
 function openGoodreadsImportModal(){
   _goodreadsCandidates=[];
   document.getElementById('gr-import-file').value='';
@@ -7649,7 +7684,12 @@ async function confirmGoodreadsImport(){
   if(!candidates.length)return;
   document.getElementById('gr-import-step-preview').style.display='none';
   document.getElementById('gr-import-step-progress').style.display='block';
-  document.getElementById('gr-import-progress-text').textContent=`Importando ${candidates.length} libro${candidates.length===1?'':'s'}…`;
+  const progressText=document.getElementById('gr-import-progress-text');
+  progressText.textContent=`Buscando portadas… 0/${candidates.length}`;
+  await resolveGoodreadsCovers(candidates,(done,total)=>{
+    progressText.textContent=`Buscando portadas… ${done}/${total}`;
+  });
+  progressText.textContent=`Importando ${candidates.length} libro${candidates.length===1?'':'s'}…`;
   const books=candidates.map(c=>{
     const book={
       id:uuid(),title:c.title,author:c.author,year:c.year||'',status:c.status,stars:c.stars,
@@ -7672,6 +7712,26 @@ async function confirmGoodreadsImport(){
   updateAll();
   renderShelf();
   toast(`✅ ${books.length} libro${books.length===1?'':'s'} importado${books.length===1?'':'s'} desde Goodreads`);
+}
+
+// Libros sin portada, o con la portada por ISBN (poco fiable — muchas
+// ediciones concretas no tienen cover en Open Library) — candidatos a
+// mejorar buscando por título+autor, que encuentra portada casi siempre.
+function needsBetterCover(b){return !b.cover||b.cover.includes('/b/isbn/');}
+async function fixMissingCovers(){
+  const books=[...DB.leidos,...DB.leyendo,...DB.quiero,...DB.dnf].filter(needsBetterCover);
+  if(!books.length){toast('No hay portadas pendientes de arreglar');return;}
+  const btn=document.getElementById('fix-covers-btn');
+  const prevHtml=btn?.innerHTML;
+  if(btn){btn.disabled=true;btn.innerHTML=`<i class="ti ti-loader-2 spin"></i> 0/${books.length}`;}
+  const before=new Map(books.map(b=>[b.id,b.cover]));
+  await resolveGoodreadsCovers(books,(done,total)=>{if(btn)btn.innerHTML=`<i class="ti ti-loader-2 spin"></i> ${done}/${total}`;});
+  const fixed=books.filter(b=>b.cover!==before.get(b.id));
+  await Promise.all(fixed.map(b=>saveSupaBook(b)));
+  if(btn){btn.disabled=false;btn.innerHTML=prevHtml;}
+  updateAll();
+  renderShelf();
+  toast(fixed.length?`✅ Portada encontrada para ${fixed.length} de ${books.length} libro${books.length===1?'':'s'}`:'No se encontró ninguna portada nueva');
 }
 
 // ═══════════════════════════════════════════════
