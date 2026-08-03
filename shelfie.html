@@ -13007,11 +13007,7 @@ function hexToRgba(hex,alpha){
 // El emoji se veía distinto (y peor) según el dispositivo/SO de quien genera
 // la story, porque canvas usa el set de emojis que tenga instalado ese
 // móvil/navegador. Esta forma es idéntica en cualquier sitio.
-function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
-  ctx.save();
-  if(blurred)ctx.filter='blur(28px)';
-  ctx.globalAlpha=alpha;
-
+function drawFlameShape(ctx,cx,baseY,w,h,stops){
   const grad=ctx.createLinearGradient(cx,baseY,cx,baseY-h);
   stops.forEach((c,i)=>grad.addColorStop(i/(stops.length-1||1),c));
   ctx.beginPath();
@@ -13027,21 +13023,18 @@ function drawFlameShape(ctx,cx,baseY,w,h,stops,alpha,blurred){
 
   // Núcleo interior más claro/cálido, pegado a la base — el "corazón" de la
   // llama, como el interior amarillo del emoji original pero controlado.
-  if(!blurred){
-    const grad2=ctx.createLinearGradient(cx,baseY,cx,baseY-h*0.62);
-    grad2.addColorStop(0,'#FEF3C7');
-    grad2.addColorStop(1,stops[Math.max(0,stops.length-2)]);
-    ctx.beginPath();
-    ctx.moveTo(cx+w*0.02,baseY);
-    ctx.bezierCurveTo(cx-w*0.22,baseY-h*0.02, cx-w*0.22,baseY-h*0.22, cx-w*0.08,baseY-h*0.36);
-    ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.28, cx+w*0.03,baseY-h*0.22, cx+w*0.02,baseY-h*0.15);
-    ctx.bezierCurveTo(cx+w*0.08,baseY-h*0.3, cx+w*0.18,baseY-h*0.5, cx+w*0.14,baseY-h*0.62);
-    ctx.bezierCurveTo(cx+w*0.26,baseY-h*0.46, cx+w*0.28,baseY-h*0.2, cx+w*0.2,baseY);
-    ctx.closePath();
-    ctx.fillStyle=grad2;
-    ctx.fill();
-  }
-  ctx.restore();
+  const grad2=ctx.createLinearGradient(cx,baseY,cx,baseY-h*0.62);
+  grad2.addColorStop(0,'#FEF3C7');
+  grad2.addColorStop(1,stops[Math.max(0,stops.length-2)]);
+  ctx.beginPath();
+  ctx.moveTo(cx+w*0.02,baseY);
+  ctx.bezierCurveTo(cx-w*0.22,baseY-h*0.02, cx-w*0.22,baseY-h*0.22, cx-w*0.08,baseY-h*0.36);
+  ctx.bezierCurveTo(cx-w*0.02,baseY-h*0.28, cx+w*0.03,baseY-h*0.22, cx+w*0.02,baseY-h*0.15);
+  ctx.bezierCurveTo(cx+w*0.08,baseY-h*0.3, cx+w*0.18,baseY-h*0.5, cx+w*0.14,baseY-h*0.62);
+  ctx.bezierCurveTo(cx+w*0.26,baseY-h*0.46, cx+w*0.28,baseY-h*0.2, cx+w*0.2,baseY);
+  ctx.closePath();
+  ctx.fillStyle=grad2;
+  ctx.fill();
 }
 function streakTierGradientStops(tier){
   const stops={
@@ -13104,12 +13097,23 @@ async function generateStreakStoryImage(){
   ctx.fillText('@'+(PROFILE?.username||'lector'),1000,120);
   ctx.textAlign='left';
 
-  // Llama gigante con halo detrás — dibujada a mano con curvas, NO como el
-  // emoji 🔥 del sistema. El emoji se veía distinto (y peor) según el
-  // dispositivo/SO de quien genera la story; esta silueta es idéntica en
-  // cualquier móvil u ordenador, sin depender de qué set de emojis tenga.
-  drawFlameShape(ctx,540,890,480,580,stops,0.45,true); // halo desenfocado detrás — más ceñido y tenue para no lavar el borde nítido de la llama
-  drawFlameShape(ctx,540,890,460,560,stops,1,false);
+  // Llama gigante — dibujada a mano con curvas, NO como el emoji 🔥 del
+  // sistema. El emoji se veía distinto (y peor) según el dispositivo/SO de
+  // quien genera la story; esta silueta es idéntica en cualquier móvil u
+  // ordenador, sin depender de qué set de emojis tenga.
+  //
+  // El halo de detrás NO usa ctx.filter='blur()' — esa API de canvas tiene
+  // soporte real inconsistente en Safari/iOS (llegó tarde y sigue fallando
+  // en versiones/webviews más viejos), así que en muchos móviles el halo
+  // salía sin desenfocar: una segunda llama semitransparente pegada a la
+  // nítida, un contorno feo y doble. Un resplandor con gradiente radial
+  // (sin filtro, solo color a transparente) da el mismo efecto de brillo y
+  // funciona igual en cualquier navegador.
+  let flameGlow=ctx.createRadialGradient(540,650,0,540,650,420);
+  flameGlow.addColorStop(0,hexToRgba(stops[Math.floor(stops.length/2)],0.5));
+  flameGlow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=flameGlow;ctx.fillRect(0,0,1080,1920);
+  drawFlameShape(ctx,540,890,460,560,stops);
 
   // Número de racha, enorme, con el degradado del nivel actual — el mismo
   // lenguaje de color que la insignia de racha del perfil (spark/ember/
