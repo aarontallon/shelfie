@@ -1006,3 +1006,43 @@ create trigger on_message_created
 
 do $$ begin alter publication supabase_realtime add table public.conversations; exception when others then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.messages; exception when others then null; end $$;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: reacciones a mensajes directos (un emoji por persona,
+-- igual que las reacciones a posts). Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+create table if not exists public.message_reactions (
+  message_id uuid references public.messages(id) on delete cascade not null,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  emoji text not null,
+  created_at timestamptz default now(),
+  primary key (message_id, user_id)
+);
+
+alter table public.message_reactions enable row level security;
+drop policy if exists "message_reactions_select" on public.message_reactions;
+create policy "message_reactions_select" on public.message_reactions for select using (
+  exists (
+    select 1 from public.messages m
+    join public.conversations c on c.id = m.conversation_id
+    where m.id = message_reactions.message_id
+    and (c.user1_id = auth.uid() or c.user2_id = auth.uid())
+  )
+);
+drop policy if exists "message_reactions_insert" on public.message_reactions;
+create policy "message_reactions_insert" on public.message_reactions for insert with check (
+  auth.uid() = user_id
+  and exists (
+    select 1 from public.messages m
+    join public.conversations c on c.id = m.conversation_id
+    where m.id = message_reactions.message_id
+    and (c.user1_id = auth.uid() or c.user2_id = auth.uid())
+  )
+);
+drop policy if exists "message_reactions_update" on public.message_reactions;
+create policy "message_reactions_update" on public.message_reactions for update using (auth.uid() = user_id);
+drop policy if exists "message_reactions_delete" on public.message_reactions;
+create policy "message_reactions_delete" on public.message_reactions for delete using (auth.uid() = user_id);
+
+do $$ begin alter publication supabase_realtime add table public.message_reactions; exception when others then null; end $$;
