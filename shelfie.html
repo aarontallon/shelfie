@@ -42,7 +42,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8}
+:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8;--heart-red:#ED4956;--heart-red-light:#FDECEE}
 /* Reserva siempre el hueco de la barra de scroll vertical (aunque no haga falta
    todavía) para que cambiar de vista/pestaña y variar la altura del contenido no
    desplace unos píxeles el resto de la página al aparecer/desaparecer la barra.
@@ -635,9 +635,9 @@ a{color:inherit}
 .f-txt{font-size:13px;color:var(--ink);line-height:1.6}
 .f-time{font-size:11px;color:var(--ink3);margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .like-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;font-family:'Inter',sans-serif;transition:all 0.12s}
-.like-btn:hover,.like-btn.on{color:var(--red);background:var(--red-light)}
+.like-btn:hover,.like-btn.on{color:var(--heart-red);background:var(--heart-red-light)}
 .comment-like-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;margin-top:3px;font-family:'Inter',sans-serif}
-.comment-like-btn:hover,.comment-like-btn.on{color:var(--red)}
+.comment-like-btn:hover,.comment-like-btn.on{color:var(--heart-red)}
 .post-reactions-summary{display:inline-flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer;padding:3px 8px 3px 4px;border-radius:14px;background:var(--paper);width:fit-content}
 .post-reactions-summary:hover{background:#EFEFEF}
 .post-reactions-cluster{display:inline-flex}
@@ -1042,8 +1042,15 @@ a{color:inherit}
 .club-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid white;margin-left:-7px;flex-shrink:0}
 .club-av:first-child{margin-left:0}
 
+/* ══ horizontal-scroll "more" hint (tabs/chips that overflow) ══ */
+.hscroll-hint{position:absolute;top:0;right:0;bottom:0;width:38px;display:flex;align-items:center;justify-content:flex-end;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:3}
+.hscroll-hint::before{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent,var(--paper) 65%)}
+.hscroll-hint i{position:relative;font-size:13px;color:var(--ink2);background:var(--paper);border-radius:50%;width:23px;height:23px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 5px rgba(0,0,0,0.14);border:1px solid var(--border);animation:hscrollPulse 1.6s ease-in-out infinite}
+.scroll-fade~.hscroll-hint{opacity:1}
+@keyframes hscrollPulse{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+
 /* ══ CLUB DETAIL PAGE ══ */
-.club-detail-body{padding:0 28px 28px}
+.club-detail-body{padding:0}
 .club-detail-header{background:#1A1A1A;border-radius:20px;padding:28px 32px;margin-bottom:18px;color:white;position:relative;overflow:hidden}
 .club-detail-header::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 85% 15%,rgba(61,107,82,0.16) 0%,transparent 70%);pointer-events:none}
 .club-detail-hero-top{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
@@ -1060,15 +1067,15 @@ a{color:inherit}
 .club-members-preview{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);position:relative;z-index:2}
 .club-detail-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;position:relative;z-index:2;flex-shrink:0}
 .club-detail-next-meeting{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right}
-.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.club-detail-tabs-wrap{position:relative;margin-bottom:20px}
+.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none}
 .club-detail-tabs::-webkit-scrollbar{display:none}
-.club-detail-tabs.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
+.club-detail-tabs-wrap .hscroll-hint{bottom:2px}
 .club-detail-tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s;white-space:nowrap;flex-shrink:0}
 .club-detail-tab.on{color:var(--red);border-bottom-color:var(--red)}
 .club-detail-panel{display:none}
 .club-detail-panel.on{display:block}
 @media (max-width:640px){
-  .club-detail-body{padding:0 16px 16px}
   .club-detail-header{padding:20px 18px}
   .club-detail-hero-top{flex-direction:column}
   .club-detail-actions{align-items:flex-start;width:100%}
@@ -1114,6 +1121,41 @@ a{color:inherit}
 .club-reto-member-prog{flex:1;min-width:24px;background:#EDEDED;border-radius:4px;height:6px;overflow:hidden}
 .club-reto-member-bar{height:100%;background:var(--red);border-radius:4px}
 @media (max-width:480px){.club-reto-member-name{width:56px}}
+
+/* ══ MENSAJES DIRECTOS ══ */
+.chat-row{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:12px;cursor:pointer;transition:background 0.12s}
+.chat-row:hover{background:#FAFAFA}
+.chat-row.unread .chat-row-name,.chat-row.unread .chat-row-preview{font-weight:700;color:var(--ink)}
+.chat-row-name{font-size:14px;font-weight:600;color:var(--ink)}
+.chat-row-preview{font-size:12.5px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}
+.chat-row-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.chat-row-time{font-size:11px;color:var(--ink3);white-space:nowrap}
+.chat-unread-dot{width:9px;height:9px;border-radius:50%;background:var(--red);flex-shrink:0}
+
+/* min-height:0 anula el min-height:100vh heredado de .page — si no, ese
+   min-height (mayor que el height de aquí abajo) ganaba y la página
+   siempre acababa teniendo la altura completa del viewport en vez de
+   quedar recortada por top/bottom, dejando el input del chat fuera de la
+   pantalla. */
+#p-chat-detail.on{position:fixed;top:0;left:230px;right:0;bottom:0;min-height:0;display:flex;flex-direction:column;z-index:50}
+.chat-detail-header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-request-banner{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--amber-light);color:#92400E;font-size:12.5px;flex-shrink:0}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{display:flex;flex-direction:column;max-width:65%}
+.chat-msg.mine{align-self:flex-end;align-items:flex-end}
+.chat-msg.theirs{align-self:flex-start;align-items:flex-start}
+.chat-bubble{padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.45;word-wrap:break-word;white-space:pre-wrap}
+.chat-msg.mine .chat-bubble{background:var(--red);color:white;border-bottom-right-radius:4px}
+.chat-msg.theirs .chat-bubble{background:#F1F1F1;color:var(--ink);border-bottom-left-radius:4px}
+.chat-msg-time{font-size:10.5px;color:var(--ink3);margin-top:3px;padding:0 4px;display:flex;align-items:center;gap:6px}
+.chat-msg-del{background:none;border:none;padding:0;font-size:10.5px;color:var(--ink3);text-decoration:underline;cursor:pointer;font-family:'Inter',sans-serif}
+.chat-input-row{display:flex;gap:10px;align-items:flex-end;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input-row textarea{resize:none;max-height:120px}
+@media (max-width:640px){
+  .chat-row-preview{max-width:200px}
+  .chat-messages,.chat-input-row,.chat-detail-header{padding-left:14px;padding-right:14px}
+}
+
 .member-admin-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #EBEBEB}
 .member-admin-row:last-child{border-bottom:none}
 .member-stats-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
@@ -1208,9 +1250,9 @@ a{color:inherit}
 .disc-search{width:100%;padding:11px 16px 11px 40px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;background:white;color:var(--ink);outline:none;box-sizing:border-box;transition:border-color .15s}
 .disc-search:focus{border-color:var(--ink)}
 .disc-search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:16px;pointer-events:none}
-.disc-genres{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.disc-genres-wrap{position:relative;margin-bottom:16px}
+.disc-genres{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .disc-genres::-webkit-scrollbar{display:none}
-.disc-genres.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
 .dg-tab{flex-shrink:0;font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all .15s}
 .dg-tab.on{background:var(--ink);color:white;border-color:var(--ink)}
 .dg-tab:hover:not(.on){border-color:var(--ink);color:var(--ink)}
@@ -1370,6 +1412,7 @@ a{color:inherit}
   .app.on{grid-template-columns:1fr}
   .mobile-topbar{display:flex}
   .main{padding-top:56px}
+  #p-chat-detail.on{left:0;top:56px}
   .sidebar{position:fixed;top:0;left:0;height:100vh;height:100dvh;width:230px;z-index:1000;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,0.3)}
   .sidebar.mobile-open{transform:translateX(0)}
   .g2{grid-template-columns:1fr}
@@ -1469,7 +1512,7 @@ a{color:inherit}
           <path d="M262 290 L268 296 L280 282" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           <text x="20" y="296" font-family="Inter,sans-serif" font-size="11" fill="#999">Compartida con 9 amigos</text>
         </svg>
-        <div class="landing-floaty landing-floaty-1"><i class="ti ti-heart" style="color:var(--red)"></i> A Ana le encantó tu reseña</div>
+        <div class="landing-floaty landing-floaty-1"><span style="color:var(--heart-red);display:inline-flex"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display:inline-block;vertical-align:-2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></span> A Ana le encantó tu reseña</div>
         <div class="landing-floaty landing-floaty-2"><i class="ti ti-trophy" style="color:var(--amber)"></i> Reto completado 🎉</div>
       </div>
     </div>
@@ -2853,6 +2896,7 @@ a{color:inherit}
     <div class="sb-lbl">Social</div>
     <button class="sb-notif-btn" onclick="openNotifications()"><i class="ti ti-bell"></i> Notificaciones <span class="nb-badge" id="notif-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed</button>
+    <button class="nb" onclick="go('messages',this)"><i class="ti ti-send"></i> Mensajes <span class="nb-badge" id="messages-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos</button>
     <button class="nb" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> Clubs</button>
   </div>
@@ -3061,16 +3105,19 @@ a{color:inherit}
   </div>
 
   <!-- Genre tabs -->
-  <div class="disc-genres">
-    <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
-    <button class="dg-tab" data-genre="Ficción" onclick="setDiscoverGenre(this,'Ficción')">Ficción</button>
-    <button class="dg-tab" data-genre="Clásicos" onclick="setDiscoverGenre(this,'Clásicos')">Clásicos</button>
-    <button class="dg-tab" data-genre="Latinoamérica" onclick="setDiscoverGenre(this,'Latinoamérica')">Latinoamérica</button>
-    <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
-    <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
-    <button class="dg-tab" data-genre="Poesía" onclick="setDiscoverGenre(this,'Poesía')">Poesía</button>
-    <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
-    <button class="dg-tab" data-genre="Misterio" onclick="setDiscoverGenre(this,'Misterio')">Misterio</button>
+  <div class="disc-genres-wrap">
+    <div class="disc-genres">
+      <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
+      <button class="dg-tab" data-genre="Ficción" onclick="setDiscoverGenre(this,'Ficción')">Ficción</button>
+      <button class="dg-tab" data-genre="Clásicos" onclick="setDiscoverGenre(this,'Clásicos')">Clásicos</button>
+      <button class="dg-tab" data-genre="Latinoamérica" onclick="setDiscoverGenre(this,'Latinoamérica')">Latinoamérica</button>
+      <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
+      <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
+      <button class="dg-tab" data-genre="Poesía" onclick="setDiscoverGenre(this,'Poesía')">Poesía</button>
+      <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
+      <button class="dg-tab" data-genre="Misterio" onclick="setDiscoverGenre(this,'Misterio')">Misterio</button>
+    </div>
+    <div class="hscroll-hint"><i class="ti ti-chevron-right"></i></div>
   </div>
 
   <!-- Main sections -->
@@ -3325,8 +3372,37 @@ a{color:inherit}
     </div>
   </div>
 
+  <div class="subject-toggle" id="feed-mode-toggle">
+    <button type="button" class="subject-toggle-btn" data-feedmode="foryou" onclick="setFeedMode(this,'foryou')"><i class="ti ti-sparkles"></i> Para ti</button>
+    <button type="button" class="subject-toggle-btn" data-feedmode="following" onclick="setFeedMode(this,'following')"><i class="ti ti-users"></i> Siguiendo</button>
+  </div>
+
   <!-- USER-CREATED POSTS render here, newest first -->
   <div id="user-posts"></div>
+</div>
+
+<!-- ── MENSAJES ── -->
+<div id="p-messages" class="page">
+  <div class="tb"><div><h1>Mensajes</h1><p class="sub">Tus conversaciones directas</p></div></div>
+  <input class="f-input" id="messages-search" placeholder="Buscar conversaciones..." style="margin-bottom:14px" oninput="renderMessagesPage()">
+  <div class="subject-toggle" id="messages-tabs">
+    <button type="button" class="subject-toggle-btn on" data-mtab="chats" onclick="setMessagesTab('chats')">Mensajes</button>
+    <button type="button" class="subject-toggle-btn" data-mtab="requests" onclick="setMessagesTab('requests')">Solicitudes <span class="nb-badge" id="messages-requests-badge" style="display:none">0</span></button>
+  </div>
+  <div id="messages-list"></div>
+</div>
+
+<!-- ── CHAT (conversación individual) ── -->
+<div id="p-chat-detail" class="page" style="padding:0">
+  <div id="chat-detail-header" class="chat-detail-header"></div>
+  <div id="chat-request-banner" class="chat-request-banner" style="display:none">
+    <span><i class="ti ti-mail"></i> Solicitud de mensaje — si respondes, se añadirá a tus mensajes</span>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <div id="chat-input-row" class="chat-input-row">
+    <textarea id="chat-input" class="f-input" rows="1" placeholder="Escribe un mensaje..." onkeydown="onChatInputKeydown(event)" oninput="autoGrow(this)"></textarea>
+    <button class="btn btn-red" onclick="sendChatMessage()"><i class="ti ti-send"></i></button>
+  </div>
 </div>
 
 <!-- ── AMIGOS ── -->
@@ -3382,19 +3458,22 @@ a{color:inherit}
 </div>
 
 <!-- ── CLUB DETAIL ── -->
-<div id="p-club-detail" class="page" style="padding:0">
-  <div class="club-detail-header" id="club-detail-header" style="position:relative;margin:0">
+<div id="p-club-detail" class="page">
+  <div class="club-detail-header" id="club-detail-header" style="position:relative">
     <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="goBack('clubs')"><i class="ti ti-arrow-left"></i> Volver</button>
     <div id="club-detail-hero"></div>
   </div>
   <div class="club-detail-body">
-    <div class="club-detail-tabs" id="club-detail-tabs">
-      <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
-      <button class="club-detail-tab" data-tab="foro" onclick="setClubTab(this,'foro')"><i class="ti ti-layout-list"></i> Foro</button>
-      <button class="club-detail-tab" data-tab="libros" onclick="setClubTab(this,'libros')"><i class="ti ti-books"></i> Libros</button>
-      <button class="club-detail-tab" data-tab="miembros" onclick="setClubTab(this,'miembros')"><i class="ti ti-users"></i> Miembros</button>
-      <button class="club-detail-tab" data-tab="retos" onclick="setClubTab(this,'retos')"><i class="ti ti-trophy"></i> Retos</button>
-      <button class="club-detail-tab" data-tab="anuncios" onclick="setClubTab(this,'anuncios')"><i class="ti ti-speakerphone"></i> Anuncios</button>
+    <div class="club-detail-tabs-wrap">
+      <div class="club-detail-tabs" id="club-detail-tabs">
+        <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
+        <button class="club-detail-tab" data-tab="foro" onclick="setClubTab(this,'foro')"><i class="ti ti-layout-list"></i> Foro</button>
+        <button class="club-detail-tab" data-tab="libros" onclick="setClubTab(this,'libros')"><i class="ti ti-books"></i> Libros</button>
+        <button class="club-detail-tab" data-tab="miembros" onclick="setClubTab(this,'miembros')"><i class="ti ti-users"></i> Miembros</button>
+        <button class="club-detail-tab" data-tab="retos" onclick="setClubTab(this,'retos')"><i class="ti ti-trophy"></i> Retos</button>
+        <button class="club-detail-tab" data-tab="anuncios" onclick="setClubTab(this,'anuncios')"><i class="ti ti-speakerphone"></i> Anuncios</button>
+      </div>
+      <div class="hscroll-hint"><i class="ti ti-chevron-right"></i></div>
     </div>
     <div class="club-detail-panel on" id="club-panel-debates"></div>
     <div class="club-detail-panel" id="club-panel-foro"></div>
@@ -4182,6 +4261,368 @@ async function loadSupaPosts(){
   await loadCommentLikesInto(data.flatMap(r=>(r.comments||[]).map(c=>c.id)));
 }
 
+// "Para ti": una tanda de posts públicos recientes de gente que NO sigues,
+// para poder mezclarlos con los de tu propia gente. Se queda solo con los que
+// tienen algo de enganche real (algún like o comentario) — no tiene sentido
+// meter en el mix contenido público sin ninguna interacción. La privacidad de
+// fondo la sigue aplicando posts_select (RLS): esta consulta nunca puede traer
+// posts de una cuenta privada que no sigas, así que no hace falta filtrarlo aquí.
+async function loadSupaDiscoverPosts(){
+  const excludeIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
+  let q=supa.from('posts').select('*, comments(*), likes(*)').order('created_at',{ascending:false}).limit(150);
+  if(excludeIds.length)q=q.not('user_id','in',`(${excludeIds.join(',')})`);
+  const{data,error}=await q;
+  if(error||!data){DISCOVER_POSTS=[];return;}
+  const candidates=data.filter(row=>!isBlockedEitherWay(row.user_id));
+  const commenterIds=candidates.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
+  await ensureAuthorsLoaded([...candidates.map(r=>r.user_id),...commenterIds]);
+  const scored=candidates.map(row=>{
+    const engagement=(row.likes||[]).length+(row.comments||[]).length*1.5;
+    return{row,engagement};
+  }).filter(x=>x.engagement>0).sort((a,b)=>b.engagement-a.engagement).slice(0,30);
+  DISCOVER_POSTS=scored.map(({row})=>{
+    const post=postRowToObject(row);
+    POSTS_BY_ID[post.id]=post;
+    return post;
+  });
+  await loadPostReactionsInto(DISCOVER_POSTS.map(p=>p.id));
+  await loadCommentLikesInto(DISCOVER_POSTS.flatMap(p=>p.comments.map(c=>c.id)));
+}
+
+// ═══════════════════════════════════════════════
+// MENSAJES DIRECTOS
+// ═══════════════════════════════════════════════
+async function loadSupaConversations(){
+  if(!SUPA_USER)return;
+  const{data,error}=await supa.from('conversations').select('*')
+    .or(`user1_id.eq.${SUPA_USER.id},user2_id.eq.${SUPA_USER.id}`)
+    .order('last_message_at',{ascending:false});
+  if(error||!data){CONVERSATIONS=[];return;}
+  const otherIds=data.map(c=>c.user1_id===SUPA_USER.id?c.user2_id:c.user1_id);
+  await ensureAuthorsLoaded(otherIds);
+  const convIds=data.map(c=>c.id);
+  const unreadByConv={};
+  if(convIds.length){
+    const{data:unreadRows}=await supa.from('messages').select('conversation_id')
+      .in('conversation_id',convIds).is('read_at',null).neq('sender_id',SUPA_USER.id);
+    (unreadRows||[]).forEach(r=>{unreadByConv[r.conversation_id]=(unreadByConv[r.conversation_id]||0)+1;});
+  }
+  CONVERSATIONS=data.map(c=>conversationRowToObject(c,unreadByConv[c.id]||0));
+  updateMessagesBadge();
+}
+function conversationRowToObject(c,unread){
+  return{
+    id:c.id,
+    otherId:c.user1_id===SUPA_USER.id?c.user2_id:c.user1_id,
+    initiatorId:c.initiator_id,
+    status:c.status,
+    lastMessage:c.last_message||'',
+    lastMessageAt:c.last_message_at?new Date(c.last_message_at).getTime():Date.now(),
+    unread:unread||0,
+  };
+}
+function updateMessagesBadge(){
+  const badge=document.getElementById('messages-badge');
+  if(!badge)return;
+  const unread=CONVERSATIONS.filter(c=>c.status==='accepted').reduce((s,c)=>s+(c.unread||0),0);
+  const pending=CONVERSATIONS.filter(c=>c.status==='pending'&&c.initiatorId!==SUPA_USER?.id).length;
+  const n=unread+pending;
+  badge.style.display=n>0?'inline-flex':'none';
+  badge.textContent=n>99?'99+':n;
+}
+
+// Abre (o crea) la conversación con userId y navega al chat. Reusa la
+// conversación existente en cualquier dirección — solo puede haber una por
+// pareja de usuarios (ver el índice único en la tabla).
+async function openChat(userId){
+  if(!SUPA_USER){toast('Inicia sesión para enviar mensajes');return;}
+  if(userId===SUPA_USER.id)return;
+  if(isBlockedEitherWay(userId)){toast('No puedes escribir a este usuario');return;}
+  let conv=CONVERSATIONS.find(c=>c.otherId===userId);
+  if(!conv){
+    try{
+      const{data:existing}=await supa.from('conversations').select('*')
+        .or(`and(user1_id.eq.${SUPA_USER.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${SUPA_USER.id})`)
+        .maybeSingle();
+      if(existing){
+        conv=conversationRowToObject(existing,0);
+      }else{
+        const{data:created,error}=await supa.from('conversations')
+          .insert({user1_id:SUPA_USER.id,user2_id:userId,initiator_id:SUPA_USER.id}).select().single();
+        if(error||!created)throw error||new Error('sin datos');
+        conv=conversationRowToObject(created,0);
+      }
+      CONVERSATIONS.unshift(conv);
+    }catch(e){
+      console.error('openChat failed:',e);
+      toast('❌ No se pudo abrir la conversación');
+      return;
+    }
+  }
+  await ensureAuthorsLoaded([userId]);
+  go('chatdetail',null,conv.id);
+}
+
+async function loadChatMessages(convId){
+  const{data,error}=await supa.from('messages').select('*').eq('conversation_id',convId).order('created_at',{ascending:true}).limit(200);
+  if(error||!data){MESSAGES_BY_CONV[convId]=[];return;}
+  MESSAGES_BY_CONV[convId]=data.map(messageRowToObject);
+  const conv=CONVERSATIONS.find(c=>c.id===convId);
+  if(conv&&conv.unread){
+    conv.unread=0;
+    updateMessagesBadge();
+  }
+  markConversationRead(convId);
+}
+function messageRowToObject(m){
+  return{id:m.id,senderId:m.sender_id,text:m.text,createdAt:new Date(m.created_at).getTime(),readAt:m.read_at?new Date(m.read_at).getTime():null};
+}
+function markConversationRead(convId){
+  const conv=CONVERSATIONS.find(c=>c.id===convId);
+  if(!conv)return;
+  supa.from('messages').update({read_at:new Date().toISOString()})
+    .eq('conversation_id',convId).eq('sender_id',conv.otherId).is('read_at',null)
+    .then(({error})=>{if(error)console.error('markConversationRead failed:',error);});
+}
+
+const _chatSendInFlight=new Set();
+async function sendChatMessage(){
+  const convId=CURRENT_CHAT_CONV_ID;
+  const conv=CONVERSATIONS.find(c=>c.id===convId);
+  if(!conv||_chatSendInFlight.has(convId))return;
+  const input=document.getElementById('chat-input');
+  const text=(input.value||'').trim();
+  if(!text)return;
+  _chatSendInFlight.add(convId);
+  input.value='';
+  input.style.height='';
+  const tempId='temp-'+Date.now();
+  const optimistic={id:tempId,senderId:SUPA_USER.id,text,createdAt:Date.now(),readAt:null};
+  (MESSAGES_BY_CONV[convId]=MESSAGES_BY_CONV[convId]||[]).push(optimistic);
+  conv.lastMessage=text;conv.lastMessageAt=optimistic.createdAt;
+  if(conv.initiatorId!==SUPA_USER.id)conv.status='accepted';
+  renderChatMessages();
+  const{data,error}=await supa.from('messages').insert({conversation_id:convId,sender_id:SUPA_USER.id,text}).select().single();
+  _chatSendInFlight.delete(convId);
+  if(error||!data){
+    console.error('sendChatMessage failed:',error);
+    toast('❌ No se pudo enviar el mensaje');
+    MESSAGES_BY_CONV[convId]=MESSAGES_BY_CONV[convId].filter(m=>m.id!==tempId);
+    renderChatMessages();
+    return;
+  }
+  const idx=MESSAGES_BY_CONV[convId].findIndex(m=>m.id===tempId);
+  if(idx>=0)MESSAGES_BY_CONV[convId][idx]=messageRowToObject(data);
+}
+function onChatInputKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage();}
+}
+
+async function unsendMessage(msgId){
+  if(!await confirmModal('¿Eliminar este mensaje para todos?'))return;
+  const convId=CURRENT_CHAT_CONV_ID;
+  const list=MESSAGES_BY_CONV[convId]||[];
+  const idx=list.findIndex(m=>m.id===msgId);
+  if(idx<0)return;
+  const removed=list[idx];
+  list.splice(idx,1);
+  renderChatMessages();
+  const{error}=await supa.from('messages').delete().eq('id',msgId);
+  if(error){
+    console.error('unsendMessage failed:',error);
+    toast('❌ No se pudo eliminar el mensaje');
+    list.splice(idx,0,removed);
+    renderChatMessages();
+  }
+}
+
+async function acceptMessageRequest(convId){
+  const conv=CONVERSATIONS.find(c=>c.id===convId);
+  if(!conv)return;
+  conv.status='accepted';
+  renderMessagesPage();
+  const{error}=await supa.from('conversations').update({status:'accepted'}).eq('id',convId);
+  if(error){
+    console.error('acceptMessageRequest failed:',error);
+    toast('❌ No se pudo aceptar la solicitud');
+    conv.status='pending';
+    renderMessagesPage();
+  }
+}
+async function declineMessageRequest(convId){
+  if(!await confirmModal('¿Rechazar esta solicitud de mensaje? Se eliminará la conversación.'))return;
+  const removed=CONVERSATIONS.find(c=>c.id===convId);
+  CONVERSATIONS=CONVERSATIONS.filter(c=>c.id!==convId);
+  renderMessagesPage();
+  updateMessagesBadge();
+  const{error}=await supa.from('conversations').delete().eq('id',convId);
+  if(error){
+    console.error('declineMessageRequest failed:',error);
+    toast('❌ No se pudo rechazar la solicitud');
+    if(removed)CONVERSATIONS.push(removed);
+    renderMessagesPage();
+    updateMessagesBadge();
+  }
+}
+
+// ── Realtime ──
+function subscribeToMessagesRealtime(){
+  if(!SUPA_USER)return;
+  supa.channel('dm-'+SUPA_USER.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'conversations'},payload=>handleIncomingConversation(payload.new))
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'conversations'},payload=>handleConversationUpdate(payload.new))
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},payload=>handleIncomingMessage(payload.new))
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'messages'},payload=>handleDeletedMessage(payload.old))
+    .subscribe(status=>{if(status!=='SUBSCRIBED')console.log('dm realtime channel status:',status);});
+}
+async function handleIncomingConversation(row){
+  if(row.user1_id!==SUPA_USER.id&&row.user2_id!==SUPA_USER.id)return;
+  if(CONVERSATIONS.some(c=>c.id===row.id))return;
+  const otherId=row.user1_id===SUPA_USER.id?row.user2_id:row.user1_id;
+  await ensureAuthorsLoaded([otherId]);
+  CONVERSATIONS.unshift(conversationRowToObject(row,0));
+  updateMessagesBadge();
+  if(document.getElementById('p-messages')?.classList.contains('on'))renderMessagesPage();
+}
+function handleConversationUpdate(row){
+  const conv=CONVERSATIONS.find(c=>c.id===row.id);
+  if(!conv)return;
+  conv.status=row.status;
+  conv.lastMessage=row.last_message||'';
+  conv.lastMessageAt=row.last_message_at?new Date(row.last_message_at).getTime():conv.lastMessageAt;
+  if(document.getElementById('p-messages')?.classList.contains('on'))renderMessagesPage();
+}
+function handleIncomingMessage(row){
+  if(row.sender_id===SUPA_USER.id)return; // ya aplicado optimista al enviar
+  const conv=CONVERSATIONS.find(c=>c.id===row.conversation_id);
+  if(!conv)return; // una conversación nueva la trae handleIncomingConversation
+  // Si el historial de esta conversación todavía no se ha cargado nunca
+  // (nunca se abrió el chat), no creamos el array aquí — dejamos que
+  // loadChatMessages() traiga el historial COMPLETO de la BD la primera vez
+  // que se abra, en vez de arrancar con un array que solo tendría este mensaje.
+  if(MESSAGES_BY_CONV[conv.id])MESSAGES_BY_CONV[conv.id].push(messageRowToObject(row));
+  conv.lastMessage=row.text;
+  conv.lastMessageAt=new Date(row.created_at).getTime();
+  const chatOpen=document.getElementById('p-chat-detail')?.classList.contains('on')&&CURRENT_CHAT_CONV_ID===conv.id;
+  if(chatOpen){
+    renderChatMessages();
+    markConversationRead(conv.id);
+  }else{
+    conv.unread=(conv.unread||0)+1;
+    updateMessagesBadge();
+    if(document.getElementById('p-messages')?.classList.contains('on'))renderMessagesPage();
+  }
+}
+function handleDeletedMessage(row){
+  for(const convId in MESSAGES_BY_CONV){
+    const idx=MESSAGES_BY_CONV[convId].findIndex(m=>m.id===row.id);
+    if(idx>=0){
+      MESSAGES_BY_CONV[convId].splice(idx,1);
+      if(CURRENT_CHAT_CONV_ID===convId)renderChatMessages();
+      return;
+    }
+  }
+}
+
+// ── Render ──
+function setMessagesTab(tab){
+  _messagesTab=tab;
+  renderMessagesPage();
+}
+function renderMessagesPage(){
+  document.querySelectorAll('#messages-tabs .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.mtab===_messagesTab));
+  const q=(document.getElementById('messages-search')?.value||'').toLowerCase().trim();
+  const accepted=CONVERSATIONS.filter(c=>c.status==='accepted');
+  const pending=CONVERSATIONS.filter(c=>c.status==='pending'&&c.initiatorId!==SUPA_USER?.id);
+  const reqBadge=document.getElementById('messages-requests-badge');
+  if(reqBadge){reqBadge.style.display=pending.length?'inline-flex':'none';reqBadge.textContent=pending.length;}
+  const list=(_messagesTab==='chats'?accepted:pending).filter(c=>{
+    if(!q)return true;
+    const u=authorFromId(c.otherId);
+    return!!u&&((u.name||'').toLowerCase().includes(q)||(u.username||'').toLowerCase().includes(q));
+  }).sort((a,b)=>b.lastMessageAt-a.lastMessageAt);
+  const cont=document.getElementById('messages-list');
+  if(!cont)return;
+  if(!list.length){
+    cont.innerHTML=_messagesTab==='chats'
+      ?`<div class="empty card"><i class="ti ti-send"></i><p>Aún no tienes conversaciones</p><span>Busca a alguien y envíale un mensaje desde su perfil</span></div>`
+      :`<div class="empty card"><i class="ti ti-mail"></i><p>No tienes solicitudes de mensaje</p></div>`;
+    return;
+  }
+  cont.innerHTML=list.map(c=>{
+    const u=authorFromId(c.otherId)||{name:'Lector',username:'',initials:'??',bg:'#EEE',tc:'#555',photo:null};
+    const av=u.photo?`background-image:url(${u.photo});background-size:cover`:`background:${u.bg}`;
+    const isPending=_messagesTab==='requests';
+    return`<div class="chat-row ${c.unread?'unread':''}" ${isPending?'':`onclick="go('chatdetail',null,'${c.id}')"`}>
+      <div class="u-av" style="${av};width:44px;height:44px;flex-shrink:0">${u.photo?'':u.initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="chat-row-name">${escapeHtml(u.name||u.username)}</div>
+        <div class="chat-row-preview">${c.lastMessage?escapeHtml(c.lastMessage.slice(0,60)):'Solicitud de mensaje'}</div>
+      </div>
+      ${isPending?`<div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-sm btn-red" onclick="event.stopPropagation();acceptMessageRequest('${c.id}');go('chatdetail',null,'${c.id}')">Aceptar</button>
+        <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();declineMessageRequest('${c.id}')">Rechazar</button>
+      </div>`:`<div class="chat-row-meta">${c.unread?'<span class="chat-unread-dot"></span>':''}<span class="chat-row-time">${timeAgo(c.lastMessageAt)}</span></div>`}
+    </div>`;
+  }).join('');
+}
+
+async function renderChatDetail(convId){
+  CURRENT_CHAT_CONV_ID=convId;
+  let conv=CONVERSATIONS.find(c=>c.id===convId);
+  if(!conv){
+    await loadSupaConversations();
+    conv=CONVERSATIONS.find(c=>c.id===convId);
+  }
+  const header=document.getElementById('chat-detail-header');
+  if(!conv){
+    header.innerHTML=`<button class="btn btn-white btn-sm" onclick="goBackFromChat()"><i class="ti ti-arrow-left"></i></button>`;
+    document.getElementById('chat-messages').innerHTML='<div class="empty" style="padding:60px 0"><i class="ti ti-mood-confuzed"></i><p>Conversación no encontrada.</p></div>';
+    document.getElementById('chat-input-row').style.display='none';
+    document.getElementById('chat-request-banner').style.display='none';
+    return;
+  }
+  await ensureAuthorsLoaded([conv.otherId]);
+  const u=authorFromId(conv.otherId)||{name:'Lector',username:'',initials:'??',bg:'#EEE',tc:'#555',photo:null};
+  const av=u.photo?`background-image:url(${u.photo});background-size:cover`:`background:${u.bg}`;
+  header.innerHTML=`
+    <button class="btn btn-white btn-sm" onclick="goBackFromChat()"><i class="ti ti-arrow-left"></i></button>
+    <div class="u-av" style="${av};width:36px;height:36px;cursor:pointer;flex-shrink:0" onclick="go('userprofile',null,'${u.username}')">${u.photo?'':u.initials}</div>
+    <div style="flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${u.username}')">
+      <div style="font-weight:700;font-size:14px">${escapeHtml(u.name||u.username)}</div>
+      <div style="font-size:12px;color:var(--ink3)">@${escapeHtml(u.username||'')}</div>
+    </div>`;
+  const isIncomingRequest=conv.status==='pending'&&conv.initiatorId!==SUPA_USER.id;
+  const banner=document.getElementById('chat-request-banner');
+  banner.style.display=isIncomingRequest?'flex':'none';
+  banner.dataset.convId=convId;
+  document.getElementById('chat-input-row').style.display=isIncomingRequest?'none':'flex';
+  if(!MESSAGES_BY_CONV[convId])await loadChatMessages(convId);
+  else{
+    if(conv.unread){conv.unread=0;updateMessagesBadge();}
+    markConversationRead(convId);
+  }
+  renderChatMessages();
+}
+function renderChatMessages(){
+  const convId=CURRENT_CHAT_CONV_ID;
+  const cont=document.getElementById('chat-messages');
+  if(!cont)return;
+  const msgs=MESSAGES_BY_CONV[convId]||[];
+  if(!msgs.length){
+    cont.innerHTML='<div class="empty" style="padding:40px 0"><i class="ti ti-message-2"></i><p>Decid algo 👋</p></div>';
+    return;
+  }
+  cont.innerHTML=msgs.map(m=>{
+    const mine=SUPA_USER&&m.senderId===SUPA_USER.id;
+    return`<div class="chat-msg ${mine?'mine':'theirs'}" data-id="${m.id}">
+      <div class="chat-bubble">${escapeHtml(m.text)}</div>
+      <div class="chat-msg-time">${timeAgo(m.createdAt)}${mine?`· <button class="chat-msg-del" onclick="unsendMessage('${m.id}')">Eliminar</button>`:''}</div>
+    </div>`;
+  }).join('');
+  cont.scrollTop=cont.scrollHeight;
+}
+
 // Populates .reactions ({emoji:count}) and .myReaction (single emoji or null)
 // on every already-loaded post in POSTS_BY_ID.
 async function loadPostReactionsInto(postIds){
@@ -4417,7 +4858,11 @@ function subscribeToFeedRealtime(){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('INSERT',payload))
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('UPDATE',payload))
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('DELETE',payload))
-    .subscribe();
+    // Si esto no llega nunca a 'SUBSCRIBED' (o llega a CHANNEL_ERROR/TIMED_OUT),
+    // las tablas no están añadidas a la publicación supabase_realtime — hay que
+    // volver a ejecutar ese bloque del SQL. Visible en la consola para depurar
+    // sin tener que adivinar por qué algo "no llega al instante".
+    .subscribe(status=>{if(status!=='SUBSCRIBED')console.log('feed realtime channel status:',status);});
 }
 
 // Every handler below skips events caused by the current user's own actions —
@@ -4525,12 +4970,15 @@ async function _supaEnterApp(){
   const retosP=_safeLoad(loadSupaRetos,'loadSupaRetos');
   const clubsP=_safeLoad(loadSupaClubs,'loadSupaClubs');
   const postsP=Promise.all([blocksP,friendsP]).then(()=>_safeLoad(loadSupaPosts,'loadSupaPosts'));
+  const discoverPostsP=Promise.all([blocksP,friendsP]).then(()=>_safeLoad(loadSupaDiscoverPosts,'loadSupaDiscoverPosts'));
   const friendsBooksP=friendsP.then(()=>_safeLoad(loadFriendsBooksCache,'loadFriendsBooksCache'));
+  const conversationsP=_safeLoad(loadSupaConversations,'loadSupaConversations');
 
-  await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,friendsBooksP]);
+  await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,discoverPostsP,friendsBooksP,conversationsP]);
 
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{subscribeToFeedRealtime();}catch(e){console.error('subscribeToFeedRealtime failed:',e);}
+  try{subscribeToMessagesRealtime();}catch(e){console.error('subscribeToMessagesRealtime failed:',e);}
   // A SIGNED_OUT event can land while the awaits above are still in flight (e.g. user
   // signs out from another tab mid-load) — don't flip into the app for a session
   // that no longer exists.
@@ -5241,6 +5689,18 @@ let RETOS=[];
 let FRIENDS=[];
 let FOLLOWERS=[];
 let NOTIFICATIONS=[];
+// "Para ti" mezcla tus posts + los de a quien sigues con posts públicos
+// populares de gente que no sigues (al estilo "For you" de Twitter);
+// "Siguiendo" es solo la gente que sigues. Se recuerda entre sesiones.
+let DISCOVER_POSTS=[];
+let FEED_MODE=localStorage.getItem('shelfie_feed_mode')||'foryou';
+// Mensajes directos (estilo Instagram): una conversación por pareja de
+// usuarios, con solicitudes ('pending') hasta que quien recibe responde o
+// acepta explícitamente.
+let CONVERSATIONS=[];
+let MESSAGES_BY_CONV={};
+let CURRENT_CHAT_CONV_ID=null;
+let _messagesTab='chats';
 
 const COMMUNITY_RETOS=[
   {
@@ -6549,7 +7009,7 @@ function toast(msg){const el=document.getElementById('toast');el.textContent=msg
 // the user actually came from, instead of a hardcoded destination per page type.
 let NAV_STACK=[];
 let CURRENT_ENTITY={}; // {bookdetail:id, authorpage:id, clubdetail:id, userprofile:username}
-const NB_INDEX={home:0,shelf:1,discover:2,events:3,feed:4,friends:5,clubs:6,retos:7,stats:8};
+const NB_INDEX={home:0,shelf:1,discover:2,events:3,feed:4,messages:5,friends:6,clubs:7,retos:8,stats:9};
 function nbFor(id){const i=NB_INDEX[id];return i!=null?document.querySelectorAll('.nb')[i]:null;}
 
 function toggleMobileNav(){
@@ -6576,7 +7036,7 @@ function restoreLastPage(){
 // un-hyphenated logical id — so a raw `fromPage.id.replace(/^p-/,'')` produced a
 // mismatched key that silently dropped the entity id and skipped re-rendering
 // whenever you navigated away from a detail page.
-const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile','event-detail':'eventdetail'};
+const DOM_ID_TO_PAGE_ID={'book-detail':'bookdetail','author-page':'authorpage','club-detail':'clubdetail','user-profile':'userprofile','event-detail':'eventdetail','chat-detail':'chatdetail'};
 function go(id,btn,extraId,_isBack){
   if(!_isBack){
     const fromPage=document.querySelector('.page.on');
@@ -6625,10 +7085,16 @@ function go(id,btn,extraId,_isBack){
     renderEventDetailPage(extraId);
     return;
   }
+  if(id==='chatdetail'){
+    CURRENT_ENTITY.chatdetail=extraId;
+    document.getElementById('p-chat-detail').classList.add('on');
+    renderChatDetail(extraId);
+    return;
+  }
   document.getElementById('p-'+id).classList.add('on');
   if(btn)btn.classList.add('on');
   ({shelf:renderShelf,stats:renderStats,retos:renderRetos,
-    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs,events:renderEventsPage})[id]?.();
+    home:updateHome,ranking:renderRanking,friends:renderFriends,profile:renderProfile,discover:renderDiscover,feed:renderFeedPage,clubs:renderClubs,events:renderEventsPage,messages:renderMessagesPage})[id]?.();
 }
 
 // Pops the last page off the history stack and returns to it. Falls back to a
@@ -6644,6 +7110,7 @@ function goBackFromBookPage(){goBack('shelf');}
 function goBackFromAuthorPage(){goBack('shelf');}
 function goBackFromUserProfile(){goBack('friends');}
 function goBackFromEventPage(){goBack('events');}
+function goBackFromChat(){CURRENT_CHAT_CONV_ID=null;goBack('messages');}
 
 // ═══════════════════════════════════════════════
 // OTHER USERS' PROFILES (public, read-only view)
@@ -6869,6 +7336,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached,ha
     </div>
     <div style="display:flex;gap:8px;margin:16px 0">
       <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+      ${SUPA_USER?`<button class="btn btn-white btn-lg" onclick="openChat('${profile.id}')"><i class="ti ti-send"></i> Mensaje</button>`:''}
       ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
         <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
         <div class="move-menu-dropdown" id="move-menu-up-actions">
@@ -6932,6 +7400,7 @@ function renderFeedPage(){
     const activeModeBtn=document.querySelector('.composer-mode.on')||document.querySelector('.composer-mode[data-mode="tweet"]');
     if(activeModeBtn)setComposerMode(activeModeBtn);
   }
+  document.querySelectorAll('#feed-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.feedmode===FEED_MODE));
   renderUserPosts();
 }
 
@@ -12066,7 +12535,7 @@ function threadDetailHtml(club,t){
         <div class="thread-post-text">${escapeHtml(p.text)}</div>
         <div class="post-actions">
           <span style="font-size:11px;color:var(--ink3)">${p.date}</span>
-          <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="likePost('${club.id}','${t.id}',${i})"><i class="ti ti-heart" style="font-size:11px"></i> ${p.likes||0}</button>
+          <button class="like-btn${p.likedByMe?' on':''}" style="padding:2px 8px;font-size:11px" onclick="likePost('${club.id}','${t.id}',${i})"><span class="lb-icon" style="font-size:11px">${heartIco(p.likedByMe)}</span> ${p.likes||0}</button>
           <button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="setQuoteReply('${t.id}',${i},'${escapeHtml(p.author).replace(/'/g,"\\'")}','${escapeHtml((p.text||'').slice(0,100)).replace(/'/g,"\\'")}')"><i class="ti ti-corner-up-left" style="font-size:11px"></i> Citar</button>
         </div>
       </div>
@@ -12131,7 +12600,9 @@ function likePost(clubId,threadId,postIdx){
   if(!club)return;
   const t=club.threads.find(th=>th.id===threadId);
   if(!t||!t.posts[postIdx])return;
-  t.posts[postIdx].likes=(t.posts[postIdx].likes||0)+1;
+  const post=t.posts[postIdx];
+  post.likedByMe=!post.likedByMe;
+  post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   saveSupaClub(club);
   renderClubDebates(club);
 }
@@ -12179,7 +12650,7 @@ function renderClubForo(club){
         </div>
         ${p.type==='cita'||p.type==='marginalia'?`<div style="border-left:3px solid var(--red);padding:8px 12px;background:#FAFAFA;border-radius:0 8px 8px 0;font-style:italic;font-size:13px;color:var(--ink2);margin-bottom:8px">"${escapeHtml(p.text)}"</div>${p.source?`<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">— ${escapeHtml(p.source)}</div>`:''}`:`<div style="font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:8px">${escapeHtml(p.text)}</div>`}
         <div class="post-actions" style="border-top:1px solid #EBEBEB;padding-top:8px;margin-top:4px">
-          <button class="btn btn-sm${p.likedByMe?' btn-red':''}" style="padding:2px 10px;font-size:12px" onclick="likeForumPost('${club.id}',${pi})"><i class="ti ti-heart" style="font-size:11px"></i> ${p.likes||0}</button>
+          <button class="like-btn${p.likedByMe?' on':''}" style="padding:2px 10px;font-size:12px" onclick="likeForumPost('${club.id}',${pi})"><span class="lb-icon" style="font-size:11px">${heartIco(p.likedByMe)}</span> ${p.likes||0}</button>
           <button class="btn btn-sm btn-ghost" style="padding:2px 10px;font-size:12px" onclick="toggleForumComments('fp-comments-${p.id}')"><i class="ti ti-message-circle" style="font-size:11px"></i> ${(p.comments||[]).length}</button>
           ${p.author==='Tú'?`<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;margin-left:auto" onclick="deleteForumPost('${club.id}','${p.id}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`:''}
         </div>
@@ -15048,9 +15519,24 @@ function timeAgo(ts){
   return `hace ${Math.floor(diff/86400)}d`;
 }
 
+function feedPostsForMode(){
+  if(FEED_MODE==='following')return USER_POSTS.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const seen=new Set();
+  return[...USER_POSTS,...DISCOVER_POSTS].filter(p=>{
+    if(seen.has(p.id))return false;
+    seen.add(p.id);
+    return true;
+  }).sort((a,b)=>b.createdAt-a.createdAt);
+}
 function renderUserPosts(){
   const cont=document.getElementById('user-posts');
-  cont.innerHTML=USER_POSTS.map(p=>renderOnePost(p)).join('');
+  cont.innerHTML=feedPostsForMode().map(p=>renderOnePost(p)).join('');
+}
+function setFeedMode(btn,mode){
+  FEED_MODE=mode;
+  localStorage.setItem('shelfie_feed_mode',mode);
+  document.querySelectorAll('#feed-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.feedmode===mode));
+  renderUserPosts();
 }
 
 function onShelfiePostSpineClick(title,author){
@@ -15203,7 +15689,7 @@ function renderOnePost(p){
         <div class="upost-comment-body">
           <div class="upost-comment-name">${escapeHtml(c.name)}</div>
           <div class="upost-comment-text">${escapeHtml(c.text)}</div>
-          ${c.id?`<button class="comment-like-btn ${c.likedByMe?'on':''}" onclick="toggleCommentLike('${p.id}','${c.id}',this)"><i class="ti ti-heart" style="font-size:11px"></i> <span>${c.likes||''}</span></button>`:''}
+          ${c.id?`<button class="comment-like-btn ${c.likedByMe?'on':''}" onclick="toggleCommentLike('${p.id}','${c.id}',this)"><span class="lb-icon" style="font-size:11px">${heartIco(c.likedByMe)}</span> <span class="lb-count">${c.likes||''}</span></button>`:''}
         </div>
       </div>`).join('')}</div>`:'';
 
@@ -15245,7 +15731,7 @@ function renderOnePost(p){
       ${narrativeBlock}
       ${reactionsHtml}
       <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''};position:relative">
-        <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><i class="ti ti-heart"></i> <span>${likeCount}</span></button>
+        <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><span class="lb-icon">${heartIco(p.likedByMe)}</span> <span class="lb-count">${likeCount}</span></button>
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
         <button class="fc-action-btn" onclick="event.stopPropagation();toggleReactionPicker('${p.id}',this)"><i class="ti ti-mood-plus"></i> Reaccionar</button>
         ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
@@ -15288,14 +15774,16 @@ async function togglePostLike(id,btn){
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
-  btn.querySelector('span').textContent=post.likes;
+  btn.querySelector('.lb-icon').innerHTML=heartIco(post.likedByMe);
+  btn.querySelector('.lb-count').textContent=post.likes;
   const ok=await toggleSupaLike(id,post.likedByMe);
   if(!ok){
     // revert the optimistic toggle — it never actually saved
     post.likedByMe=!post.likedByMe;
     post.likes=(post.likes||0)+(post.likedByMe?1:-1);
     btn.classList.toggle('on',post.likedByMe);
-    btn.querySelector('span').textContent=post.likes;
+    btn.querySelector('.lb-icon').innerHTML=heartIco(post.likedByMe);
+    btn.querySelector('.lb-count').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
   }else if(post.likedByMe&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
     // Best-effort, igual que la notificación de "te sigue" — no bloquea la
@@ -15364,13 +15852,15 @@ async function toggleCommentLike(postId,commentId,btn){
   comment.likedByMe=!comment.likedByMe;
   comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
   btn.classList.toggle('on',comment.likedByMe);
-  btn.querySelector('span').textContent=comment.likes||'';
+  btn.querySelector('.lb-icon').innerHTML=heartIco(comment.likedByMe);
+  btn.querySelector('.lb-count').textContent=comment.likes||'';
   const ok=await toggleSupaCommentLike(commentId,comment.likedByMe);
   if(!ok){
     comment.likedByMe=!comment.likedByMe;
     comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
     btn.classList.toggle('on',comment.likedByMe);
-    btn.querySelector('span').textContent=comment.likes||'';
+    btn.querySelector('.lb-icon').innerHTML=heartIco(comment.likedByMe);
+    btn.querySelector('.lb-count').textContent=comment.likes||'';
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
   }else if(comment.likedByMe&&SUPA_USER&&comment.userId&&comment.userId!==SUPA_USER.id){
     // Al autor DEL COMENTARIO, no al del post — pueden ser personas distintas.
@@ -15496,6 +15986,11 @@ function escapeHtml(s){
   d.textContent=s;
   return d.innerHTML;
 }
+
+// Solid heart shown once liked — a distinct filled glyph (not just a recolored
+// outline) reads much more clearly as "liked", matching Instagram/Twitter.
+const HEART_FILLED_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display:inline-block;vertical-align:-2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+function heartIco(liked){return liked?HEART_FILLED_SVG:'<i class="ti ti-heart"></i>';}
 
 // ═══════════════════════════════════════════════
 // KEYBOARD
