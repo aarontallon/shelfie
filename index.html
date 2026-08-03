@@ -1305,6 +1305,18 @@ a{color:inherit}
 .cover-drop{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:all 0.12s}
 .cover-drop:hover{border-color:var(--red);background:var(--red-light)}
 .cover-drop input{display:none}
+.scan-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:10px;overflow:hidden}
+.scan-video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-video-frame{position:absolute;left:10%;right:10%;top:38%;bottom:38%;border:2px solid rgba(255,255,255,0.85);border-radius:6px;box-shadow:0 0 0 2000px rgba(0,0,0,0.35);pointer-events:none}
+.book-page-cover-edit-btn{position:absolute;bottom:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.55);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;font-size:14px;transition:background 0.12s}
+.book-page-cover-edit-btn:hover{background:rgba(0,0,0,0.75)}
+.edit-cover-current-wrap{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
+.edit-cover-current{width:100px;height:150px;border-radius:8px;flex-shrink:0;box-shadow:0 4px 10px rgba(0,0,0,0.12)}
+.edit-cover-current .grid-cover{width:100%;height:100%;border-radius:8px}
+.edit-cover-editions-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:260px;overflow-y:auto;padding:2px}
+.edit-cover-option{aspect-ratio:2/3;border-radius:6px;background-size:cover;background-position:center;background-color:var(--shelf-bg);cursor:pointer;border:2px solid transparent;transition:all .12s}
+.edit-cover-option:hover{transform:translateY(-2px)}
+.edit-cover-option.sel{border-color:var(--red);box-shadow:0 0 0 2px var(--red-light)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1);border-radius:2px}
@@ -2257,9 +2269,11 @@ a{color:inherit}
   <button class="modal-close" onclick="closeModal('modal-add')"><i class="ti ti-x"></i></button>
   <h2>Añadir libro a tu shelfie</h2>
   <p class="sub">Busca un libro — aparecen portadas reales</p>
-  <div style="display:flex;gap:6px;margin-bottom:10px">
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
     <button id="srch-mode-title" class="srch-mode-btn active" onclick="setSearchMode('title')"><i class="ti ti-search" style="font-size:12px"></i> Título / Autor</button>
     <button id="srch-mode-isbn" class="srch-mode-btn" onclick="setSearchMode('isbn')"><i class="ti ti-barcode" style="font-size:12px"></i> ISBN</button>
+    <button id="srch-mode-scan" class="srch-mode-btn" onclick="setSearchMode('scan')"><i class="ti ti-camera" style="font-size:12px"></i> Escanear</button>
+    <button id="srch-mode-manual" class="srch-mode-btn" onclick="setSearchMode('manual')"><i class="ti ti-pencil" style="font-size:12px"></i> Escribirlo yo</button>
   </div>
   <div id="title-search-row" class="f-row">
     <label class="f-label">Buscar por título o autor</label>
@@ -2276,6 +2290,28 @@ a{color:inherit}
       <input class="srch-inp" id="isbn-inp" placeholder="Ej: 9788466346122" oninput="onISBNSearch(this.value)" autocomplete="off" inputmode="numeric">
     </div>
     <div id="isbn-status" style="font-size:12px;color:var(--ink3);margin-top:5px;min-height:18px"></div>
+  </div>
+  <div id="scan-search-row" style="display:none" class="f-row">
+    <label class="f-label">Apunta al código de barras del libro</label>
+    <div class="scan-video-wrap" id="scan-video-wrap">
+      <video id="scan-video" playsinline muted></video>
+      <div class="scan-video-frame"></div>
+    </div>
+    <div id="scan-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center;min-height:18px"></div>
+  </div>
+  <div id="manual-search-row" style="display:none">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><label class="f-label">Título</label><input class="f-input" id="m-title" placeholder="Título..."></div>
+      <div><label class="f-label">Autor</label><input class="f-input" id="m-author" placeholder="Autor..."></div>
+    </div>
+    <div class="f-row">
+      <label class="f-label">Portada (arrastra imagen o haz clic) <span style="color:var(--ink3);font-weight:400">(opcional)</span></label>
+      <div class="cover-drop" id="cover-drop" onclick="document.getElementById('cover-file').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
+        <input type="file" id="cover-file" accept="image/*" onchange="handleCoverFile(this)">
+        <div id="cover-drop-inner"><i class="ti ti-photo" style="font-size:20px;color:var(--ink3)"></i><p style="font-size:12px;color:var(--ink3);margin-top:4px">Sube la portada del libro</p></div>
+      </div>
+    </div>
+    <button class="btn btn-red w-full" onclick="confirmManualEntry()"><i class="ti ti-arrow-right"></i> Continuar</button>
   </div>
   <div id="edition-picker" style="display:none;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -2326,33 +2362,6 @@ a{color:inherit}
       <input class="f-input" type="number" id="qadd-pages" placeholder="Ej: 320" min="1">
     </div>
     <button class="btn btn-red w-full" onclick="confirmAdd()"><i class="ti ti-check"></i> Guardar en mi shelfie</button>
-  </div>
-  <div id="manual-section">
-    <div style="display:flex;align-items:center;gap:8px;margin:4px 0 14px;color:var(--ink3);font-size:12px">
-      <div style="flex:1;height:1px;background:var(--border)"></div> o introduce manualmente <div style="flex:1;height:1px;background:var(--border)"></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div><label class="f-label">Título</label><input class="f-input" id="m-title" placeholder="Título..."></div>
-      <div><label class="f-label">Autor</label><input class="f-input" id="m-author" placeholder="Autor..."></div>
-    </div>
-    <div class="f-row">
-      <label class="f-label">Portada (arrastra imagen o haz clic)</label>
-      <div class="cover-drop" id="cover-drop" onclick="document.getElementById('cover-file').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
-        <input type="file" id="cover-file" accept="image/*" onchange="handleCoverFile(this)">
-        <div id="cover-drop-inner"><i class="ti ti-photo" style="font-size:20px;color:var(--ink3)"></i><p style="font-size:12px;color:var(--ink3);margin-top:4px">Sube la portada del libro</p></div>
-      </div>
-    </div>
-    <div class="f-row">
-      <label class="f-label">Añadir a</label>
-      <select class="f-input" id="m-status" onchange="onManualStatusChange(this.value)">
-        <option value="leidos">✅ Leído</option><option value="leyendo">📖 Leyendo</option><option value="quiero">🔖 Quiero leer</option><option value="dnf">❌ Abandonado</option>
-      </select>
-    </div>
-    <div id="m-stars-row" class="f-row"><label class="f-label">Valoración</label><div class="star-row" id="m-stars"><span onclick="setStarManual(1)">★</span><span onclick="setStarManual(2)">★</span><span onclick="setStarManual(3)">★</span><span onclick="setStarManual(4)">★</span><span onclick="setStarManual(5)">★</span></div></div>
-    <div id="m-review-row" class="f-row"><label class="f-label">Reseña <span style="color:var(--ink3);font-weight:400">(opcional)</span></label><textarea class="f-input" id="m-review" style="height:70px;resize:vertical" placeholder="¿Qué te pareció?"></textarea></div>
-    <div id="m-finished-row" class="f-row"><label class="f-label">¿Cuándo lo terminaste? <span style="color:var(--ink3);font-weight:400">(opcional, por defecto hoy)</span></label><input class="f-input" type="date" id="m-finished"></div>
-    <div id="m-pages-row" style="display:none" class="f-row"><label class="f-label">Páginas totales</label><input class="f-input" type="number" id="m-pages" placeholder="Ej: 320" min="1"></div>
-    <button class="btn btn-red w-full" onclick="saveManual()"><i class="ti ti-check"></i> Guardar en mi shelfie</button>
   </div>
 </div>
 </div>
@@ -2655,6 +2664,34 @@ a{color:inherit}
     <i class="ti ti-loader-2 spin" style="font-size:28px;color:var(--red)"></i>
     <p style="margin-top:12px;font-size:13px;color:var(--ink2)" id="gr-import-progress-text">Importando…</p>
   </div>
+</div>
+</div>
+
+<!-- ══════════════════════ MODAL: CAMBIAR PORTADA ══════════════════════ -->
+<div class="overlay" id="modal-edit-cover" style="display:none" onclick="if(event.target===this)closeModal('modal-edit-cover')">
+<div class="modal" style="max-width:520px">
+  <button class="modal-close" onclick="closeModal('modal-edit-cover')"><i class="ti ti-x"></i></button>
+  <h2><i class="ti ti-photo"></i> Cambiar portada</h2>
+  <p class="sub" id="edit-cover-title" style="margin-bottom:16px"></p>
+
+  <div class="edit-cover-current-wrap">
+    <div class="edit-cover-current" id="edit-cover-current"></div>
+    <div style="flex:1;min-width:0">
+      <label class="btn btn-white" style="cursor:pointer;margin-bottom:8px" for="edit-cover-file"><i class="ti ti-file-upload"></i> Subir imagen</label>
+      <input type="file" id="edit-cover-file" accept="image/*" style="display:none" onchange="handleEditCoverFile(this)">
+      <button class="btn btn-white w-full" style="margin-bottom:8px" onclick="removeEditCoverCover()"><i class="ti ti-x"></i> Quitar portada</button>
+      <p class="text-xs text-muted">Sube tu propia imagen o elige una edición de abajo.</p>
+    </div>
+  </div>
+
+  <label class="f-label">Buscar otra edición en Open Library</label>
+  <div class="flex gap-2" style="margin-bottom:12px">
+    <input class="f-input" id="edit-cover-search-inp" placeholder="Título del libro..." onkeydown="if(event.key==='Enter')loadEditCoverEditions(this.value)">
+    <button class="btn btn-white" onclick="loadEditCoverEditions(document.getElementById('edit-cover-search-inp').value)"><i class="ti ti-search"></i></button>
+  </div>
+  <div class="edit-cover-editions-grid" id="edit-cover-editions-grid"></div>
+
+  <button class="btn btn-red w-full" style="margin-top:16px" onclick="saveEditCover()"><i class="ti ti-check"></i> Guardar portada</button>
 </div>
 </div>
 
@@ -5370,7 +5407,6 @@ let _clubBookPending=null;   // book object to add to club
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
 let retoAssigned=[];
 let starVal=0;
-let starManualVal=0;
 let currentTab='leidos';
 let CURRENT_SHELFIE_YEAR=new Date().getFullYear();
 let YEAR_GOAL_IDS=new Set(); // book IDs marked as "quiero leer este año" — the current year's Shelfie
@@ -6870,7 +6906,7 @@ function openModal(id){
   document.getElementById(id).style.display='flex';
   if(id==='modal-add')resetAddModal();
 }
-function closeModal(id){document.getElementById(id).style.display='none';}
+function closeModal(id){document.getElementById(id).style.display='none';if(id==='modal-add')stopBarcodeScanner();}
 
 // In-app replacements for the native confirm()/prompt() dialogs — those show the
 // browser's own chrome (site URL, generic buttons) instead of looking like the app.
@@ -6910,12 +6946,13 @@ function _resolvePromptModal(val){
 }
 
 function resetAddModal(){
-  starVal=0;starManualVal=0;pendingBook=null;customCover=null;_pendingStartReading=null;
+  starVal=0;pendingBook=null;customCover=null;_pendingStartReading=null;
   document.querySelector('#modal-add h2').textContent='Añadir libro a tu shelfie';
   document.querySelector('#modal-add .sub').textContent='Busca un libro — aparecen portadas reales';
   document.getElementById('modal-srch-inp').value='';
   document.getElementById('isbn-inp').value='';
   document.getElementById('isbn-status').textContent='';
+  document.getElementById('scan-status').textContent='';
   document.getElementById('modal-srch-drop').style.display='none';
   document.getElementById('qadd-panel').style.display='none';
   document.getElementById('edition-picker').style.display='none';
@@ -6923,23 +6960,15 @@ function resetAddModal(){
   setSearchMode('title');
   document.getElementById('m-title').value='';
   document.getElementById('m-author').value='';
-  document.getElementById('m-review').value='';
-  document.getElementById('m-pages').value='';
   document.getElementById('qadd-review').value='';
   document.getElementById('qadd-pages').value='';
   document.getElementById('qadd-finished').value='';
-  document.getElementById('m-finished').value='';
-  document.getElementById('m-status').value='leidos';
-  document.querySelectorAll('#qadd-stars span,#m-stars span').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('#qadd-stars span').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.status-btn').forEach(b=>{b.classList.remove('sel');if(b.dataset.s==='leidos')b.classList.add('sel');});
   document.getElementById('qadd-stars-row').style.display='block';
   document.getElementById('qadd-review-row').style.display='block';
   document.getElementById('qadd-finished-row').style.display='block';
   document.getElementById('qadd-pages-row').style.display='none';
-  document.getElementById('m-stars-row').style.display='block';
-  document.getElementById('m-review-row').style.display='block';
-  document.getElementById('m-finished-row').style.display='block';
-  document.getElementById('m-pages-row').style.display='none';
   document.getElementById('cover-drop-inner').innerHTML='<i class="ti ti-photo" style="font-size:20px;color:var(--ink3)"></i><p style="font-size:12px;color:var(--ink3);margin-top:4px">Sube la portada del libro</p>';
   setTimeout(()=>document.getElementById('modal-srch-inp').focus(),80);
 }
@@ -7014,11 +7043,123 @@ async function fetchOLWorkDetails(bookData){
 function setSearchMode(mode){
   document.getElementById('title-search-row').style.display=mode==='title'?'block':'none';
   document.getElementById('isbn-search-row').style.display=mode==='isbn'?'block':'none';
+  document.getElementById('scan-search-row').style.display=mode==='scan'?'block':'none';
+  document.getElementById('manual-search-row').style.display=mode==='manual'?'block':'none';
   document.getElementById('srch-mode-title').classList.toggle('active',mode==='title');
   document.getElementById('srch-mode-isbn').classList.toggle('active',mode==='isbn');
+  document.getElementById('srch-mode-scan').classList.toggle('active',mode==='scan');
+  document.getElementById('srch-mode-manual').classList.toggle('active',mode==='manual');
   document.getElementById('modal-srch-drop').style.display='none';
   document.getElementById('isbn-status').textContent='';
   document.getElementById('edition-picker').style.display='none';
+  document.getElementById('qadd-panel').style.display='none';
+  if(mode==='scan')startBarcodeScanner();else stopBarcodeScanner();
+}
+
+// ═══════════════════════════════════════════════
+// ESCÁNER DE CÓDIGO DE BARRAS
+// Lee el código de barras (ISBN) de la contraportada con la cámara y
+// reutiliza tal cual el mismo pipeline de búsqueda por ISBN que ya existe
+// (Open Library → Google Books → selector de portada) — el escáner solo
+// tiene que producir el número, no duplicar esa lógica.
+// Se usa la BarcodeDetector nativa cuando el navegador la soporta (Chrome/
+// Android); Safari/iOS no la implementa, así que ahí se carga bajo demanda
+// una librería JS (ZXing) que decodifica por software.
+// ═══════════════════════════════════════════════
+let _scanStream=null;
+let _scanRAF=null;
+let _scanZXingReader=null;
+let _scanZXingControls=null;
+let _scanZXingLoadPromise=null;
+
+function loadZXingScript(){
+  if(window.ZXingBrowser)return Promise.resolve();
+  if(_scanZXingLoadPromise)return _scanZXingLoadPromise;
+  _scanZXingLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@zxing/browser@latest';
+    s.onload=()=>resolve();
+    s.onerror=()=>reject(new Error('No se pudo cargar el lector de códigos'));
+    document.head.appendChild(s);
+  });
+  return _scanZXingLoadPromise;
+}
+
+async function startBarcodeScanner(){
+  const status=document.getElementById('scan-status');
+  const video=document.getElementById('scan-video');
+  status.textContent='Activando cámara…';
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+  }catch(e){
+    status.textContent='No se pudo acceder a la cámara (revisa los permisos) — usa ISBN o escríbelo tú.';
+    return;
+  }
+  video.srcObject=_scanStream;
+  try{await video.play();}catch(_){}
+  status.textContent='Apunta al código de barras del libro…';
+
+  let nativeOk=false;
+  if('BarcodeDetector' in window){
+    try{new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a']});nativeOk=true;scanLoopNative(video);}
+    catch(_){nativeOk=false;}
+  }
+  if(!nativeOk){
+    try{
+      await loadZXingScript();
+      scanLoopZXing(video,status);
+    }catch(e){
+      status.textContent='Tu navegador no soporta el escáner — usa ISBN o escríbelo tú.';
+    }
+  }
+}
+
+function scanLoopNative(video){
+  const detector=new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a']});
+  const tick=async()=>{
+    if(!_scanStream)return; // el escáner ya se detuvo (se cambió de modo o se cerró el modal)
+    try{
+      const codes=await detector.detect(video);
+      if(codes.length){onBarcodeDetected(codes[0].rawValue);return;}
+    }catch(_){}
+    _scanRAF=requestAnimationFrame(tick);
+  };
+  _scanRAF=requestAnimationFrame(tick);
+}
+
+function scanLoopZXing(video,status){
+  try{
+    const Reader=window.ZXingBrowser.BrowserMultiFormatReader;
+    _scanZXingReader=new Reader();
+    const onResult=(result,err,controls)=>{
+      if(controls)_scanZXingControls=controls;
+      if(result)onBarcodeDetected(result.getText());
+    };
+    const p=typeof _scanZXingReader.decodeFromStream==='function'
+      ?_scanZXingReader.decodeFromStream(_scanStream,video,onResult)
+      :_scanZXingReader.decodeFromVideoDevice(undefined,video,onResult);
+    p.catch(()=>{status.textContent='No se pudo iniciar el escáner — usa ISBN o escríbelo tú.';});
+  }catch(e){
+    status.textContent='No se pudo iniciar el escáner — usa ISBN o escríbelo tú.';
+  }
+}
+
+function onBarcodeDetected(text){
+  const isbn=(text||'').replace(/[^0-9X]/gi,'');
+  if(isbn.length<10)return;
+  stopBarcodeScanner();
+  setSearchMode('isbn');
+  document.getElementById('isbn-inp').value=isbn;
+  onISBNSearch(isbn);
+}
+
+function stopBarcodeScanner(){
+  if(_scanRAF){cancelAnimationFrame(_scanRAF);_scanRAF=null;}
+  if(_scanZXingControls){try{_scanZXingControls.stop();}catch(_){}_scanZXingControls=null;}
+  if(_scanZXingReader){try{_scanZXingReader.reset();}catch(_){}_scanZXingReader=null;}
+  if(_scanStream){_scanStream.getTracks().forEach(t=>t.stop());_scanStream=null;}
+  const video=document.getElementById('scan-video');
+  if(video)video.srcObject=null;
 }
 
 // Test if a cover URL actually has a real image (OL returns 1px blank for missing covers)
@@ -7357,13 +7498,6 @@ function selectStatus(btn){
   document.getElementById('qadd-pages-row').style.display=s==='leyendo'?'block':'none';
 }
 function setStar(n){starVal=n;document.querySelectorAll('#qadd-stars span').forEach((s,i)=>s.classList.toggle('on',i<n));}
-function setStarManual(n){starManualVal=n;document.querySelectorAll('#m-stars span').forEach((s,i)=>s.classList.toggle('on',i<n));}
-function onManualStatusChange(s){
-  document.getElementById('m-stars-row').style.display=s==='leidos'?'block':'none';
-  document.getElementById('m-review-row').style.display=s==='leidos'?'block':'none';
-  document.getElementById('m-finished-row').style.display=s==='leidos'?'block':'none';
-  document.getElementById('m-pages-row').style.display=s==='leyendo'?'block':'none';
-}
 
 // ═══════════════════════════════════════════════
 // ADD BOOK
@@ -7428,27 +7562,16 @@ function confirmAdd(){
   toast(`✅ «${pendingBook.title}» añadido a tu shelfie`);
 }
 
-function saveManual(){
+// La entrada manual ya no tiene su propio formulario ni su propia función de
+// guardado — solo identifica el libro (título/autor/portada) y entra en el
+// mismo panel de confirmación (estado, valoración, reseña...) que la búsqueda
+// por título o por ISBN, así que todo pasa por confirmAdd() de una sola vez.
+function confirmManualEntry(){
   const title=document.getElementById('m-title').value.trim();
   const author=document.getElementById('m-author').value.trim();
-  const status=document.getElementById('m-status').value;
-  const review=document.getElementById('m-review').value.trim();
-  const pages=parseInt(document.getElementById('m-pages').value)||null;
   if(!title){toast('⚠️ Escribe el título');document.getElementById('m-title').focus();return;}
   if(!author){toast('⚠️ Escribe el autor');document.getElementById('m-author').focus();return;}
-  if(status==='leidos'&&!starManualVal){toast('⚠️ Selecciona una valoración');return;}
-  const book={id:uuid(),title,author,year:'',status,stars:starManualVal,review,cover:customCover||null,color:COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages,curPage:0,rankPos:null};
-  if(status==='leidos'){
-    book.finishedAt=dateInputToFinishedAt(document.getElementById('m-finished').value);
-    book.readHistory=[{stars:starManualVal,finishedAt:book.finishedAt}];
-  }
-  DB[status].unshift(book);
-  if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
-  saveSupaBook(book);
-  closeModal('modal-add');
-  updateAll();
-  renderShelf();
-  toast(`✅ «${title}» añadido a tu shelfie`);
+  selectBookForAdd({title,author,year:'',pages:null,cover:customCover||null,olKey:null,authorOlKey:null});
 }
 
 function quickAddDirect(title,author,status,olKey,cover,color){
@@ -7570,11 +7693,18 @@ function mapGoodreadsRow(row){
 async function fetchOLCoverBySearch(title,author){
   try{
     const q=encodeURIComponent(`${title} ${author||''}`.trim());
-    const res=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`);
+    // Se piden varios candidatos (no solo el primero) y nos quedamos con el de
+    // mayor edition_count — Open Library lo devuelve por relevancia de texto,
+    // no por popularidad, y el resultado "más relevante" a veces es una
+    // edición rarísima con 1 sola impresión en vez de la edición conocida/
+    // reeditada muchas veces, que es la que casi siempre tiene mejor portada.
+    const res=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=8&fields=cover_i,edition_count`);
     if(!res.ok)return null;
     const d=await res.json();
-    const coverId=d.docs?.[0]?.cover_i;
-    return coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:null;
+    const docs=(d.docs||[]).filter(x=>x.cover_i);
+    if(!docs.length)return null;
+    docs.sort((a,b)=>(b.edition_count||0)-(a.edition_count||0));
+    return `https://covers.openlibrary.org/b/id/${docs[0].cover_i}-M.jpg`;
   }catch(_){return null;}
 }
 // Resuelve portadas para todo el lote con un límite de peticiones en
@@ -7732,6 +7862,90 @@ async function fixMissingCovers(){
   updateAll();
   renderShelf();
   toast(fixed.length?`✅ Portada encontrada para ${fixed.length} de ${books.length} libro${books.length===1?'':'s'}`:'No se encontró ninguna portada nueva');
+}
+
+// ═══════════════════════════════════════════════
+// CAMBIAR PORTADA (a posteriori) — elegir otra edición o subir una imagen
+// propia para un libro que ya está en el shelfie, sin depender de lo que se
+// resolvió automáticamente al añadirlo/importarlo.
+// ═══════════════════════════════════════════════
+let _editCoverBookId=null;
+let _editCoverPendingCover=null;
+
+function openEditCoverModal(bookId){
+  const book=allBooks().find(b=>b.id===bookId);
+  if(!book)return;
+  closeAllMoveMenus();
+  _editCoverBookId=bookId;
+  _editCoverPendingCover=book.cover||null;
+  document.getElementById('edit-cover-title').textContent=`${book.title} — ${book.author||''}`;
+  document.getElementById('edit-cover-search-inp').value=book.title;
+  document.getElementById('edit-cover-editions-grid').innerHTML='<div class="s-loading" style="grid-column:1/-1"><i class="ti ti-loader-2 spin"></i></div>';
+  renderEditCoverPreview();
+  openModal('modal-edit-cover');
+  loadEditCoverEditions(`${book.title} ${book.author||''}`.trim());
+}
+
+function renderEditCoverPreview(){
+  const book=allBooks().find(b=>b.id===_editCoverBookId);
+  if(!book)return;
+  document.getElementById('edit-cover-current').innerHTML=cvr({...book,cover:_editCoverPendingCover},'grid');
+}
+
+// Varios candidatos ordenados por edition_count (proxy de popularidad/edición
+// más extendida), igual que en la resolución automática al importar — así el
+// primero que se ve ya suele ser la portada "de verdad conocida" del libro.
+async function loadEditCoverEditions(query){
+  const grid=document.getElementById('edit-cover-editions-grid');
+  if(!query){grid.innerHTML='<div class="text-sm text-muted" style="grid-column:1/-1">Escribe algo para buscar.</div>';return;}
+  grid.innerHTML='<div class="s-loading" style="grid-column:1/-1"><i class="ti ti-loader-2 spin"></i></div>';
+  try{
+    const res=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=16&fields=cover_i,edition_count`);
+    const d=await res.json();
+    const docs=(d.docs||[]).filter(x=>x.cover_i);
+    if(!docs.length){grid.innerHTML='<div class="text-sm text-muted" style="grid-column:1/-1">No se encontraron portadas para esa búsqueda.</div>';return;}
+    docs.sort((a,b)=>(b.edition_count||0)-(a.edition_count||0));
+    grid.innerHTML=docs.map(x=>{
+      const url=`https://covers.openlibrary.org/b/id/${x.cover_i}-M.jpg`;
+      const sel=url===_editCoverPendingCover?' sel':'';
+      return `<div class="edit-cover-option${sel}" style="background-image:url('${url}')" onclick="selectEditCoverOption('${url}',this)"></div>`;
+    }).join('');
+  }catch(_){grid.innerHTML='<div class="text-sm text-muted" style="grid-column:1/-1">No se pudo conectar con Open Library.</div>';}
+}
+
+function selectEditCoverOption(url,el){
+  _editCoverPendingCover=url;
+  document.querySelectorAll('.edit-cover-option').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  renderEditCoverPreview();
+}
+
+function handleEditCoverFile(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    _editCoverPendingCover=e.target.result;
+    document.querySelectorAll('.edit-cover-option').forEach(o=>o.classList.remove('sel'));
+    renderEditCoverPreview();
+  };
+  r.readAsDataURL(file);
+}
+
+function removeEditCoverCover(){
+  _editCoverPendingCover=null;
+  document.querySelectorAll('.edit-cover-option').forEach(o=>o.classList.remove('sel'));
+  renderEditCoverPreview();
+}
+
+async function saveEditCover(){
+  const book=allBooks().find(b=>b.id===_editCoverBookId);
+  if(!book)return;
+  book.cover=_editCoverPendingCover||null;
+  await saveSupaBook(book);
+  closeModal('modal-edit-cover');
+  updateAll();
+  renderShelf();
+  toast('✅ Portada actualizada');
 }
 
 // ═══════════════════════════════════════════════
@@ -8540,6 +8754,7 @@ function bookActionsMenuItemsHtml(b){
   if(b.status!=='quiero')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','quiero');closeAllMoveMenus()"><i class="ti ti-bookmark"></i> Mover a pendientes</button>`);
   if(b.status!=='dnf')items.push(`<button onclick="moveBookUniversal('${b.id}','${b.status}','dnf');closeAllMoveMenus()"><i class="ti ti-x"></i> Abandonar (DNF)</button>`);
   if(b.status==='leidos')items.push(`<button onclick="openRereadModal('${b.id}');closeAllMoveMenus()"><i class="ti ti-refresh"></i> Volver a leer</button>`);
+  items.push(`<button onclick="openEditCoverModal('${b.id}')"><i class="ti ti-photo"></i> Cambiar portada</button>`);
   items.push(`<button onclick="toggleYearGoal('${b.id}');closeAllMoveMenus()"><i class="ti ti-calendar-event"></i> ${inYear?'Quitar del':'Añadir al'} Shelfie ${CURRENT_SHELFIE_YEAR}</button>`);
   items.push(`<button onclick="removeBook('${b.id}','${b.status}');closeAllMoveMenus()" style="color:var(--red)"><i class="ti ti-trash"></i> Eliminar</button>`);
   return items.join('');
@@ -9343,7 +9558,7 @@ function renderBookPage(key){
 
   document.getElementById('book-page-content').innerHTML=`
     <div class="book-page-hero">
-      <div class="book-page-cover" style="${book.cover?`background-image:url(${book.cover})`:`background:${book.color}`}"><div class="book-page-cover-txt">${book.cover?'':escapeHtml(book.title)}</div></div>
+      <div class="book-page-cover" style="${book.cover?`background-image:url(${book.cover})`:`background:${book.color}`}"><button class="book-page-cover-edit-btn" onclick="event.stopPropagation();openEditCoverModal('${book.id}')" title="Cambiar portada"><i class="ti ti-camera"></i></button><div class="book-page-cover-txt">${book.cover?'':escapeHtml(book.title)}</div></div>
       <div class="book-page-info">
         <div class="book-page-title">${escapeHtml(book.title)}</div>
         ${authorLinkHtml}
