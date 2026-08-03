@@ -42,7 +42,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8}
+:root{--red:#3D6B52;--red-dark:#2A4F3C;--red-light:#EBF4EF;--ink:#1A1A1A;--ink2:#555;--ink3:#999;--paper:#FFFFFF;--border:#E8E8E8;--green:#4A7C5F;--green-light:#ECFDF5;--amber:#D97706;--amber-light:#FFFBEB;--blue:#2563EB;--blue-light:#EFF6FF;--purple:#7C3AED;--purple-light:#F5F3FF;--shelf-bg:#FAFAFA;--shelf-plank:#1A1A1A;--shelf-wall:#1A1A1A;--shelf-border:#E8E8E8;--heart-red:#ED4956;--heart-red-light:#FDECEE}
 /* Reserva siempre el hueco de la barra de scroll vertical (aunque no haga falta
    todavía) para que cambiar de vista/pestaña y variar la altura del contenido no
    desplace unos píxeles el resto de la página al aparecer/desaparecer la barra.
@@ -635,9 +635,9 @@ a{color:inherit}
 .f-txt{font-size:13px;color:var(--ink);line-height:1.6}
 .f-time{font-size:11px;color:var(--ink3);margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .like-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--ink3);display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;font-family:'Inter',sans-serif;transition:all 0.12s}
-.like-btn:hover,.like-btn.on{color:var(--red);background:var(--red-light)}
+.like-btn:hover,.like-btn.on{color:var(--heart-red);background:var(--heart-red-light)}
 .comment-like-btn{background:none;border:none;cursor:pointer;font-size:11px;color:var(--ink3);display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border-radius:5px;margin-top:3px;font-family:'Inter',sans-serif}
-.comment-like-btn:hover,.comment-like-btn.on{color:var(--red)}
+.comment-like-btn:hover,.comment-like-btn.on{color:var(--heart-red)}
 .post-reactions-summary{display:inline-flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer;padding:3px 8px 3px 4px;border-radius:14px;background:var(--paper);width:fit-content}
 .post-reactions-summary:hover{background:#EFEFEF}
 .post-reactions-cluster{display:inline-flex}
@@ -1042,8 +1042,15 @@ a{color:inherit}
 .club-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid white;margin-left:-7px;flex-shrink:0}
 .club-av:first-child{margin-left:0}
 
+/* ══ horizontal-scroll "more" hint (tabs/chips that overflow) ══ */
+.hscroll-hint{position:absolute;top:0;right:0;bottom:0;width:38px;display:flex;align-items:center;justify-content:flex-end;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:3}
+.hscroll-hint::before{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent,var(--paper) 65%)}
+.hscroll-hint i{position:relative;font-size:13px;color:var(--ink2);background:var(--paper);border-radius:50%;width:23px;height:23px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 5px rgba(0,0,0,0.14);border:1px solid var(--border);animation:hscrollPulse 1.6s ease-in-out infinite}
+.scroll-fade~.hscroll-hint{opacity:1}
+@keyframes hscrollPulse{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+
 /* ══ CLUB DETAIL PAGE ══ */
-.club-detail-body{padding:0 28px 28px}
+.club-detail-body{padding:0}
 .club-detail-header{background:#1A1A1A;border-radius:20px;padding:28px 32px;margin-bottom:18px;color:white;position:relative;overflow:hidden}
 .club-detail-header::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 85% 15%,rgba(61,107,82,0.16) 0%,transparent 70%);pointer-events:none}
 .club-detail-hero-top{position:relative;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
@@ -1060,15 +1067,15 @@ a{color:inherit}
 .club-members-preview{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);position:relative;z-index:2}
 .club-detail-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-end;position:relative;z-index:2;flex-shrink:0}
 .club-detail-next-meeting{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-align:right}
-.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.club-detail-tabs-wrap{position:relative;margin-bottom:20px}
+.club-detail-tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);overflow-x:auto;scrollbar-width:none}
 .club-detail-tabs::-webkit-scrollbar{display:none}
-.club-detail-tabs.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
+.club-detail-tabs-wrap .hscroll-hint{bottom:2px}
 .club-detail-tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.12s;white-space:nowrap;flex-shrink:0}
 .club-detail-tab.on{color:var(--red);border-bottom-color:var(--red)}
 .club-detail-panel{display:none}
 .club-detail-panel.on{display:block}
 @media (max-width:640px){
-  .club-detail-body{padding:0 16px 16px}
   .club-detail-header{padding:20px 18px}
   .club-detail-hero-top{flex-direction:column}
   .club-detail-actions{align-items:flex-start;width:100%}
@@ -1208,9 +1215,9 @@ a{color:inherit}
 .disc-search{width:100%;padding:11px 16px 11px 40px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Inter',sans-serif;background:white;color:var(--ink);outline:none;box-sizing:border-box;transition:border-color .15s}
 .disc-search:focus{border-color:var(--ink)}
 .disc-search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--ink3);font-size:16px;pointer-events:none}
-.disc-genres{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.disc-genres-wrap{position:relative;margin-bottom:16px}
+.disc-genres{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .disc-genres::-webkit-scrollbar{display:none}
-.disc-genres.scroll-fade{-webkit-mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%);mask-image:linear-gradient(to right,black calc(100% - 28px),transparent 100%)}
 .dg-tab{flex-shrink:0;font-size:12px;font-weight:500;padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:white;color:var(--ink3);cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all .15s}
 .dg-tab.on{background:var(--ink);color:white;border-color:var(--ink)}
 .dg-tab:hover:not(.on){border-color:var(--ink);color:var(--ink)}
@@ -1469,7 +1476,7 @@ a{color:inherit}
           <path d="M262 290 L268 296 L280 282" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           <text x="20" y="296" font-family="Inter,sans-serif" font-size="11" fill="#999">Compartida con 9 amigos</text>
         </svg>
-        <div class="landing-floaty landing-floaty-1"><i class="ti ti-heart" style="color:var(--red)"></i> A Ana le encantó tu reseña</div>
+        <div class="landing-floaty landing-floaty-1"><span style="color:var(--heart-red);display:inline-flex"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display:inline-block;vertical-align:-2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></span> A Ana le encantó tu reseña</div>
         <div class="landing-floaty landing-floaty-2"><i class="ti ti-trophy" style="color:var(--amber)"></i> Reto completado 🎉</div>
       </div>
     </div>
@@ -3061,16 +3068,19 @@ a{color:inherit}
   </div>
 
   <!-- Genre tabs -->
-  <div class="disc-genres">
-    <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
-    <button class="dg-tab" data-genre="Ficción" onclick="setDiscoverGenre(this,'Ficción')">Ficción</button>
-    <button class="dg-tab" data-genre="Clásicos" onclick="setDiscoverGenre(this,'Clásicos')">Clásicos</button>
-    <button class="dg-tab" data-genre="Latinoamérica" onclick="setDiscoverGenre(this,'Latinoamérica')">Latinoamérica</button>
-    <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
-    <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
-    <button class="dg-tab" data-genre="Poesía" onclick="setDiscoverGenre(this,'Poesía')">Poesía</button>
-    <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
-    <button class="dg-tab" data-genre="Misterio" onclick="setDiscoverGenre(this,'Misterio')">Misterio</button>
+  <div class="disc-genres-wrap">
+    <div class="disc-genres">
+      <button class="dg-tab on" data-genre="all" onclick="setDiscoverGenre(this,'all')">Todo</button>
+      <button class="dg-tab" data-genre="Ficción" onclick="setDiscoverGenre(this,'Ficción')">Ficción</button>
+      <button class="dg-tab" data-genre="Clásicos" onclick="setDiscoverGenre(this,'Clásicos')">Clásicos</button>
+      <button class="dg-tab" data-genre="Latinoamérica" onclick="setDiscoverGenre(this,'Latinoamérica')">Latinoamérica</button>
+      <button class="dg-tab" data-genre="Historia" onclick="setDiscoverGenre(this,'Historia')">Historia</button>
+      <button class="dg-tab" data-genre="Ensayo" onclick="setDiscoverGenre(this,'Ensayo')">Ensayo</button>
+      <button class="dg-tab" data-genre="Poesía" onclick="setDiscoverGenre(this,'Poesía')">Poesía</button>
+      <button class="dg-tab" data-genre="Sci-Fi" onclick="setDiscoverGenre(this,'Sci-Fi')">Sci-Fi</button>
+      <button class="dg-tab" data-genre="Misterio" onclick="setDiscoverGenre(this,'Misterio')">Misterio</button>
+    </div>
+    <div class="hscroll-hint"><i class="ti ti-chevron-right"></i></div>
   </div>
 
   <!-- Main sections -->
@@ -3382,19 +3392,22 @@ a{color:inherit}
 </div>
 
 <!-- ── CLUB DETAIL ── -->
-<div id="p-club-detail" class="page" style="padding:0">
-  <div class="club-detail-header" id="club-detail-header" style="position:relative;margin:0">
+<div id="p-club-detail" class="page">
+  <div class="club-detail-header" id="club-detail-header" style="position:relative">
     <button class="btn btn-white btn-sm" style="position:absolute;top:20px;left:24px;z-index:10" onclick="goBack('clubs')"><i class="ti ti-arrow-left"></i> Volver</button>
     <div id="club-detail-hero"></div>
   </div>
   <div class="club-detail-body">
-    <div class="club-detail-tabs" id="club-detail-tabs">
-      <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
-      <button class="club-detail-tab" data-tab="foro" onclick="setClubTab(this,'foro')"><i class="ti ti-layout-list"></i> Foro</button>
-      <button class="club-detail-tab" data-tab="libros" onclick="setClubTab(this,'libros')"><i class="ti ti-books"></i> Libros</button>
-      <button class="club-detail-tab" data-tab="miembros" onclick="setClubTab(this,'miembros')"><i class="ti ti-users"></i> Miembros</button>
-      <button class="club-detail-tab" data-tab="retos" onclick="setClubTab(this,'retos')"><i class="ti ti-trophy"></i> Retos</button>
-      <button class="club-detail-tab" data-tab="anuncios" onclick="setClubTab(this,'anuncios')"><i class="ti ti-speakerphone"></i> Anuncios</button>
+    <div class="club-detail-tabs-wrap">
+      <div class="club-detail-tabs" id="club-detail-tabs">
+        <button class="club-detail-tab on" data-tab="debates" onclick="setClubTab(this,'debates')"><i class="ti ti-messages"></i> Debates</button>
+        <button class="club-detail-tab" data-tab="foro" onclick="setClubTab(this,'foro')"><i class="ti ti-layout-list"></i> Foro</button>
+        <button class="club-detail-tab" data-tab="libros" onclick="setClubTab(this,'libros')"><i class="ti ti-books"></i> Libros</button>
+        <button class="club-detail-tab" data-tab="miembros" onclick="setClubTab(this,'miembros')"><i class="ti ti-users"></i> Miembros</button>
+        <button class="club-detail-tab" data-tab="retos" onclick="setClubTab(this,'retos')"><i class="ti ti-trophy"></i> Retos</button>
+        <button class="club-detail-tab" data-tab="anuncios" onclick="setClubTab(this,'anuncios')"><i class="ti ti-speakerphone"></i> Anuncios</button>
+      </div>
+      <div class="hscroll-hint"><i class="ti ti-chevron-right"></i></div>
     </div>
     <div class="club-detail-panel on" id="club-panel-debates"></div>
     <div class="club-detail-panel" id="club-panel-foro"></div>
@@ -12066,7 +12079,7 @@ function threadDetailHtml(club,t){
         <div class="thread-post-text">${escapeHtml(p.text)}</div>
         <div class="post-actions">
           <span style="font-size:11px;color:var(--ink3)">${p.date}</span>
-          <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="likePost('${club.id}','${t.id}',${i})"><i class="ti ti-heart" style="font-size:11px"></i> ${p.likes||0}</button>
+          <button class="like-btn${p.likedByMe?' on':''}" style="padding:2px 8px;font-size:11px" onclick="likePost('${club.id}','${t.id}',${i})"><span class="lb-icon" style="font-size:11px">${heartIco(p.likedByMe)}</span> ${p.likes||0}</button>
           <button class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px" onclick="setQuoteReply('${t.id}',${i},'${escapeHtml(p.author).replace(/'/g,"\\'")}','${escapeHtml((p.text||'').slice(0,100)).replace(/'/g,"\\'")}')"><i class="ti ti-corner-up-left" style="font-size:11px"></i> Citar</button>
         </div>
       </div>
@@ -12131,7 +12144,9 @@ function likePost(clubId,threadId,postIdx){
   if(!club)return;
   const t=club.threads.find(th=>th.id===threadId);
   if(!t||!t.posts[postIdx])return;
-  t.posts[postIdx].likes=(t.posts[postIdx].likes||0)+1;
+  const post=t.posts[postIdx];
+  post.likedByMe=!post.likedByMe;
+  post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   saveSupaClub(club);
   renderClubDebates(club);
 }
@@ -12179,7 +12194,7 @@ function renderClubForo(club){
         </div>
         ${p.type==='cita'||p.type==='marginalia'?`<div style="border-left:3px solid var(--red);padding:8px 12px;background:#FAFAFA;border-radius:0 8px 8px 0;font-style:italic;font-size:13px;color:var(--ink2);margin-bottom:8px">"${escapeHtml(p.text)}"</div>${p.source?`<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">— ${escapeHtml(p.source)}</div>`:''}`:`<div style="font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:8px">${escapeHtml(p.text)}</div>`}
         <div class="post-actions" style="border-top:1px solid #EBEBEB;padding-top:8px;margin-top:4px">
-          <button class="btn btn-sm${p.likedByMe?' btn-red':''}" style="padding:2px 10px;font-size:12px" onclick="likeForumPost('${club.id}',${pi})"><i class="ti ti-heart" style="font-size:11px"></i> ${p.likes||0}</button>
+          <button class="like-btn${p.likedByMe?' on':''}" style="padding:2px 10px;font-size:12px" onclick="likeForumPost('${club.id}',${pi})"><span class="lb-icon" style="font-size:11px">${heartIco(p.likedByMe)}</span> ${p.likes||0}</button>
           <button class="btn btn-sm btn-ghost" style="padding:2px 10px;font-size:12px" onclick="toggleForumComments('fp-comments-${p.id}')"><i class="ti ti-message-circle" style="font-size:11px"></i> ${(p.comments||[]).length}</button>
           ${p.author==='Tú'?`<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;margin-left:auto" onclick="deleteForumPost('${club.id}','${p.id}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`:''}
         </div>
@@ -15203,7 +15218,7 @@ function renderOnePost(p){
         <div class="upost-comment-body">
           <div class="upost-comment-name">${escapeHtml(c.name)}</div>
           <div class="upost-comment-text">${escapeHtml(c.text)}</div>
-          ${c.id?`<button class="comment-like-btn ${c.likedByMe?'on':''}" onclick="toggleCommentLike('${p.id}','${c.id}',this)"><i class="ti ti-heart" style="font-size:11px"></i> <span>${c.likes||''}</span></button>`:''}
+          ${c.id?`<button class="comment-like-btn ${c.likedByMe?'on':''}" onclick="toggleCommentLike('${p.id}','${c.id}',this)"><span class="lb-icon" style="font-size:11px">${heartIco(c.likedByMe)}</span> <span class="lb-count">${c.likes||''}</span></button>`:''}
         </div>
       </div>`).join('')}</div>`:'';
 
@@ -15245,7 +15260,7 @@ function renderOnePost(p){
       ${narrativeBlock}
       ${reactionsHtml}
       <div class="upost-actions" style="${needsOwnPadding?'margin:14px 18px 0;padding-bottom:16px':''};position:relative">
-        <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><i class="ti ti-heart"></i> <span>${likeCount}</span></button>
+        <button class="like-btn ${liked}" onclick="togglePostLike('${p.id}',this)"><span class="lb-icon">${heartIco(p.likedByMe)}</span> <span class="lb-count">${likeCount}</span></button>
         <button class="fc-action-btn" onclick="toggleCommentBox('${p.id}')"><i class="ti ti-message-circle"></i> Comentar${p.comments&&p.comments.length?' ('+p.comments.length+')':''}</button>
         <button class="fc-action-btn" onclick="event.stopPropagation();toggleReactionPicker('${p.id}',this)"><i class="ti ti-mood-plus"></i> Reaccionar</button>
         ${isOwnPost?`<button class="fc-action-btn" onclick="openEditPost('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
@@ -15288,14 +15303,16 @@ async function togglePostLike(id,btn){
   post.likedByMe=!post.likedByMe;
   post.likes=(post.likes||0)+(post.likedByMe?1:-1);
   btn.classList.toggle('on',post.likedByMe);
-  btn.querySelector('span').textContent=post.likes;
+  btn.querySelector('.lb-icon').innerHTML=heartIco(post.likedByMe);
+  btn.querySelector('.lb-count').textContent=post.likes;
   const ok=await toggleSupaLike(id,post.likedByMe);
   if(!ok){
     // revert the optimistic toggle — it never actually saved
     post.likedByMe=!post.likedByMe;
     post.likes=(post.likes||0)+(post.likedByMe?1:-1);
     btn.classList.toggle('on',post.likedByMe);
-    btn.querySelector('span').textContent=post.likes;
+    btn.querySelector('.lb-icon').innerHTML=heartIco(post.likedByMe);
+    btn.querySelector('.lb-count').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
   }else if(post.likedByMe&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
     // Best-effort, igual que la notificación de "te sigue" — no bloquea la
@@ -15364,13 +15381,15 @@ async function toggleCommentLike(postId,commentId,btn){
   comment.likedByMe=!comment.likedByMe;
   comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
   btn.classList.toggle('on',comment.likedByMe);
-  btn.querySelector('span').textContent=comment.likes||'';
+  btn.querySelector('.lb-icon').innerHTML=heartIco(comment.likedByMe);
+  btn.querySelector('.lb-count').textContent=comment.likes||'';
   const ok=await toggleSupaCommentLike(commentId,comment.likedByMe);
   if(!ok){
     comment.likedByMe=!comment.likedByMe;
     comment.likes=Math.max(0,(comment.likes||0)+(comment.likedByMe?1:-1));
     btn.classList.toggle('on',comment.likedByMe);
-    btn.querySelector('span').textContent=comment.likes||'';
+    btn.querySelector('.lb-icon').innerHTML=heartIco(comment.likedByMe);
+    btn.querySelector('.lb-count').textContent=comment.likes||'';
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
   }else if(comment.likedByMe&&SUPA_USER&&comment.userId&&comment.userId!==SUPA_USER.id){
     // Al autor DEL COMENTARIO, no al del post — pueden ser personas distintas.
@@ -15496,6 +15515,11 @@ function escapeHtml(s){
   d.textContent=s;
   return d.innerHTML;
 }
+
+// Solid heart shown once liked — a distinct filled glyph (not just a recolored
+// outline) reads much more clearly as "liked", matching Instagram/Twitter.
+const HEART_FILLED_SVG='<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display:inline-block;vertical-align:-2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+function heartIco(liked){return liked?HEART_FILLED_SVG:'<i class="ti ti-heart"></i>';}
 
 // ═══════════════════════════════════════════════
 // KEYBOARD
