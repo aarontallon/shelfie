@@ -3335,6 +3335,11 @@ a{color:inherit}
     </div>
   </div>
 
+  <div class="subject-toggle" id="feed-mode-toggle">
+    <button type="button" class="subject-toggle-btn" data-feedmode="foryou" onclick="setFeedMode(this,'foryou')"><i class="ti ti-sparkles"></i> Para ti</button>
+    <button type="button" class="subject-toggle-btn" data-feedmode="following" onclick="setFeedMode(this,'following')"><i class="ti ti-users"></i> Siguiendo</button>
+  </div>
+
   <!-- USER-CREATED POSTS render here, newest first -->
   <div id="user-posts"></div>
 </div>
@@ -4195,6 +4200,34 @@ async function loadSupaPosts(){
   await loadCommentLikesInto(data.flatMap(r=>(r.comments||[]).map(c=>c.id)));
 }
 
+// "Para ti": una tanda de posts públicos recientes de gente que NO sigues,
+// para poder mezclarlos con los de tu propia gente. Se queda solo con los que
+// tienen algo de enganche real (algún like o comentario) — no tiene sentido
+// meter en el mix contenido público sin ninguna interacción. La privacidad de
+// fondo la sigue aplicando posts_select (RLS): esta consulta nunca puede traer
+// posts de una cuenta privada que no sigas, así que no hace falta filtrarlo aquí.
+async function loadSupaDiscoverPosts(){
+  const excludeIds=[SUPA_USER.id,...FRIENDS.map(f=>f.id)].filter(Boolean);
+  let q=supa.from('posts').select('*, comments(*), likes(*)').order('created_at',{ascending:false}).limit(150);
+  if(excludeIds.length)q=q.not('user_id','in',`(${excludeIds.join(',')})`);
+  const{data,error}=await q;
+  if(error||!data){DISCOVER_POSTS=[];return;}
+  const candidates=data.filter(row=>!isBlockedEitherWay(row.user_id));
+  const commenterIds=candidates.flatMap(row=>(row.comments||[]).map(c=>c.user_id));
+  await ensureAuthorsLoaded([...candidates.map(r=>r.user_id),...commenterIds]);
+  const scored=candidates.map(row=>{
+    const engagement=(row.likes||[]).length+(row.comments||[]).length*1.5;
+    return{row,engagement};
+  }).filter(x=>x.engagement>0).sort((a,b)=>b.engagement-a.engagement).slice(0,30);
+  DISCOVER_POSTS=scored.map(({row})=>{
+    const post=postRowToObject(row);
+    POSTS_BY_ID[post.id]=post;
+    return post;
+  });
+  await loadPostReactionsInto(DISCOVER_POSTS.map(p=>p.id));
+  await loadCommentLikesInto(DISCOVER_POSTS.flatMap(p=>p.comments.map(c=>c.id)));
+}
+
 // Populates .reactions ({emoji:count}) and .myReaction (single emoji or null)
 // on every already-loaded post in POSTS_BY_ID.
 async function loadPostReactionsInto(postIds){
@@ -4430,7 +4463,11 @@ function subscribeToFeedRealtime(){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('INSERT',payload))
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('UPDATE',payload))
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'post_reactions'},payload=>handleReactionRealtime('DELETE',payload))
-    .subscribe();
+    // Si esto no llega nunca a 'SUBSCRIBED' (o llega a CHANNEL_ERROR/TIMED_OUT),
+    // las tablas no están añadidas a la publicación supabase_realtime — hay que
+    // volver a ejecutar ese bloque del SQL. Visible en la consola para depurar
+    // sin tener que adivinar por qué algo "no llega al instante".
+    .subscribe(status=>{if(status!=='SUBSCRIBED')console.log('feed realtime channel status:',status);});
 }
 
 // Every handler below skips events caused by the current user's own actions —
@@ -4538,9 +4575,10 @@ async function _supaEnterApp(){
   const retosP=_safeLoad(loadSupaRetos,'loadSupaRetos');
   const clubsP=_safeLoad(loadSupaClubs,'loadSupaClubs');
   const postsP=Promise.all([blocksP,friendsP]).then(()=>_safeLoad(loadSupaPosts,'loadSupaPosts'));
+  const discoverPostsP=Promise.all([blocksP,friendsP]).then(()=>_safeLoad(loadSupaDiscoverPosts,'loadSupaDiscoverPosts'));
   const friendsBooksP=friendsP.then(()=>_safeLoad(loadFriendsBooksCache,'loadFriendsBooksCache'));
 
-  await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,friendsBooksP]);
+  await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,discoverPostsP,friendsBooksP]);
 
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{subscribeToFeedRealtime();}catch(e){console.error('subscribeToFeedRealtime failed:',e);}
@@ -5254,6 +5292,11 @@ let RETOS=[];
 let FRIENDS=[];
 let FOLLOWERS=[];
 let NOTIFICATIONS=[];
+// "Para ti" mezcla tus posts + los de a quien sigues con posts públicos
+// populares de gente que no sigues (al estilo "For you" de Twitter);
+// "Siguiendo" es solo la gente que sigues. Se recuerda entre sesiones.
+let DISCOVER_POSTS=[];
+let FEED_MODE=localStorage.getItem('shelfie_feed_mode')||'foryou';
 
 const COMMUNITY_RETOS=[
   {
@@ -6945,6 +6988,7 @@ function renderFeedPage(){
     const activeModeBtn=document.querySelector('.composer-mode.on')||document.querySelector('.composer-mode[data-mode="tweet"]');
     if(activeModeBtn)setComposerMode(activeModeBtn);
   }
+  document.querySelectorAll('#feed-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.feedmode===FEED_MODE));
   renderUserPosts();
 }
 
@@ -15063,9 +15107,24 @@ function timeAgo(ts){
   return `hace ${Math.floor(diff/86400)}d`;
 }
 
+function feedPostsForMode(){
+  if(FEED_MODE==='following')return USER_POSTS.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  const seen=new Set();
+  return[...USER_POSTS,...DISCOVER_POSTS].filter(p=>{
+    if(seen.has(p.id))return false;
+    seen.add(p.id);
+    return true;
+  }).sort((a,b)=>b.createdAt-a.createdAt);
+}
 function renderUserPosts(){
   const cont=document.getElementById('user-posts');
-  cont.innerHTML=USER_POSTS.map(p=>renderOnePost(p)).join('');
+  cont.innerHTML=feedPostsForMode().map(p=>renderOnePost(p)).join('');
+}
+function setFeedMode(btn,mode){
+  FEED_MODE=mode;
+  localStorage.setItem('shelfie_feed_mode',mode);
+  document.querySelectorAll('#feed-mode-toggle .subject-toggle-btn').forEach(b=>b.classList.toggle('on',b.dataset.feedmode===mode));
+  renderUserPosts();
 }
 
 function onShelfiePostSpineClick(title,author){

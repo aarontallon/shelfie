@@ -878,3 +878,34 @@ create policy "post_reactions_select" on public.post_reactions for select using 
     )
   )
 );
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: reparar duplicados de post_reactions + confirmar Realtime
+-- Si al cambiar de reacción en un post se quedan las dos (la vieja y la
+-- nueva) en vez de reemplazarse, es porque la tabla post_reactions de esta
+-- base de datos no tiene realmente la clave primaria (post_id, user_id) —
+-- el upsert(...).onConflict('post_id,user_id') del cliente no tiene nada
+-- contra lo que hacer match, así que cada cambio de emoji inserta una fila
+-- nueva en vez de sustituir la anterior. Segura de volver a ejecutar: no
+-- borra la tabla entera (a diferencia del create table post_reactions de
+-- más arriba), solo limpia duplicados existentes y añade la clave si falta.
+-- ════════════════════════════════════════════════
+
+delete from public.post_reactions a
+using public.post_reactions b
+where a.post_id = b.post_id
+  and a.user_id = b.user_id
+  and a.ctid < b.ctid;
+
+do $$ begin
+  alter table public.post_reactions add constraint post_reactions_pkey primary key (post_id, user_id);
+exception when others then null; end $$;
+
+-- Si los posts de gente que sigues no te aparecen al instante en el feed,
+-- es porque la tabla posts (o alguna de estas) no está realmente añadida a
+-- la publicación de Realtime en este proyecto. Repetir esto no hace daño.
+do $$ begin alter publication supabase_realtime add table public.posts; exception when others then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.comments; exception when others then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.likes; exception when others then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.comment_likes; exception when others then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.post_reactions; exception when others then null; end $$;
