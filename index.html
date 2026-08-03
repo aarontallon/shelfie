@@ -6181,7 +6181,7 @@ function checkYearRollover(){
 // ═══════════════════════════════════════════════
 const ONBOARDING_STEPS=[
   {title:'¡Bienvenido a Shelfie! 👋',desc:'Vamos a recorrer las secciones principales en un minuto — puedes saltarte el tutorial cuando quieras.',nav:'home',target:null},
-  {title:'Tu menú',desc:'Desde aquí accedes a todas las secciones: tu shelfie, descubrir, eventos, el feed, retos y estadísticas. Vamos a verlas una a una.',nav:'home',target:()=>{
+  {title:'Tu menú',desc:'Desde aquí accedes a todas las secciones: tu shelfie, descubrir, eventos, el feed, amigos, clubs, retos y estadísticas. Vamos a verlas una a una.',nav:'home',target:()=>{
     const hamburger=document.querySelector('.mobile-menu-btn');
     return(hamburger&&getComputedStyle(hamburger).display!=='none')?'.mobile-menu-btn':'.sidebar .sb-logo';
   }},
@@ -6194,7 +6194,9 @@ const ONBOARDING_STEPS=[
     const body=document.getElementById('events-body');
     return(body&&getComputedStyle(body).display!=='none')?'#events-search-inp':'#events-no-city';
   }},
-  {title:'Feed',desc:'Comparte lo que lees — reseñas, citas, tu shelfie del mes — y ve lo que publican los lectores a los que sigues.',nav:'feed',target:'.composer-card'},
+  {title:'Feed',desc:'Comparte lo que lees — reseñas, citas, anotaciones de una página, tu shelfie del mes — y ve lo que publican los lectores a los que sigues.',nav:'feed',target:'.composer-card'},
+  {title:'Amigos',desc:'Busca y sigue a otros lectores para ver su actividad en el feed. Aquí ves a quién sigues, quién te sigue a ti, y algunas sugerencias.',nav:'friends',target:'#p-friends .tb .btn-red'},
+  {title:'Clubs de lectura',desc:'Únete a un club existente o crea el tuyo — con su propio foro para debatir, elegir el libro del mes y organizar la lectura en comunidad.',nav:'clubs',target:'#p-clubs .tb .btn-red'},
   {title:'Retos',desc:'Crea tus propios retos de lectura o únete a los de la comunidad — como leer un libro por país o superar tu récord de páginas.',nav:'retos',target:'#p-retos .tb .btn-red'},
   {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... Toca un día del calendario de actividad para ver la fecha exacta, y desliza a los lados para ver meses anteriores. Puedes exportarlo todo en PDF o Excel.',nav:'stats',target:'.stats-hero-grid'},
   {title:'Tus logros',desc:'Desbloqueas medallas a medida que lees — por rachas, número de libros, géneros distintos y más. Se ven en tu perfil, para ti y para quien te siga.',nav:'profile',target:'.ach-card .card-link'},
