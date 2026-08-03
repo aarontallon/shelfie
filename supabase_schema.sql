@@ -107,46 +107,71 @@ alter table public.friendships enable row level security;
 alter table public.notifications enable row level security;
 
 -- Profiles
+drop policy if exists "profiles_select" on public.profiles;
 create policy "profiles_select" on public.profiles for select using (true);
+drop policy if exists "profiles_insert" on public.profiles;
 create policy "profiles_insert" on public.profiles for insert with check (auth.uid() = id);
+drop policy if exists "profiles_update" on public.profiles;
 create policy "profiles_update" on public.profiles for update using (auth.uid() = id);
 
 -- User books
+drop policy if exists "user_books_select" on public.user_books;
 create policy "user_books_select" on public.user_books for select using (true);
+drop policy if exists "user_books_insert" on public.user_books;
 create policy "user_books_insert" on public.user_books for insert with check (auth.uid() = user_id);
+drop policy if exists "user_books_update" on public.user_books;
 create policy "user_books_update" on public.user_books for update using (auth.uid() = user_id);
+drop policy if exists "user_books_delete" on public.user_books;
 create policy "user_books_delete" on public.user_books for delete using (auth.uid() = user_id);
 
 -- Posts
+drop policy if exists "posts_select" on public.posts;
 create policy "posts_select" on public.posts for select using (true);
+drop policy if exists "posts_insert" on public.posts;
 create policy "posts_insert" on public.posts for insert with check (auth.uid() = user_id);
+drop policy if exists "posts_update" on public.posts;
 create policy "posts_update" on public.posts for update using (auth.uid() = user_id);
+drop policy if exists "posts_delete" on public.posts;
 create policy "posts_delete" on public.posts for delete using (auth.uid() = user_id);
 
 -- Comments
+drop policy if exists "comments_select" on public.comments;
 create policy "comments_select" on public.comments for select using (true);
+drop policy if exists "comments_insert" on public.comments;
 create policy "comments_insert" on public.comments for insert with check (auth.uid() = user_id);
+drop policy if exists "comments_delete" on public.comments;
 create policy "comments_delete" on public.comments for delete using (auth.uid() = user_id);
 
 -- Likes
+drop policy if exists "likes_select" on public.likes;
 create policy "likes_select" on public.likes for select using (true);
+drop policy if exists "likes_insert" on public.likes;
 create policy "likes_insert" on public.likes for insert with check (auth.uid() = user_id);
+drop policy if exists "likes_delete" on public.likes;
 create policy "likes_delete" on public.likes for delete using (auth.uid() = user_id);
 
 -- Friendships (public read: follower/following counts are shown on public profiles, like Instagram)
+drop policy if exists "friendships_select" on public.friendships;
 create policy "friendships_select" on public.friendships for select using (true);
+drop policy if exists "friendships_insert" on public.friendships;
 create policy "friendships_insert" on public.friendships for insert with check (auth.uid() = user_id);
+drop policy if exists "friendships_delete" on public.friendships;
 create policy "friendships_delete" on public.friendships for delete using (auth.uid() = user_id or auth.uid() = friend_id);
 
 -- Notifications
+drop policy if exists "notifications_select" on public.notifications;
 create policy "notifications_select" on public.notifications for select using (auth.uid() = user_id);
+drop policy if exists "notifications_insert" on public.notifications;
 create policy "notifications_insert" on public.notifications for insert with check (auth.uid() = actor_id);
+drop policy if exists "notifications_update" on public.notifications;
 create policy "notifications_update" on public.notifications for update using (auth.uid() = user_id);
+drop policy if exists "notifications_delete" on public.notifications;
 create policy "notifications_delete" on public.notifications for delete using (auth.uid() = user_id);
 
 -- Habilita Realtime en notifications para que la campanita se actualice al instante.
--- Si ya la tienes activada (o esto falla porque ya es miembro de la publicación), ignora el error.
-alter publication supabase_realtime add table public.notifications;
+-- Envuelto en un bloque que ignora el aviso de "ya es miembro de la publicación"
+-- para poder volver a ejecutar este archivo entero sin que falle aquí.
+do $$ begin alter publication supabase_realtime add table public.notifications; exception when others then null; end $$;
 
 -- ════ Trigger: crear perfil automáticamente al registrarse ════
 create or replace function public.handle_new_user()
