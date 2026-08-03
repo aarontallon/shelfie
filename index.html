@@ -7,7 +7,13 @@
 <meta name="description" content="Lleva tu shelfie, sigue tu racha de lectura, comparte lo que lees y descubre tu próxima lectura. La red social para gente que lee de verdad.">
 <link rel="canonical" href="https://aarontallon.github.io/shelfie/">
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3D6B52">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shelfie">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Shelfie">
 <meta property="og:url" content="https://aarontallon.github.io/shelfie/">
@@ -14432,6 +14438,15 @@ document.getElementById('reg-pass').addEventListener('keydown',e=>{if(e.key==='E
 document.getElementById('reg-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('reg-pass').focus();});
 
 // Session is handled entirely by onAuthStateChange (INITIAL_SESSION + SIGNED_IN)
+
+// Registro del service worker (PWA instalable + caché del shell). No se
+// registra en localhost/dev sin HTTPS porque los navegadores exigen un
+// origen seguro para service workers (localhost es la única excepción).
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW registration failed:',e));
+  });
+}
 </script>
 <!-- Global book action menu — single instance at body level, avoids transform stacking-context bugs -->
 <div id="g-book-menu"></div>
