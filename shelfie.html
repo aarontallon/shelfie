@@ -1272,6 +1272,17 @@ a{color:inherit}
 .srch-inp{width:100%;padding:10px 12px 10px 36px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;color:var(--ink);background:white;outline:none}
 .srch-inp:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(75,111,165,0.1)}
 .srch-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--ink3);pointer-events:none}
+/* Safari en iOS hace zoom automático al enfocar cualquier campo de texto con
+   letra por debajo de 16px, y ese zoom se queda "pegado" al desenfocar,
+   descuadrando el resto de la página (cabeceras y botones cortados por los
+   bordes) hasta que se recarga. Hay decenas de inputs/selects por la app con
+   su propio font-size más pequeño (12px, 13px...) para encajar en su sitio,
+   así que en vez de perseguir cada uno se fuerza 16px de forma global en
+   móvil — el único sitio donde este bug existe — con !important para ganar
+   siempre a cualquier estilo en línea que ya tuviera un tamaño menor.       */
+@media (max-width:900px){
+  input,select,textarea{font-size:16px!important}
+}
 .srch-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:white;border:1px solid var(--border);border-radius:12px;z-index:600;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.1);max-height:320px;overflow-y:auto}
 .s-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EBEBEB;transition:background 0.1s;cursor:pointer}
 .s-item:last-child{border-bottom:none}
