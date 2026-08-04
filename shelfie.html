@@ -466,6 +466,7 @@ a{color:inherit}
 .book-page-section{margin-bottom:22px}
 .book-page-section-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:7px}
 .book-page-section-title i{color:var(--red);font-size:16px}
+.book-affiliate-links{display:flex;gap:8px;flex-wrap:wrap}
 .year-add-menu{position:relative;display:inline-block}
 .year-add-dropdown{position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:50;min-width:180px;display:none;overflow:hidden}
 .year-add-dropdown.show{display:block}
@@ -2537,6 +2538,18 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: PEDIR PERMISO DE NOTIFICACIONES ══════════════════════ -->
+<div class="overlay" id="modal-push-prime" style="display:none" onclick="if(event.target===this)dismissPushPriming()">
+<div class="modal" style="max-width:380px;text-align:center">
+  <button class="modal-close" onclick="dismissPushPriming()"><i class="ti ti-x"></i></button>
+  <div style="width:56px;height:56px;border-radius:50%;background:var(--paper2,#F5F1EA);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:26px">🔔</div>
+  <h2 style="margin-bottom:6px">Activa las notificaciones</h2>
+  <p class="sub" style="margin-bottom:20px">Entérate al instante cuando alguien te siga, comente o te escriba — aunque tengas Shelfie cerrada.</p>
+  <button class="btn btn-red w-full" style="margin-bottom:8px" onclick="acceptPushPriming()">Sí, avísame</button>
+  <button class="btn btn-white w-full" onclick="dismissPushPriming()">Ahora no</button>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: REPORTAR ══════════════════════ -->
 <div class="overlay" id="modal-report" style="display:none" onclick="if(event.target===this)closeModal('modal-report')">
 <div class="modal">
@@ -2610,7 +2623,7 @@ a{color:inherit}
     </div>
   </div>
   <div id="reto-assigned" style="display:flex;gap:6px;flex-wrap:wrap;min-height:10px;margin-bottom:14px"></div>
-  <button class="btn btn-red w-full" onclick="saveReto()"><i class="ti ti-check"></i> Crear y publicar reto</button>
+  <button class="btn btn-red w-full" id="reto-save-btn" onclick="saveReto()"><i class="ti ti-check"></i> Crear y publicar reto</button>
 </div>
 </div>
 
@@ -3647,7 +3660,7 @@ a{color:inherit}
 <!-- ── RETOS ── -->
 <div id="p-retos" class="page">
   <div class="tb"><div><h1>Retos de lectura</h1><p>Crea el tuyo, únete a otros y sigue el progreso de todos</p></div>
-    <button class="btn btn-red" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear reto</button>
+    <button class="btn btn-red" onclick="openNewRetoModal()"><i class="ti ti-plus"></i> Crear reto</button>
   </div>
 
   <div style="display:flex;gap:10px;border-bottom:2px solid var(--border);margin-bottom:20px">
@@ -3999,6 +4012,14 @@ function showLoginScreen(){
 
 // ── Auth state listener (handles refresh / tab reopen) ──
 let _appEntering=false;
+// Mientras se está cambiando la contraseña desde el enlace del email, hay que
+// bloquear la entrada normal a la app: Supabase adjunta una sesión válida al
+// token de recuperación y acto seguido dispara INITIAL_SESSION, que metía al
+// usuario dentro de la app y se llevaba por delante la pantalla de "nueva
+// contraseña" — dejándole dentro con la contraseña VIEJA y sin forma de
+// terminar el cambio. La bandera se detecta también en el arranque, porque el
+// evento puede llegar antes de que este listener esté escuchando.
+let _inPasswordRecovery=/[#?&](type=recovery|recovery_token=)/.test(location.hash+location.search);
 supa.auth.onAuthStateChange(async(event,session)=>{
   // Clicking the "recuperar contraseña" link in the email lands back here with a
   // recovery token in the URL — Supabase detects it and fires this dedicated event
@@ -4006,8 +4027,16 @@ supa.auth.onAuthStateChange(async(event,session)=>{
   // screen instead of silently dropping them into the app with their OLD password
   // still active and no idea they're "logged in".
   if(event==='PASSWORD_RECOVERY'){
+    _inPasswordRecovery=true;
+    if(session)SUPA_USER=session.user;
     document.getElementById('auth-loading')?.classList.remove('on');
     try{history.replaceState(null,'',window.location.pathname);}catch(e){}
+    showAuth('reset-password');
+    return;
+  }
+  if(_inPasswordRecovery&&event!=='SIGNED_OUT'){
+    if(session)SUPA_USER=session.user;
+    document.getElementById('auth-loading')?.classList.remove('on');
     showAuth('reset-password');
     return;
   }
@@ -4027,6 +4056,7 @@ supa.auth.onAuthStateChange(async(event,session)=>{
 // ── Fallback: call getSession() directly in case INITIAL_SESSION was missed ──
 (async()=>{
   await new Promise(r=>setTimeout(r,0)); // one tick so INITIAL_SESSION can fire first
+  if(_inPasswordRecovery)return; // no entrar a la app a medio cambiar la contraseña
   if(!isLoggedIn&&!_appEntering){
     const{data:{session}}=await supa.auth.getSession();
     if(session&&!isLoggedIn&&!_appEntering){
@@ -4041,8 +4071,28 @@ supa.auth.onAuthStateChange(async(event,session)=>{
 
 // ── Load profile from DB into PROFILE ──
 async function loadSupaProfile(){
-  const{data,error}=await supa.from('profiles').select('*').eq('id',SUPA_USER.id).single();
-  if(error||!data)return;
+  let{data,error}=await supa.from('profiles').select('*').eq('id',SUPA_USER.id).maybeSingle();
+  if(error){console.error('loadSupaProfile failed:',error);return;}
+  if(!data){
+    // Sin fila de perfil la cuenta queda medio rota para siempre y en silencio:
+    // guardar el perfil no hace nada (pero dice "guardado"), el usuario queda
+    // vacío, y ni siquiera se puede borrar la cuenta porque pide escribir un
+    // @usuario que no existe. Pasa si el trigger de alta falló alguna vez.
+    // En vez de seguir como si nada, se crea aquí.
+    const base=(SUPA_USER.email||'lector').split('@')[0].toLowerCase().replace(/[^a-z0-9]/g,'')||'lector';
+    const{data:created,error:createErr}=await supa.from('profiles').insert({
+      id:SUPA_USER.id,
+      name:SUPA_USER.user_metadata?.name||base,
+      username:base+'_'+SUPA_USER.id.slice(0,6),
+      onboarding_seen:true,
+    }).select().single();
+    if(createErr||!created){
+      console.error('loadSupaProfile could not self-heal missing row:',createErr);
+      toast('❌ No se ha podido cargar tu perfil. Recarga la página.',6000);
+      return;
+    }
+    data=created;
+  }
   PROFILE.name=data.name||PROFILE.name;
   PROFILE.username=data.username||PROFILE.username;
   PROFILE.bio=data.bio||PROFILE.bio;
@@ -4060,12 +4110,55 @@ async function loadSupaProfile(){
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
+  SHELFIE_YEARS_ARCHIVE=Array.isArray(data.shelfie_archive)?data.shelfie_archive:[];
+  YEAR_GOAL_IDS=new Set(Array.isArray(data.year_goal_ids)?data.year_goal_ids:[]);
+  _loadedYearGoalYear=data.year_goal_year||null;
+}
+
+// El cambio de año se comprueba al ARRANCAR, comparando el año guardado con
+// el actual — no solo si la sesión sigue abierta a medianoche del 31 de
+// diciembre, que era el único momento en que podía saltar el antiguo
+// checkYearRollover() y por tanto no saltaba nunca. Va aparte de
+// loadSupaProfile porque necesita los libros ya cargados para poder guardar
+// el archivo del año con título/autor/portada, no solo con ids.
+let _loadedYearGoalYear=null;
+function applyYearRollover(){
+  if(!SUPA_USER)return;
+  if(_loadedYearGoalYear===null){saveYearGoals();return;} // primera vez: fija el año actual
+  if(_loadedYearGoalYear===CURRENT_SHELFIE_YEAR)return;
+  if(YEAR_GOAL_IDS.size){
+    const snapshot=[...YEAR_GOAL_IDS].map(id=>{
+      const b=allBooks().find(x=>x.id===id);
+      return b?{id:b.id,title:b.title,author:b.author,status:b.status,stars:b.stars||0,cover:b.cover||null,color:b.color}:null;
+    }).filter(Boolean);
+    if(snapshot.length)SHELFIE_YEARS_ARCHIVE.push({year:_loadedYearGoalYear,books:snapshot});
+  }
+  YEAR_GOAL_IDS=new Set();
+  _loadedYearGoalYear=CURRENT_SHELFIE_YEAR;
+  saveYearGoals();
 }
 
 // ── Load books from DB into DB ──
 async function loadSupaBooks(){
-  const{data,error}=await supa.from('user_books').select('*').eq('user_id',SUPA_USER.id);
-  if(error||!data)return;
+  // Paginado a mano: PostgREST devuelve como mucho 1000 filas por consulta, así
+  // que una shelfie grande perdía la cola en silencio. Y si falla, se avisa en
+  // vez de dejar la estantería vacía como si el usuario no tuviera libros —
+  // eso invitaba a volver a añadir libros que ya estaban guardados.
+  const PAGE=1000;
+  const data=[];
+  for(let from=0;;from+=PAGE){
+    const{data:page,error}=await supa.from('user_books').select('*')
+      .eq('user_id',SUPA_USER.id).order('sort_order',{ascending:true,nullsFirst:false}).order('added_at',{ascending:true})
+      .range(from,from+PAGE-1);
+    if(error){
+      console.error('loadSupaBooks failed:',error);
+      toast('❌ No se han podido cargar tus libros. Recarga la página — no se ha perdido nada.',6000);
+      return;
+    }
+    if(!page||!page.length)break;
+    data.push(...page);
+    if(page.length<PAGE)break;
+  }
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   data.forEach(row=>{
     if(!DB[row.status])return;
@@ -4099,6 +4192,7 @@ async function loadSupaBooks(){
       addedAt:row.added_at?new Date(row.added_at).toLocaleDateString('es-ES'):new Date().toLocaleDateString('es-ES'),
       cameFromQuiero:row.came_from_quiero||false,
       cameFromDnf:row.came_from_dnf||false,
+      sortOrder:Number.isInteger(row.sort_order)?row.sort_order:null,
     });
   });
 }
@@ -4106,10 +4200,8 @@ async function loadSupaBooks(){
 function _delay(ms){return new Promise(r=>setTimeout(r,ms));}
 
 // ── Save book to DB ──
-async function saveSupaBook(book,attempt){
-  if(!SUPA_USER)return;
-  attempt=attempt||1;
-  const row={
+function bookToRow(book){
+  return{
     id:book.id,
     user_id:SUPA_USER.id,
     local_id:book.localId||book.id,
@@ -4139,16 +4231,86 @@ async function saveSupaBook(book,attempt){
     synopsis:book.synopsis||null,
     came_from_quiero:!!book.cameFromQuiero,
     came_from_dnf:!!book.cameFromDnf,
+    sort_order:Number.isInteger(book.sortOrder)?book.sortOrder:null,
   };
+}
+
+// Esto es lo más importante de la app — que un libro que añades o mueves de
+// estante NO desaparezca. El fallo real no era casi nunca un error de la
+// base de datos (eso ya se veía y se reintentaba) sino que casi ningún sitio
+// que llama a esto ESPERABA a que terminase: se pintaba el libro en pantalla
+// y se seguía al instante, así que si cerrabas la pestaña/app un segundo
+// después de añadir un libro (algo muy normal: "añado y salgo"), la petición
+// de red se abortaba a medias y el guardado se perdía sin que nadie lo viera.
+// Por eso ahora la fila se apunta en una cola local de forma SÍNCRONA, antes
+// incluso de mandar nada a la red — así sobrevive aunque la petición nunca
+// llegue a completarse — y solo se quita de la cola cuando de verdad se
+// confirma guardada. Al volver a abrir la app (o recuperar conexión), lo que
+// se quedó a medias se reintenta solo.
+async function saveSupaBook(book,attempt){
+  if(!SUPA_USER)return;
+  attempt=attempt||1;
+  const row=bookToRow(book);
+  if(attempt===1)queuePendingBookWrite(row);
   const{error}=await supa.from('user_books').upsert(row,{onConflict:'id'});
   if(error){
     console.error(`saveSupaBook failed (intento ${attempt}):`,error);
     if(attempt<3){await _delay(1000*attempt);return saveSupaBook(book,attempt+1);}
-    toast(`❌ No se pudo guardar «${book.title}». Comprueba tu conexión — vuelve a intentarlo, no se ha guardado.`);
+    toast(`⚠️ «${book.title}» no se ha podido guardar todavía — se guardará solo en cuanto vuelva la conexión.`,6000);
     return false;
   }
+  clearPendingBookWrite(row.id);
   return true;
 }
+
+// ── Cola de escrituras de libros pendientes (sobrevive a recargas y a que se cierre la app) ──
+function _pendingWritesKey(){return 'shelfie_pending_book_writes_'+(SUPA_USER?.id||'anon');}
+function readPendingBookWrites(){
+  try{return JSON.parse(localStorage.getItem(_pendingWritesKey())||'[]');}
+  catch(e){return [];}
+}
+function queuePendingBookWrite(row){
+  try{
+    const queue=readPendingBookWrites().filter(r=>r.id!==row.id); // la última versión de cada libro gana
+    queue.push(row);
+    localStorage.setItem(_pendingWritesKey(),JSON.stringify(queue));
+  }catch(e){console.error('queuePendingBookWrite failed:',e);}
+}
+function clearPendingBookWrite(id){
+  try{
+    const queue=readPendingBookWrites().filter(r=>r.id!==id);
+    if(queue.length)localStorage.setItem(_pendingWritesKey(),JSON.stringify(queue));
+    else localStorage.removeItem(_pendingWritesKey());
+  }catch(e){console.error('clearPendingBookWrite failed:',e);}
+}
+let _flushingPending=false;
+async function flushPendingBookWrites(){
+  if(!SUPA_USER||_flushingPending)return;
+  const queue=readPendingBookWrites();
+  if(!queue.length)return;
+  _flushingPending=true;
+  const stillPending=[];
+  for(const row of queue){
+    const{error}=await supa.from('user_books').upsert({...row,user_id:SUPA_USER.id},{onConflict:'id'});
+    if(error){console.error('flushPendingBookWrites failed for',row.id,error);stillPending.push(row);}
+  }
+  try{
+    if(stillPending.length)localStorage.setItem(_pendingWritesKey(),JSON.stringify(stillPending));
+    else localStorage.removeItem(_pendingWritesKey());
+  }catch(e){console.error('flushPendingBookWrites persist failed:',e);}
+  const saved=queue.length-stillPending.length;
+  if(saved>0)toast(`✓ ${saved} cambio${saved===1?'':'s'} pendiente${saved===1?'':'s'} ya guardado${saved===1?'':'s'}`);
+  _flushingPending=false;
+}
+window.addEventListener('online',()=>{flushPendingBookWrites();});
+// Última red de seguridad: si la pestaña se oculta (se cambia de app, se
+// bloquea el móvil, se cierra) mientras algo seguía sin confirmarse, lo
+// intentamos una vez más ahí mismo — sendBeacon no vale aquí (hace falta
+// mandar cabeceras de autenticación), pero muchos navegadores sí dejan
+// terminar un fetch ya en marcha en pagehide/visibilitychange.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')flushPendingBookWrites();
+});
 
 // ── Delete book from DB ──
 async function deleteSupaBook(id){
@@ -4527,12 +4689,14 @@ async function acceptMessageRequest(convId){
   if(!conv)return;
   conv.status='accepted';
   renderMessagesPage();
+  updateMessagesBadge();
   const{error}=await supa.from('conversations').update({status:'accepted'}).eq('id',convId);
   if(error){
     console.error('acceptMessageRequest failed:',error);
     toast('❌ No se pudo aceptar la solicitud');
     conv.status='pending';
     renderMessagesPage();
+    updateMessagesBadge();
   }
 }
 async function declineMessageRequest(convId){
@@ -4566,6 +4730,10 @@ function subscribeToMessagesRealtime(){
 }
 async function handleIncomingConversation(row){
   if(row.user1_id!==SUPA_USER.id&&row.user2_id!==SUPA_USER.id)return;
+  // Si la iniciaste tú, openChat() ya la añade a CONVERSATIONS al crearla —
+  // este evento es el eco de Realtime de tu propio insert, y llegaba antes
+  // de que openChat() terminara de resolver el id real, duplicando la fila.
+  if(row.initiator_id===SUPA_USER.id)return;
   if(CONVERSATIONS.some(c=>c.id===row.id))return;
   const otherId=row.user1_id===SUPA_USER.id?row.user2_id:row.user1_id;
   await ensureAuthorsLoaded([otherId]);
@@ -4584,7 +4752,17 @@ function handleConversationUpdate(row){
 function handleIncomingMessage(row){
   if(row.sender_id===SUPA_USER.id)return; // ya aplicado optimista al enviar
   const conv=CONVERSATIONS.find(c=>c.id===row.conversation_id);
-  if(!conv)return; // una conversación nueva la trae handleIncomingConversation
+  if(!conv){
+    // Puede llegar mientras openChat() todavía está resolviendo el id real
+    // de una conversación temporal que tú mismo acabas de iniciar — sin
+    // esto, el mensaje se perdía en silencio hasta la siguiente recarga en
+    // vez de solo tardar un pelín en aparecer.
+    loadSupaConversations().then(()=>{
+      updateMessagesBadge();
+      if(document.getElementById('p-messages')?.classList.contains('on'))renderMessagesPage();
+    });
+    return;
+  }
   // Si el historial de esta conversación todavía no se ha cargado nunca
   // (nunca se abrió el chat), no creamos el array aquí — dejamos que
   // loadChatMessages() traiga el historial COMPLETO de la BD la primera vez
@@ -5193,6 +5371,11 @@ async function _supaEnterApp(){
 
   await Promise.all([profileP,booksP,blocksP,friendsP,followersP,notificationsP,retosP,clubsP,postsP,discoverPostsP,friendsBooksP,conversationsP]);
 
+  // Reintenta lo que quedó sin guardar en una sesión anterior (sin conexión,
+  // pestaña cerrada a media escritura...) antes de que el usuario siga tocando
+  // sus libros, para que no vea datos viejos y los pise.
+  flushPendingBookWrites().catch(e=>console.error('flushPendingBookWrites failed:',e));
+
   try{subscribeToNotifications();}catch(e){console.error('subscribeToNotifications failed:',e);}
   try{subscribeToFeedRealtime();}catch(e){console.error('subscribeToFeedRealtime failed:',e);}
   try{subscribeToMessagesRealtime();}catch(e){console.error('subscribeToMessagesRealtime failed:',e);}
@@ -5619,6 +5802,7 @@ function exportEventAttendeesCsv(){
 
 async function organizerLogout(){
   if(!await confirmModal('¿Cerrar sesión de organizador?'))return;
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush on logout failed:',e);}
   await supa.auth.signOut();
   ORGANIZER=null;ORGANIZER_EVENTS=[];
   isLoggedIn=false;SUPA_USER=null;
@@ -5828,6 +6012,9 @@ async function signUpForEvent(id){
   if(ev)ev._signups=[...(ev._signups||[]),row];
   toast('✅ ¡Apuntado! Nos vemos allí');
   refreshEventViews(id);
+  // El aviso al organizador lo genera un trigger sobre event_signups, no se
+  // inserta desde aquí — ver "las notificaciones las genera la base de
+  // datos" en supabase_schema.sql.
 }
 
 async function cancelEventSignup(id){
@@ -6845,13 +7032,15 @@ function enterApp(skipDemo){
   isLoggedIn=true;
   document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('app-shell').classList.add('on');
-  checkYearRollover();
+  if(SUPA_USER)applyYearRollover();
+  else checkYearRollover();
   if(!skipDemo&&!DEMO_SEEDED){seedDemoData();DEMO_SEEDED=true;}
   updateAll();updateCounts();renderFriends();
   const h=new Date().getHours();
   document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name||'lector'} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
   restoreLastPage();
   handlePushDeepLink();
+  maybePromptPushPriming();
   // Solo para cuentas recién creadas (onboarding_seen=false viene del trigger
   // de alta en Supabase, ver handle_new_user() en supabase_schema.sql) — a
   // cualquier cuenta ya existente restoreLastPage() no le cambia nada aquí.
@@ -7005,6 +7194,11 @@ function renderTourStep(){
 
 async function doLogout(){
   if(!await confirmModal('¿Cerrar sesión?'))return;
+  // Antes de perder la sesión — si no, en un dispositivo compartido la
+  // cuenta que cierra sesión se queda recibiendo pushes igualmente, y la
+  // siguiente que inicie sesión ahí no puede activarlas (choque de
+  // endpoint único). Best-effort: si falla, no bloquea el cierre de sesión.
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush on logout failed:',e);}
   await supa.auth.signOut();
   isLoggedIn=false;
   SUPA_USER=null;
@@ -7012,6 +7206,14 @@ async function doLogout(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   RETOS=[];
+  // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
+  // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
+  // cuenta anterior sobre una lista vacía.
+  YEAR_GOAL_IDS=new Set();
+  SHELFIE_YEARS_ARCHIVE=[];
+  _loadedYearGoalYear=null;
+  CLUBS=[];
+  try{localStorage.removeItem('shelfie_last_page');}catch(e){}
   PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
   DEMO_SEEDED=false;
   document.getElementById('app-shell').classList.remove('on');
@@ -7130,10 +7332,13 @@ async function subscribeToPush(){
   let sub=await reg.pushManager.getSubscription();
   if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
   const json=sub.toJSON();
-  await supa.from('push_subscriptions').delete().eq('endpoint',json.endpoint);
-  const{error}=await supa.from('push_subscriptions').insert({
+  // upsert por endpoint en vez de borrar-e-insertar: es atómico (dos pestañas
+  // activando el push a la vez no chocan) y en un dispositivo compartido
+  // reclama la fila si la dejó "abierta" una cuenta anterior, en vez de
+  // fallar por el unique constraint sin poder borrar una fila ajena.
+  const{error}=await supa.from('push_subscriptions').upsert({
     user_id:SUPA_USER.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,user_agent:navigator.userAgent
-  });
+  },{onConflict:'endpoint'});
   if(error){console.error('push subscribe insert failed:',error);throw new Error('No se pudo guardar la suscripción.');}
   toast('✓ Notificaciones push activadas');
 }
@@ -7143,10 +7348,38 @@ async function unsubscribeFromPush(){
   const reg=await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.getSubscription();
   if(sub){
-    await supa.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+    const{error}=await supa.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+    if(error)console.error('push_subscriptions delete on unsubscribe failed:',error);
     await sub.unsubscribe();
   }
   toast('✓ Notificaciones push desactivadas');
+}
+
+// Aviso propio antes del permiso real del navegador — pedir notificaciones
+// a bocajarro nada más entrar quema el único intento fácil (en la mayoría
+// de navegadores, si el usuario le da a "Bloquear" no se le puede volver a
+// preguntar sin que él mismo entre a los ajustes del sitio a mano). Con
+// esto, un "Ahora no" no cuesta nada — el permiso real del navegador solo
+// salta si el usuario ya dijo que sí en este aviso nuestro.
+const PUSH_PRIME_DISMISS_KEY='shelfie_push_prime_dismissed_at';
+const PUSH_PRIME_COOLDOWN_MS=14*24*60*60*1000;
+function maybePromptPushPriming(){
+  if(!isPushSupported())return;
+  if(typeof Notification==='undefined'||Notification.permission!=='default')return;
+  const dismissedAt=Number(localStorage.getItem(PUSH_PRIME_DISMISS_KEY)||0);
+  if(dismissedAt&&Date.now()-dismissedAt<PUSH_PRIME_COOLDOWN_MS)return;
+  setTimeout(()=>{
+    if(document.getElementById('app-shell')?.classList.contains('on')&&Notification.permission==='default')openModal('modal-push-prime');
+  },3000);
+}
+function dismissPushPriming(){
+  localStorage.setItem(PUSH_PRIME_DISMISS_KEY,String(Date.now()));
+  closeModal('modal-push-prime');
+}
+async function acceptPushPriming(){
+  closeModal('modal-push-prime');
+  try{await subscribeToPush();}
+  catch(e){console.error('acceptPushPriming failed:',e);toast('❌ '+(e?.message||'No se pudo activar las notificaciones.'));}
 }
 
 // Adónde llevar al usuario al tocar una notificación push — "chat" abre la
@@ -7159,14 +7392,21 @@ function routePushTarget(push,params){
     if(userId)openChat(userId);
   }else if(push==='notifications'){
     openNotifications();
+  }else if(push==='events'){
+    go('events',nbFor('events'));
   }
 }
 function handlePushDeepLink(){
   const params=new URLSearchParams(location.search);
   const push=params.get('push');
   if(!push)return;
-  history.replaceState({},'',location.pathname);
   routePushTarget(push,params);
+  // Solo quita "push"/"user" (los únicos que pone el propio push) de la URL,
+  // no cualquier otro parámetro que pudiera llevar de antes — se limpian
+  // DESPUÉS de usarlos, para que routePushTarget aún pueda leer "user".
+  params.delete('push');params.delete('user');
+  const rest=params.toString();
+  history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
 }
 
 async function changeAccountPassword(){
@@ -7212,6 +7452,7 @@ async function deleteAccountFlow(){
   const btn=document.getElementById('acc-delete-btn');
   const prevHtml=btn.innerHTML;
   btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Eliminando...';
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush before delete failed:',e);}
   try{
     const{error}=await supa.functions.invoke('delete-account');
     if(error)throw error;
@@ -7229,6 +7470,14 @@ async function deleteAccountFlow(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   RETOS=[];
+  // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
+  // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
+  // cuenta anterior sobre una lista vacía.
+  YEAR_GOAL_IDS=new Set();
+  SHELFIE_YEARS_ARCHIVE=[];
+  _loadedYearGoalYear=null;
+  CLUBS=[];
+  try{localStorage.removeItem('shelfie_last_page');}catch(e){}
   PROFILE={name:'',username:'',bio:'Lector apasionado 📚',city:'',photo:null,email:''};
   DEMO_SEEDED=false;
   document.getElementById('app-shell').classList.remove('on');
@@ -8411,7 +8660,7 @@ function confirmAdd(){
     book.readHistory=[{stars:starVal,finishedAt:book.finishedAt}];
   }
   DB[status].unshift(book);
-  if(status==='leidos')RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
+  if(status==='leidos')countBookTowardsRetos(book);
   saveSupaBook(book);
   closeModal('modal-add');
   updateAll();
@@ -8660,11 +8909,21 @@ async function saveSupaBooksBatch(books){
     author_ol_key:null,synopsis:null,came_from_quiero:false,came_from_dnf:false,
   }));
   const CHUNK=300;
+  let failed=0;
   for(let i=0;i<rows.length;i+=CHUNK){
-    const{error}=await supa.from('user_books').upsert(rows.slice(i,i+CHUNK),{onConflict:'id'});
-    if(error){console.error('saveSupaBooksBatch failed:',error);toast('❌ Algunos libros no se pudieron guardar. Comprueba tu conexión e inténtalo de nuevo.');return false;}
+    const chunk=rows.slice(i,i+CHUNK);
+    const{error}=await supa.from('user_books').upsert(chunk,{onConflict:'id'});
+    if(error){
+      console.error('saveSupaBooksBatch failed:',error);
+      // No abortamos el resto del lote: los trozos que sí entren se quedan
+      // guardados, y los que no van a la cola de pendientes para reintentarse
+      // solos — antes un fallo a mitad dejaba media importación en el aire
+      // mientras la app decía "importados todos" igualmente.
+      chunk.forEach(queuePendingBookWrite);
+      failed+=chunk.length;
+    }
   }
-  return true;
+  return {ok:failed===0,failed};
 }
 async function confirmGoodreadsImport(){
   const candidates=_goodreadsCandidates;
@@ -8694,11 +8953,15 @@ async function confirmGoodreadsImport(){
   // A propósito NO se tocan los Retos ni el Shelfie del año — son libros ya
   // leídos hace tiempo (historial importado), no lecturas de hoy, así que
   // sumarlos a un reto/objetivo actual falsearía el progreso de golpe.
-  await saveSupaBooksBatch(books);
+  const batch=await saveSupaBooksBatch(books);
   closeModal('modal-goodreads-import');
   updateAll();
   renderShelf();
-  toast(`✅ ${books.length} libro${books.length===1?'':'s'} importado${books.length===1?'':'s'} desde Goodreads`);
+  if(batch&&!batch.ok){
+    toast(`⚠️ ${books.length-batch.failed} de ${books.length} libros importados. Los ${batch.failed} restantes se guardarán solos en cuanto vuelva la conexión.`,7000);
+  }else{
+    toast(`✅ ${books.length} libro${books.length===1?'':'s'} importado${books.length===1?'':'s'} desde Goodreads`);
+  }
 }
 
 // Libros sin portada, o con la portada por ISBN (poco fiable — muchas
@@ -9161,7 +9424,7 @@ function updateHome(){
   const retosEl=document.getElementById('home-retos');
   const activeRetos=RETOS.filter(r=>r.progress<r.goal);
   if(!activeRetos.length){
-    retosEl.innerHTML=`<div style="font-size:13px;color:var(--ink3);padding:8px 0">Sin retos activos. <button class="card-link" onclick="openModal('modal-reto')">Crear un reto →</button></div>`;
+    retosEl.innerHTML=`<div style="font-size:13px;color:var(--ink3);padding:8px 0">Sin retos activos. <button class="card-link" onclick="openNewRetoModal()">Crear un reto →</button></div>`;
   } else {
     retosEl.innerHTML=activeRetos.slice(0,3).map(r=>{
       const pct=Math.round(r.progress/r.goal*100);
@@ -9174,7 +9437,7 @@ function updateHome(){
         <div class="home-reto-mini-pct">${r.progress}/${r.goal}</div>
       </div>`;
     }).join('')+
-    (RETOS.length===0?`<div style="margin-top:10px"><button class="btn btn-sm btn-red" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Nuevo reto</button></div>`:'');
+    (RETOS.length===0?`<div style="margin-top:10px"><button class="btn btn-sm btn-red" onclick="openNewRetoModal()"><i class="ti ti-plus"></i> Nuevo reto</button></div>`:'');
   }
 
   // ── Community mini feed — real recent activity from people you follow.
@@ -9414,7 +9677,7 @@ function confirmFinishBook(){
   book.readHistory.push({stars:finishStarVal,finishedAt:finishedDate});
   DB.leidos.unshift(book);
   saveSupaBook(book);
-  RETOS.forEach(r=>r.progress=Math.min(r.progress+1,r.goal));
+  countBookTowardsRetos(book);
   updateAll();
   closeModal('modal-finish-book');
   toast(`🎉 «${book.title}» marcado como leído con ${book.stars}★`);
@@ -9490,7 +9753,21 @@ function toggleYearGoal(id){
   else YEAR_GOAL_IDS.add(id);
   updateCounts();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
-  toast(YEAR_GOAL_IDS.has(id)?'✓ Añadido a tu Shelfie 2026':'Quitado de tu Shelfie 2026');
+  toast(YEAR_GOAL_IDS.has(id)?`✓ Añadido a tu Shelfie ${CURRENT_SHELFIE_YEAR}`:`Quitado de tu Shelfie ${CURRENT_SHELFIE_YEAR}`);
+  saveYearGoals();
+}
+
+// Antes esto no se guardaba en ningún sitio (ni en Supabase ni en el
+// navegador): la pestaña "Shelfie <año>" se vaciaba en cada recarga y el
+// contador se colaba entre cuentas al cambiar de sesión en la misma pestaña.
+async function saveYearGoals(){
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('profiles').update({
+    year_goal_ids:[...YEAR_GOAL_IDS],
+    year_goal_year:CURRENT_SHELFIE_YEAR,
+    shelfie_archive:SHELFIE_YEARS_ARCHIVE,
+  }).eq('id',SUPA_USER.id);
+  if(error)console.error('saveYearGoals failed:',error);
 }
 
 function renderShelf(){
@@ -9535,6 +9812,11 @@ function renderShelf(){
   if(sort==='titulo')books.sort((a,b)=>a.title.localeCompare(b.title));
   else if(sort==='autor')books.sort((a,b)=>a.author.localeCompare(b.author));
   else if(sort==='valoracion')books.sort((a,b)=>(b.stars||0)-(a.stars||0));
+
+  // Los ondrop de abajo solo reciben el índice de la fila PINTADA, que tras
+  // filtrar por búsqueda y ordenar ya no coincide con la posición real del
+  // libro en DB[currentTab] — sin esto, arrastrar movía un libro cualquiera.
+  _renderedShelfBooks=books;
 
   const cont=document.getElementById('shelf-content');
   if(!books.length){
@@ -9584,17 +9866,49 @@ function renderShelf(){
 }
 
 let listDragIdx=null;
+let _renderedShelfBooks=[];
 function listDragStart(e,idx){listDragIdx=idx;e.currentTarget.style.opacity='0.4';}
 function listDragEnd(e){e.currentTarget.style.opacity='1';}
 function listDrop(e,targetIdx){
   e.preventDefault();
-  if(listDragIdx===null||listDragIdx===targetIdx)return;
+  const fromIdx=listDragIdx;
+  listDragIdx=null;
+  if(fromIdx===null||fromIdx===targetIdx)return;
   const arr=currentTab==='anio'?null:DB[currentTab];
   if(!arr)return;
-  const moved=arr.splice(listDragIdx,1)[0];
-  arr.splice(targetIdx,0,moved);
-  listDragIdx=null;
+  // Reordenar a mano solo tiene sentido sobre la lista completa y sin otro
+  // criterio de orden encima: con "Título"/"Autor"/"Valoración" o con una
+  // búsqueda activa, el orden que ves lo decide ese criterio, no tú.
+  if(PROFILE.shelfPublicSort!=='manual'){
+    toast('Para reordenar a mano, cambia el orden a «Manual»');
+    return;
+  }
+  if((document.getElementById('shelf-search')?.value||'').trim()){
+    toast('Para reordenar a mano, borra primero la búsqueda');
+    return;
+  }
+  // Traduce índice pintado -> libro real -> posición real en DB[currentTab].
+  const movedBook=_renderedShelfBooks[fromIdx];
+  const targetBook=_renderedShelfBooks[targetIdx];
+  if(!movedBook||!targetBook)return;
+  const from=arr.findIndex(b=>b.id===movedBook.id);
+  const to=arr.findIndex(b=>b.id===targetBook.id);
+  if(from<0||to<0)return;
+  arr.splice(to,0,arr.splice(from,1)[0]);
   renderShelf();
+  persistShelfOrder(currentTab);
+}
+
+// El orden manual no se guardaba en ningún sitio, así que se perdía al
+// recargar (y como la consulta tampoco pedía ningún orden, cada carga podía
+// devolver los libros en un orden distinto). Se numera la pestaña entera y se
+// guarda de una sola vez.
+async function persistShelfOrder(tab){
+  if(!SUPA_USER||!DB[tab])return;
+  const rows=DB[tab].map((b,i)=>{b.sortOrder=i;return{id:b.id,user_id:SUPA_USER.id,sort_order:i};});
+  if(!rows.length)return;
+  const{error}=await supa.from('user_books').upsert(rows,{onConflict:'id'});
+  if(error){console.error('persistShelfOrder failed:',error);toast('⚠️ No se pudo guardar el nuevo orden.');}
 }
 
 // Universal "Mover a..." dropdown — lets any book jump to any other status directly
@@ -10342,6 +10656,58 @@ function shareReviewToFeed(bookId){
   },100);
 }
 
+// ═══════════════════════════════════════════════
+// ENLACES DE AFILIADO
+// Todavía no tenemos ID de afiliado en ningún proveedor — cada uno se queda
+// con enabled:false hasta que exista una cuenta real, así que por ahora
+// affiliateButtonsHtml() no pinta nada (la sección entera desaparece).
+// Para activar uno cuando llegue el alta: rellena su "tag" y pon enabled:true.
+// ═══════════════════════════════════════════════
+const AFFILIATE_PROVIDERS=[
+  {
+    id:'amazon',label:'Amazon',enabled:false,
+    tag:'', // p.ej. 'shelfie0d-21' (código de Amazon Afiliados España)
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.amazon.es/s?k=${q}&i=stripbooks${this.tag?`&tag=${encodeURIComponent(this.tag)}`:''}`;
+    },
+  },
+  {
+    id:'todostuslibros',label:'Todos tus libros',enabled:false,
+    tag:'', // código de afiliado que da su programa al darte de alta
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.todostuslibros.com/busqueda?q=${q}`; // TODO: parámetro de afiliado cuando exista cuenta
+    },
+  },
+  {
+    id:'casadellibro',label:'La Casa del Libro',enabled:false,
+    tag:'',
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.casadellibro.com/busqueda-generica?q=${q}`; // TODO: parámetro de afiliado cuando exista cuenta
+    },
+  },
+];
+function affiliateButtonsHtml(book){
+  const active=AFFILIATE_PROVIDERS.filter(p=>p.enabled&&p.tag);
+  if(!active.length)return'';
+  const titleEsc=escapeHtml(book.title||'').replace(/'/g,"\\'");
+  return `
+    <div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-shopping-cart"></i> Cómpralo</div>
+      <div class="book-affiliate-links">
+        ${active.map(p=>`<a class="btn btn-white" href="${p.url(book)}" target="_blank" rel="noopener sponsored" onclick="trackAffiliateClick('${p.id}','${titleEsc}')"><i class="ti ti-external-link"></i> Comprar en ${p.label}</a>`).join('')}
+      </div>
+    </div>`;
+}
+// De momento solo deja constancia en consola — si algún día interesa saber
+// qué proveedor convierte mejor, aquí es donde engancharíamos un registro
+// propio (proveedor+libro+fecha, sin datos personales), no antes de tenerlo.
+function trackAffiliateClick(providerId,title){
+  console.log('[afiliado] click',providerId,title);
+}
+
 function renderBookPage(key){
   const book=allBooks().find(b=>bookWorkKey(b)===key);
   if(!book){renderBookPageGeneric(key);return;}
@@ -10452,6 +10818,7 @@ function renderBookPage(key){
     </div>
 
     ${synopsisHtml}
+    ${affiliateButtonsHtml(book)}
     ${book.status==='leidos'?bookReviewSectionHtml(book,selfKey):''}
     ${communityCountsHtml}
     ${ratingBreakdownHtml}
@@ -10655,6 +11022,7 @@ async function renderBookPageGeneric(key){
     </div>
 
     ${synopsisHtml}
+    ${affiliateButtonsHtml({title,author})}
     ${SUPA_USER?'<div class="book-community-stats" id="book-community-counts"></div><div class="book-page-section"><div class="book-page-section-title"><i class="ti ti-star"></i> Valoraciones de la comunidad</div><div id="book-rating-breakdown"><div class="text-sm text-muted">Cargando…</div></div></div>':''}
     ${authorSnippetHtml}
 
@@ -12090,7 +12458,7 @@ function renderRetos(){
   updateCounts();
   const cont=document.getElementById('my-retos');
   if(!RETOS.length){
-    cont.innerHTML=`<div class="empty card" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 20px"><i class="ti ti-target" style="font-size:32px;color:var(--ink3);margin-bottom:12px"></i><p style="font-weight:600;margin-bottom:6px">Aún no tienes retos</p><span style="color:var(--ink3);font-size:13px">Crea tu propio reto o únete a uno de la comunidad</span><button class="btn btn-red" style="margin-top:18px" onclick="openModal('modal-reto')"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;
+    cont.innerHTML=`<div class="empty card" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 20px"><i class="ti ti-target" style="font-size:32px;color:var(--ink3);margin-bottom:12px"></i><p style="font-weight:600;margin-bottom:6px">Aún no tienes retos</p><span style="color:var(--ink3);font-size:13px">Crea tu propio reto o únete a uno de la comunidad</span><button class="btn btn-red" style="margin-top:18px" onclick="openNewRetoModal()"><i class="ti ti-plus"></i> Crear primer reto</button></div>`;
     return;
   }
   cont.innerHTML=RETOS.map((r,i)=>{
@@ -12193,6 +12561,49 @@ function joinCommunityRetoById(id){
   toast(`✅ Unido al reto «${cr.name}»`);
 }
 
+// El progreso de un reto SIEMPRE se deriva de los libros que tiene asignados,
+// nunca es un contador aparte. Antes era un contador suelto que se subía a
+// mano desde tres sitios distintos: no se guardaba nunca (se perdía al
+// recargar), el mismo libro contaba dos veces si además lo asignabas, y los
+// libros añadidos al crear el reto no contaban nada.
+function syncRetoProgress(r){
+  r.progress=Math.min((r.books||[]).length,r.goal||0);
+  return r;
+}
+
+// Terminar un libro lo apunta en cada reto activo (si no estaba ya) y guarda.
+// Antes solo subía un contador en memoria que no se persistía en ningún sitio,
+// así que todo el progreso de retos se perdía en cuanto recargabas.
+function countBookTowardsRetos(book){
+  if(!book||!RETOS.length)return;
+  RETOS.forEach(r=>{
+    if(!r.books)r.books=[];
+    if(r.books.some(b=>b.id===book.id))return;
+    r.books.push({id:book.id,title:book.title,author:book.author,cover:book.cover||null,color:book.color});
+    saveSupaReto(syncRetoProgress(r));
+  });
+}
+
+// Qué reto se está editando ahora mismo (null = se está creando uno nuevo).
+// Antes el botón del modal se re-vinculaba a un cierre sobre el reto editado
+// y solo se restauraba al guardar — si cerrabas el modal sin guardar, el
+// siguiente "Nuevo reto" sobrescribía en silencio el que habías abierto.
+let _editingRetoId=null;
+
+function resetRetoModal(){
+  _editingRetoId=null;
+  retoAssigned=[];
+  ['reto-name','reto-desc','reto-requirements','reto-deadline','reto-goal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const btn=document.getElementById('reto-save-btn');
+  if(btn)btn.innerHTML='<i class="ti ti-check"></i> Crear y publicar reto';
+  if(typeof renderRetoAssigned==='function')renderRetoAssigned();
+}
+
+function openNewRetoModal(){
+  resetRetoModal();
+  openModal('modal-reto');
+}
+
 function saveReto(){
   const name=document.getElementById('reto-name').value.trim();
   const desc=document.getElementById('reto-desc').value.trim();
@@ -12202,17 +12613,26 @@ function saveReto(){
   const vis=document.getElementById('reto-vis').value;
   if(!name){toast('⚠️ Escribe un nombre');return;}
   if(!goal||goal<1){toast('⚠️ Meta inválida');return;}
-  const reto={id:uuid(),name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]};
+  const editing=_editingRetoId?RETOS.find(r=>r.id===_editingRetoId):null;
+  if(editing){
+    Object.assign(editing,{name,desc,requirements,deadline,goal,vis,books:[...retoAssigned]});
+    saveSupaReto(syncRetoProgress(editing));
+    resetRetoModal();
+    closeModal('modal-reto');renderRetos();
+    toast('✅ Reto actualizado');
+    return;
+  }
+  const reto=syncRetoProgress({id:uuid(),name,desc,requirements,deadline,goal,progress:0,vis,books:[...retoAssigned],createdByMe:true,participants:[]});
   RETOS.push(reto);
   saveSupaReto(reto);
-  retoAssigned=[];
-  ['reto-name','reto-desc','reto-requirements','reto-deadline','reto-goal'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  resetRetoModal();
   closeModal('modal-reto');renderRetos();
   toast(`✅ Reto «${name}» creado`);
 }
 
 function editReto(i){
   const r=RETOS[i];
+  _editingRetoId=r.id;
   document.getElementById('reto-name').value=r.name;
   document.getElementById('reto-desc').value=r.desc||'';
   document.getElementById('reto-requirements').value=r.requirements||'';
@@ -12221,23 +12641,8 @@ function editReto(i){
   document.getElementById('reto-vis').value=r.vis;
   retoAssigned=[...(r.books||[])];
   renderRetoAssigned();
-  // Switch save button to update mode
-  const btn=document.querySelector('#modal-reto .btn-red');
-  if(btn){btn.textContent='Guardar cambios';btn.onclick=()=>{
-    r.name=document.getElementById('reto-name').value.trim()||r.name;
-    r.desc=document.getElementById('reto-desc').value.trim();
-    r.requirements=document.getElementById('reto-requirements').value.trim();
-    r.deadline=document.getElementById('reto-deadline').value;
-    const g=parseInt(document.getElementById('reto-goal').value);
-    if(g&&g>0)r.goal=g;
-    r.vis=document.getElementById('reto-vis').value;
-    r.books=[...retoAssigned];
-    retoAssigned=[];
-    saveSupaReto(r);
-    closeModal('modal-reto');renderRetos();
-    btn.textContent='Crear y publicar reto';btn.onclick=saveReto;
-    toast('✅ Reto actualizado');
-  };}
+  const btn=document.getElementById('reto-save-btn');
+  if(btn)btn.innerHTML='<i class="ti ti-check"></i> Guardar cambios';
   openModal('modal-reto');
 }
 
@@ -12277,8 +12682,7 @@ function onAssignRetoBookSearch(q){
       const r=RETOS[pendingAssignRetoIdx];
       if(!r.books)r.books=[];
       r.books.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
-      r.progress=Math.min(r.progress+1,r.goal);
-      saveSupaReto(r);
+      saveSupaReto(syncRetoProgress(r));
       closeModal('modal-assign-reto-book');renderRetos();
       toast(`📖 «${b.title}» asignado al reto`);
     };
@@ -12443,8 +12847,6 @@ async function addFriend(username,btn){
         toast('❌ No se pudo enviar la solicitud. Inténtalo de nuevo.');
         return;
       }
-      supa.from('notifications').insert({user_id:r.id,actor_id:SUPA_USER.id,type:'follow_request'})
-        .then(({error})=>{if(error)console.error('notify follow-request failed:',error);});
       if(btn){btn.textContent='Solicitud enviada';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
       toast(`✓ Solicitud enviada a ${r.name}`);
       return;
@@ -12458,9 +12860,7 @@ async function addFriend(username,btn){
       toast('❌ No se pudo seguir a este usuario. Comprueba tu conexión e inténtalo de nuevo.');
       return;
     }
-    // Best-effort: let the followed user know. Doesn't block the follow if it fails.
-    supa.from('notifications').insert({user_id:r.id,actor_id:SUPA_USER.id,type:'follow'})
-      .then(({error})=>{if(error)console.error('notify follow failed:',error);});
+    // El aviso a quien sigues lo genera un trigger sobre friendships.
   }
   FRIENDS.push({...r});
   if(btn){btn.textContent='Siguiendo ✓';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
@@ -12486,8 +12886,7 @@ async function acceptFollowRequest(requesterId,notifId,btn){
     toast('❌ No se pudo aceptar la solicitud.');
     return;
   }
-  supa.from('notifications').insert({user_id:requesterId,actor_id:SUPA_USER.id,type:'follow_accepted'})
-    .then(({error})=>{if(error)console.error('notify follow-accepted failed:',error);});
+  // El aviso de "te han aceptado" lo manda la propia accept_follow_request().
   try{await loadSupaFollowers();}catch(e){console.error('loadSupaFollowers failed:',e);}
   NOTIFICATIONS=NOTIFICATIONS.filter(n=>n.id!==notifId);
   renderNotifications();
@@ -13458,7 +13857,7 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':'interactuó contigo';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':n.type==='event_signup'?'se ha apuntado a tu evento':'interactuó contigo';
     let followBtn='';
     if(n.type==='follow'){
       followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
@@ -16119,12 +16518,8 @@ async function togglePostLike(id,btn){
     btn.querySelector('.lb-icon').innerHTML=heartIco(post.likedByMe);
     btn.querySelector('.lb-count').textContent=post.likes;
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
-  }else if(post.likedByMe&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
-    // Best-effort, igual que la notificación de "te sigue" — no bloquea la
-    // UI si falla, y nunca se avisa a uno mismo por darse like a su propio post.
-    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'like'})
-      .then(({error})=>{if(error)console.error('notify like failed:',error);});
   }
+  // El aviso al autor lo genera un trigger sobre likes.
   _likeInFlight.delete(id);
 }
 
@@ -16169,10 +16564,7 @@ async function sendComment(id){
   refreshPostCard(id);
   toggleCommentBox(id); // re-render replaced the row (now hidden by default) — reopen it
   toast('💬 Comentario añadido');
-  if(SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
-    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'comment'})
-      .then(({error})=>{if(error)console.error('notify comment failed:',error);});
-  }
+  // El aviso al autor lo genera un trigger sobre comments.
   _commentInFlight.delete(id);
 }
 
@@ -16196,11 +16588,8 @@ async function toggleCommentLike(postId,commentId,btn){
     btn.querySelector('.lb-icon').innerHTML=heartIco(comment.likedByMe);
     btn.querySelector('.lb-count').textContent=comment.likes||'';
     toast('❌ No se pudo guardar el like. Inténtalo de nuevo.');
-  }else if(comment.likedByMe&&SUPA_USER&&comment.userId&&comment.userId!==SUPA_USER.id){
-    // Al autor DEL COMENTARIO, no al del post — pueden ser personas distintas.
-    supa.from('notifications').insert({user_id:comment.userId,actor_id:SUPA_USER.id,type:'comment_like'})
-      .then(({error})=>{if(error)console.error('notify comment_like failed:',error);});
   }
+  // El aviso al autor del comentario lo genera un trigger sobre comment_likes.
   _commentLikeInFlight.delete(commentId);
 }
 
@@ -16245,10 +16634,8 @@ async function toggleReaction(id,emoji){
     applyOptimistic(removing?null:emoji,prev); // revert
     refreshPostCard(id);
     toast('❌ No se pudo guardar la reacción. Inténtalo de nuevo.');
-  }else if(!removing&&SUPA_USER&&post.authorId&&post.authorId!==SUPA_USER.id){
-    supa.from('notifications').insert({user_id:post.authorId,actor_id:SUPA_USER.id,type:'reaction'})
-      .then(({error})=>{if(error)console.error('notify reaction failed:',error);});
   }
+  // El aviso al autor lo genera un trigger sobre post_reactions.
   _reactionInFlight.delete(id);
 }
 

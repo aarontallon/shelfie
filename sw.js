@@ -2,7 +2,7 @@
 // dependencias estáticas (CDN) para que cargue más rápido en visitas
 // repetidas. NO cachea llamadas a Supabase — los datos siempre tienen que
 // venir de red, esto es una app con datos en vivo, no un sitio estático.
-const CACHE = 'shelfie-v2';
+const CACHE = 'shelfie-v3';
 // Rutas relativas al scope del propio sw.js (p.ej. https://x.github.io/shelfie/),
 // nunca con "/" inicial — este sitio vive en un subdirectorio de GitHub Pages,
 // no en la raíz del dominio, así que una ruta absoluta apuntaría a otro sitio.
@@ -66,20 +66,19 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname.includes('supabase.co')) return; // nunca cachear datos en vivo
 
   if (req.mode === 'navigate') {
-    // Shell HTML: cache primero (abre al instante) + red de refresco en segundo
-    // plano para la próxima vez — antes era red primero, así que CADA apertura
-    // de la app esperaba a descargarse el HTML entero (pesa ~1.3MB) antes de
-    // pintar nada, aunque la copia en caché ya estuviera al día. El coste es
-    // que un cambio recién publicado tarda una apertura más en verse (la
-    // siguiente vez ya sale actualizado); a cambio, abrir la app es instantáneo.
+    // Shell HTML: red primero, caché solo como respaldo si no hay conexión.
+    // Antes era caché primero con refresco en segundo plano — más rápido de
+    // abrir, pero un cambio recién publicado no se veía hasta la SEGUNDA
+    // apertura. En Android, muchas veces la app nunca llega a "reabrirse" de
+    // verdad (el sistema la retoma tal cual estaba en vez de recargarla), así
+    // que esa segunda apertura casi nunca llegaba a pasar y los cambios no se
+    // veían nunca sin tirar de pull-to-refresh a mano. Prioriza ver siempre
+    // la versión publicada más reciente sobre ese ahorro de velocidad.
     e.respondWith(
-      caches.match(SHELL_HTML_URL).then((cached) => {
-        const network = fetch(req).then((res) => {
-          if (res && res.ok) caches.open(CACHE).then((c) => c.put(SHELL_HTML_URL, res.clone()));
-          return res;
-        }).catch(() => cached);
-        return cached || network;
-      })
+      fetch(req).then((res) => {
+        if (res && res.ok) caches.open(CACHE).then((c) => c.put(SHELL_HTML_URL, res.clone()));
+        return res;
+      }).catch(() => caches.match(SHELL_HTML_URL))
     );
     return;
   }

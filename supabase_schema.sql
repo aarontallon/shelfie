@@ -1100,3 +1100,591 @@ create policy "push_subscriptions_delete" on public.push_subscriptions for delet
 -- Sin policy de update: para cambiar de claves, el cliente borra la fila
 -- vieja (por endpoint) e inserta una nueva — es como cambia el navegador
 -- una suscripción push, nunca hay que editar una ya existente en el sitio.
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: notificaciones push programadas (racha en peligro, resumen
+-- semanal de eventos) — usa pg_cron para llamar a la Edge Function
+-- send-scheduled-push en un horario fijo, en vez de reaccionar a un INSERT
+-- como el resto de pushes. Requiere activar la extensión pg_cron una vez
+-- (Database → Extensions → actívala si el create extension de abajo no
+-- tiene permiso para hacerlo solo). Segura de volver a ejecutar — cada vez
+-- que se corre, borra y vuelve a crear los dos jobs con el mismo nombre.
+-- ════════════════════════════════════════════════
+
+create extension if not exists pg_cron;
+
+do $$ begin perform cron.unschedule('shelfie-streak-reminder'); exception when others then null; end $$;
+select cron.schedule(
+  'shelfie-streak-reminder',
+  '0 19 * * *', -- ~20h en Madrid en horario de invierno (CET); en verano (CEST) cae sobre las 21h
+  $cron$select net.http_post(
+    url := 'https://zkoarvxhjunwmyiaynyc.supabase.co/functions/v1/send-scheduled-push',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{"job":"streak_reminder"}'::jsonb
+  );$cron$
+);
+
+do $$ begin perform cron.unschedule('shelfie-weekly-digest'); exception when others then null; end $$;
+select cron.schedule(
+  'shelfie-weekly-digest',
+  '0 8 * * 1', -- lunes por la mañana
+  $cron$select net.http_post(
+    url := 'https://zkoarvxhjunwmyiaynyc.supabase.co/functions/v1/send-scheduled-push',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{"job":"weekly_digest"}'::jsonb
+  );$cron$
+);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: auditoría de seguridad — organizadores sin perfil,
+-- carrera de aforo en eventos, edición de mensajes ajenos, bloqueos no
+-- aplicados en comentarios/likes/reacciones/notificaciones, y permisos de
+-- avatar demasiado abiertos. Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- handle_new_user() se había quedado redefinida 3 veces en este archivo;
+-- como CREATE OR REPLACE siempre deja ganar a la última que se ejecuta, la
+-- versión que quedaba viva (la del tutorial de bienvenida) había perdido
+-- sin querer la rama que distingue organizador de lector, Y encima nunca
+-- creaba fila en profiles para los organizadores — con lo que la
+-- notificación de "alguien se ha apuntado a tu evento" fallaba siempre por
+-- violar la referencia notifications.user_id -> profiles(id). Esta versión
+-- final crea profiles SIEMPRE (lector u organizador) y, si el alta es de
+-- tipo organizador, además crea su fila en organizers.
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  base_username text;
+begin
+  base_username := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    '[^a-z0-9]', '', 'g'
+  ));
+  insert into public.profiles (id, name, username, onboarding_seen)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    base_username || '_reads',
+    false
+  )
+  on conflict (id) do nothing;
+
+  if (new.raw_user_meta_data->>'account_type') = 'organizer' then
+    insert into public.organizers (id, venue_name, city, contact_email)
+    values (
+      new.id,
+      coalesce(new.raw_user_meta_data->>'venue_name', split_part(new.email, '@', 1)),
+      coalesce(new.raw_user_meta_data->>'city', ''),
+      new.email
+    )
+    on conflict (id) do nothing;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Backfill: cualquier organizador ya existente que se diera de alta
+-- mientras el trigger estaba roto y por tanto se quedó sin fila en
+-- profiles. El sufijo con parte del id evita choques de username único.
+insert into public.profiles (id, name, username, onboarding_seen)
+select
+  o.id,
+  coalesce(nullif(o.venue_name,''), 'Organizador'),
+  lower(regexp_replace(coalesce(nullif(o.venue_name,''),'organizador'), '[^a-z0-9]', '', 'g')) || '_' || substr(o.id::text,1,8),
+  true
+from public.organizers o
+where not exists (select 1 from public.profiles p where p.id = o.id)
+on conflict (id) do nothing;
+
+-- Carrera de aforo: antes solo se comprobaba en el cliente (una lectura de
+-- la caché local antes de insertar), así que dos inscripciones casi
+-- simultáneas para el último hueco podían pasar las dos, y un cliente
+-- modificado podía saltárselo directamente. "select ... for update" bloquea
+-- la fila del evento mientras dura la transacción, así que dos inserts a
+-- la vez quedan serializados y el segundo ve el conteo ya actualizado.
+create or replace function public.enforce_event_capacity()
+returns trigger as $$
+declare
+  cap int;
+  current_count int;
+begin
+  select capacity into cap from public.events where id = new.event_id for update;
+  if cap is not null then
+    select count(*) into current_count from public.event_signups where event_id = new.event_id;
+    if current_count >= cap then
+      raise exception 'Este evento ya está completo.';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists before_event_signup_insert on public.event_signups;
+create trigger before_event_signup_insert
+  before insert on public.event_signups
+  for each row execute function public.enforce_event_capacity();
+
+-- messages_update solo se pensó para marcar read_at como leído, pero la
+-- policy en sí no lo impedía — cualquiera de los dos participantes podía
+-- reescribir el texto (o hasta el remitente) de un mensaje ajeno. Un
+-- trigger sí puede comparar OLD contra NEW columna a columna, cosa que RLS
+-- no puede hacer por sí sola.
+create or replace function public.protect_message_immutable_fields()
+returns trigger as $$
+begin
+  if new.text is distinct from old.text
+     or new.sender_id is distinct from old.sender_id
+     or new.conversation_id is distinct from old.conversation_id
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Solo se puede actualizar read_at en un mensaje.';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists before_message_update on public.messages;
+create trigger before_message_update
+  before update on public.messages
+  for each row execute function public.protect_message_immutable_fields();
+
+-- Mismo problema en conversations_update: un participante podía reasignar
+-- al OTRO participante a un uuid arbitrario, exponiendo el historial de
+-- mensajes a un tercero no invitado. Los únicos cambios legítimos son
+-- status (al aceptar una solicitud) y last_message/last_message_at (los
+-- pone el propio trigger handle_new_message()).
+create or replace function public.protect_conversation_immutable_fields()
+returns trigger as $$
+begin
+  if new.user1_id is distinct from old.user1_id
+     or new.user2_id is distinct from old.user2_id
+     or new.initiator_id is distinct from old.initiator_id
+     or new.created_at is distinct from old.created_at then
+    raise exception 'No se pueden cambiar los participantes de una conversación.';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists before_conversation_update on public.conversations;
+create trigger before_conversation_update
+  before update on public.conversations
+  for each row execute function public.protect_conversation_immutable_fields();
+
+-- Bloquear a alguien ya deshacía el "seguir" en ambos sentidos, pero dejaba
+-- vivas las solicitudes de seguimiento pendientes entre esas dos cuentas.
+create or replace function public.handle_new_block()
+returns trigger as $$
+begin
+  delete from public.friendships
+  where (user_id = new.blocker_id and friend_id = new.blocked_id)
+     or (user_id = new.blocked_id and friend_id = new.blocker_id);
+  delete from public.follow_requests
+  where (requester_id = new.blocker_id and target_id = new.blocked_id)
+     or (requester_id = new.blocked_id and target_id = new.blocker_id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- El bloqueo se aplicaba ya al enviar mensajes directos, pero no al dar
+-- like/comentar/reaccionar en publicaciones ni al reaccionar a un mensaje
+-- — alguien a quien has bloqueado podía seguir interactuando con tu
+-- contenido público llamando directamente a la API, saltándose el bloqueo.
+drop policy if exists "comments_insert" on public.comments;
+create policy "comments_insert" on public.comments for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = comments.post_id
+  )
+);
+
+drop policy if exists "likes_insert" on public.likes;
+create policy "likes_insert" on public.likes for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = likes.post_id
+  )
+);
+
+drop policy if exists "comment_likes_insert" on public.comment_likes;
+create policy "comment_likes_insert" on public.comment_likes for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.comments c
+    join public.posts p on p.id = c.post_id
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where c.id = comment_likes.comment_id
+  )
+);
+
+drop policy if exists "post_reactions_insert" on public.post_reactions;
+create policy "post_reactions_insert" on public.post_reactions for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = post_reactions.post_id
+  )
+);
+
+drop policy if exists "message_reactions_insert" on public.message_reactions;
+create policy "message_reactions_insert" on public.message_reactions for insert with check (
+  auth.uid() = user_id
+  and exists (
+    select 1 from public.messages m
+    join public.conversations c on c.id = m.conversation_id
+    where m.id = message_reactions.message_id
+    and (c.user1_id = auth.uid() or c.user2_id = auth.uid())
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = c.user1_id and b.blocked_id = c.user2_id)
+         or (b.blocker_id = c.user2_id and b.blocked_id = c.user1_id)
+    )
+  )
+);
+
+-- notifications_insert solo comprobaba "quien la manda soy yo", sin mirar
+-- si hay un bloqueo entre emisor y receptor — cualquier cuenta logueada
+-- podía forzar una notificación (y por tanto un push) a alguien que la
+-- había bloqueado. Nota: esto cierra el caso de abuso más directo, pero no
+-- valida que el evento en sí sea real (p.ej. que ese "like" haya pasado de
+-- verdad) — hacerlo exigiría generar las notificaciones desde triggers en
+-- las propias tablas de origen en vez de confiar en el insert del cliente,
+-- un cambio más grande que queda fuera de este parche.
+drop policy if exists "notifications_insert" on public.notifications;
+create policy "notifications_insert" on public.notifications for insert with check (
+  auth.uid() = actor_id
+  and not exists (
+    select 1 from public.blocks b
+    where (b.blocker_id = notifications.user_id and b.blocked_id = auth.uid())
+       or (b.blocker_id = auth.uid() and b.blocked_id = notifications.user_id)
+  )
+);
+
+-- Los avatares se suben siempre a la ruta "{auth.uid()}/avatar_...ext"
+-- (ver uploadProfilePhoto() en el cliente) — antes cualquier usuario
+-- logueado podía sobrescribir o borrar el archivo de CUALQUIER otro
+-- (vandalismo/DoS: podían dejar sin foto a todo el mundo), porque la
+-- policy solo miraba que estuvieras autenticado, no de quién era la
+-- carpeta. storage.foldername(name) da el primer segmento de la ruta.
+drop policy if exists "avatar_owner_write" on storage.objects;
+create policy "avatar_owner_write" on storage.objects for insert with check (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "avatar_owner_update" on storage.objects;
+create policy "avatar_owner_update" on storage.objects for update using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "avatar_owner_delete" on storage.objects;
+create policy "avatar_owner_delete" on storage.objects for delete using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- push_subscriptions no tenía policy de update — el cliente borraba la fila
+-- vieja e insertaba una nueva, lo que además de no ser atómico (dos
+-- pestañas activando el push a la vez podían chocar) se rompía del todo en
+-- un dispositivo compartido: si la cuenta A ya tenía el push activado y no
+-- lo desactivó al cerrar sesión, la cuenta B no podía ni borrar la fila de
+-- A (no es su dueña) ni insertar la suya (el mismo "endpoint" físico del
+-- dispositivo choca con el unique constraint). Ahora el cliente hace un
+-- upsert por endpoint; el endpoint es un secreto largo e infalsificable
+-- (hace falta acceso real al propio dispositivo para conocerlo), así que
+-- permitir el update en general y solo exigir que el resultado quede a tu
+-- nombre es seguro y resuelve el caso de dispositivo compartido sin más.
+drop policy if exists "push_subscriptions_update" on public.push_subscriptions;
+create policy "push_subscriptions_update" on public.push_subscriptions for update
+  using (true)
+  with check (auth.uid() = user_id);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: las notificaciones las genera la base de datos, no el
+-- cliente. Hasta ahora cada acción (dar like, comentar, seguir...) hacía
+-- DOS cosas desde el navegador: la acción en sí y, aparte, un insert en
+-- notifications. Eso significaba que cualquiera con la consola abierta
+-- podía insertar la notificación SIN hacer la acción — y desde que hay
+-- push, eso es un aviso real al móvil de quien tú quisieras, las veces que
+-- quisieras. Ahora cada notificación nace de un trigger sobre la tabla de
+-- la acción real, y al cliente se le retira el permiso de insertar.
+-- Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- Punto único por el que pasan todas: descarta auto-notificarse, respeta
+-- bloqueos en ambos sentidos, y evita el spam de repetir la misma
+-- notificación (dar y quitar like en bucle, cambiar de emoji varias veces)
+-- reutilizando la que ya haya sin leer de la última hora. Los comentarios
+-- se quedan fuera de esa deduplicación: cada comentario es contenido
+-- distinto y merece su propio aviso.
+create or replace function public.create_notification(p_user_id uuid, p_actor_id uuid, p_type text)
+returns void as $$
+begin
+  if p_user_id is null or p_actor_id is null or p_user_id = p_actor_id then
+    return;
+  end if;
+  if exists (
+    select 1 from public.blocks b
+    where (b.blocker_id = p_user_id and b.blocked_id = p_actor_id)
+       or (b.blocker_id = p_actor_id and b.blocked_id = p_user_id)
+  ) then
+    return;
+  end if;
+  -- Solo notifica a cuentas que existen como perfil (un organizador sin
+  -- perfil rompería la clave foránea y abortaría la acción original).
+  if not exists (select 1 from public.profiles p where p.id = p_user_id) then
+    return;
+  end if;
+  if p_type <> 'comment' and exists (
+    select 1 from public.notifications n
+    where n.user_id = p_user_id and n.actor_id = p_actor_id and n.type = p_type
+      and n.read = false and n.created_at > now() - interval '1 hour'
+  ) then
+    return;
+  end if;
+  insert into public.notifications (user_id, actor_id, type)
+  values (p_user_id, p_actor_id, p_type);
+end;
+$$ language plpgsql security definer;
+
+create or replace function public.notify_on_follow()
+returns trigger as $$
+begin
+  -- accept_follow_request() crea la amistad en nombre del solicitante; ahí
+  -- el aviso correcto es "te han aceptado", no "te sigue", así que marca
+  -- esta bandera de transacción para que este trigger se aparte.
+  if coalesce(current_setting('shelfie.skip_follow_notification', true), '') = '1' then
+    return new;
+  end if;
+  perform public.create_notification(new.friend_id, new.user_id, 'follow');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_friendship_notify on public.friendships;
+create trigger on_friendship_notify
+  after insert on public.friendships
+  for each row execute function public.notify_on_follow();
+
+create or replace function public.notify_on_follow_request()
+returns trigger as $$
+begin
+  perform public.create_notification(new.target_id, new.requester_id, 'follow_request');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_follow_request_notify on public.follow_requests;
+create trigger on_follow_request_notify
+  after insert on public.follow_requests
+  for each row execute function public.notify_on_follow_request();
+
+create or replace function public.notify_on_like()
+returns trigger as $$
+declare
+  author uuid;
+begin
+  select user_id into author from public.posts where id = new.post_id;
+  perform public.create_notification(author, new.user_id, 'like');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_like_notify on public.likes;
+create trigger on_like_notify
+  after insert on public.likes
+  for each row execute function public.notify_on_like();
+
+create or replace function public.notify_on_comment()
+returns trigger as $$
+declare
+  author uuid;
+begin
+  select user_id into author from public.posts where id = new.post_id;
+  perform public.create_notification(author, new.user_id, 'comment');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_comment_notify on public.comments;
+create trigger on_comment_notify
+  after insert on public.comments
+  for each row execute function public.notify_on_comment();
+
+create or replace function public.notify_on_comment_like()
+returns trigger as $$
+declare
+  author uuid;
+begin
+  select user_id into author from public.comments where id = new.comment_id;
+  perform public.create_notification(author, new.user_id, 'comment_like');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_comment_like_notify on public.comment_likes;
+create trigger on_comment_like_notify
+  after insert on public.comment_likes
+  for each row execute function public.notify_on_comment_like();
+
+create or replace function public.notify_on_post_reaction()
+returns trigger as $$
+declare
+  author uuid;
+begin
+  select user_id into author from public.posts where id = new.post_id;
+  perform public.create_notification(author, new.user_id, 'reaction');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_post_reaction_notify on public.post_reactions;
+create trigger on_post_reaction_notify
+  after insert or update on public.post_reactions
+  for each row execute function public.notify_on_post_reaction();
+
+create or replace function public.notify_on_event_signup()
+returns trigger as $$
+declare
+  organizer uuid;
+begin
+  select organizer_id into organizer from public.events where id = new.event_id;
+  perform public.create_notification(organizer, new.user_id, 'event_signup');
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_event_signup_notify on public.event_signups;
+create trigger on_event_signup_notify
+  after insert on public.event_signups
+  for each row execute function public.notify_on_event_signup();
+
+-- Aceptar una solicitud: crea la amistad (en nombre del solicitante, por eso
+-- sigue siendo security definer), silencia el trigger de "te sigue" y manda
+-- el aviso correcto de "te han aceptado".
+create or replace function public.accept_follow_request(p_requester_id uuid)
+returns void as $$
+begin
+  if not exists (
+    select 1 from public.follow_requests
+    where requester_id = p_requester_id and target_id = auth.uid()
+  ) then
+    raise exception 'No existe esa solicitud de seguimiento.';
+  end if;
+  perform set_config('shelfie.skip_follow_notification', '1', true);
+  insert into public.friendships (user_id, friend_id) values (p_requester_id, auth.uid())
+  on conflict do nothing;
+  delete from public.follow_requests where requester_id = p_requester_id and target_id = auth.uid();
+  perform public.create_notification(p_requester_id, auth.uid(), 'follow_accepted');
+end;
+$$ language plpgsql security definer;
+
+-- Y ya nadie puede insertar una notificación a mano: solo salen de los
+-- triggers de arriba, que corren como dueño de la tabla y por tanto no
+-- pasan por esta policy.
+drop policy if exists "notifications_insert" on public.notifications;
+create policy "notifications_insert" on public.notifications for insert with check (false);
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: orden manual de la estantería, objetivos del año y arreglos
+-- de pérdida de datos detectados en la auditoría. Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- El orden en el que colocas tus libros a mano no se guardaba en ninguna
+-- parte: se perdía al recargar, y como la consulta tampoco pedía ningún
+-- orden concreto, cada carga podía devolverlos en un orden distinto.
+alter table public.user_books add column if not exists sort_order integer;
+create index if not exists user_books_user_sort_idx on public.user_books (user_id, sort_order);
+
+-- Los libros marcados para el "Shelfie <año>" (YEAR_GOAL_IDS) vivían solo en
+-- memoria: la pestaña se vaciaba en cada recarga y el contador se colaba
+-- entre cuentas al cambiar de sesión en la misma pestaña.
+alter table public.profiles add column if not exists year_goal_ids jsonb default '[]'::jsonb;
+alter table public.profiles add column if not exists year_goal_year integer;
+-- Y el archivo de shelfies de años anteriores, que se generaba en memoria y
+-- nunca se leía ni se guardaba en ningún sitio.
+alter table public.profiles add column if not exists shelfie_archive jsonb default '[]'::jsonb;
+
+-- Marca las cuentas de organizador para poder excluirlas de las listas de
+-- lectores. Desde que handle_new_user() les crea también fila en profiles
+-- (hace falta para la clave foránea de notifications), aparecían como
+-- lectores fantasma en búsquedas, sugerencias y chats — con un usuario
+-- inventado tipo "nombre_reads" y sin poder entrar nunca a la app de lector.
+alter table public.profiles add column if not exists is_organizer boolean default false;
+update public.profiles p set is_organizer = true
+where exists (select 1 from public.organizers o where o.id = p.id) and p.is_organizer is distinct from true;
+
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  base_username text;
+  is_org boolean := (new.raw_user_meta_data->>'account_type') = 'organizer';
+begin
+  base_username := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    '[^a-z0-9]', '', 'g'
+  ));
+  insert into public.profiles (id, name, username, onboarding_seen, is_organizer)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    base_username || '_reads',
+    false,
+    is_org
+  )
+  on conflict (id) do nothing;
+
+  if is_org then
+    insert into public.organizers (id, venue_name, city, contact_email)
+    values (
+      new.id,
+      coalesce(new.raw_user_meta_data->>'venue_name', split_part(new.email, '@', 1)),
+      coalesce(new.raw_user_meta_data->>'city', ''),
+      new.email
+    )
+    on conflict (id) do nothing;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Borrar tu cuenta arrastraba consigo las conversaciones enteras y por tanto
+-- los mensajes que la OTRA persona te había escrito y los suyos propios, sin
+-- dejar rastro en su bandeja. Ahora la referencia se pone a null y queda un
+-- hueco ("Cuenta eliminada") en vez de desaparecer la conversación entera.
+do $$ begin
+  alter table public.conversations drop constraint if exists conversations_user1_id_fkey;
+  alter table public.conversations add constraint conversations_user1_id_fkey
+    foreign key (user1_id) references public.profiles(id) on delete set null;
+exception when others then null; end $$;
+do $$ begin
+  alter table public.conversations drop constraint if exists conversations_user2_id_fkey;
+  alter table public.conversations add constraint conversations_user2_id_fkey
+    foreign key (user2_id) references public.profiles(id) on delete set null;
+exception when others then null; end $$;
+do $$ begin
+  alter table public.conversations alter column user1_id drop not null;
+  alter table public.conversations alter column user2_id drop not null;
+exception when others then null; end $$;
+do $$ begin
+  alter table public.messages drop constraint if exists messages_sender_id_fkey;
+  alter table public.messages add constraint messages_sender_id_fkey
+    foreign key (sender_id) references public.profiles(id) on delete set null;
+  alter table public.messages alter column sender_id drop not null;
+exception when others then null; end $$;
+
+-- Y un reporte no debería poder borrarlo la propia persona reportada solo con
+-- eliminar su cuenta — el historial de moderación tiene que sobrevivirle.
+do $$ begin
+  alter table public.reports drop constraint if exists reports_target_user_id_fkey;
+  alter table public.reports add constraint reports_target_user_id_fkey
+    foreign key (target_user_id) references public.profiles(id) on delete set null;
+exception when others then null; end $$;

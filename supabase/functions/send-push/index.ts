@@ -31,6 +31,7 @@ const NOTIF_MESSAGES: Record<string, (name: string) => { title: string; body: st
   comment: (name) => ({ title: 'Nuevo comentario', body: `${name} ha comentado tu publicación` }),
   comment_like: (name) => ({ title: 'Nuevo me gusta', body: `A ${name} le ha gustado tu comentario` }),
   reaction: (name) => ({ title: 'Nueva reacción', body: `${name} ha reaccionado a tu publicación` }),
+  event_signup: (name) => ({ title: 'Nueva inscripción', body: `${name} se ha apuntado a tu evento` }),
 };
 
 function ok(body: Record<string, unknown>) {
@@ -45,10 +46,19 @@ Deno.serve(async (req) => {
     if (payload?.type !== 'INSERT') return ok({ skipped: 'not an insert' });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // SUPABASE_SERVICE_ROLE_KEY es la clave "legacy" que Supabase inyecta sola —
+    // en proyectos ya migrados al sistema nuevo de API keys puede venir vacía,
+    // así que se admite SB_SECRET_KEY (secret propia, con la clave "secret" /
+    // "service_role" copiada a mano de Project Settings → API Keys) como
+    // alternativa explícita.
+    const serviceRoleKey = Deno.env.get('SB_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     const vapidSubject = Deno.env.get('VAPID_SUBJECT');
+    if (!serviceRoleKey) {
+      console.error('No service-role key available — set the SB_SECRET_KEY secret.');
+      return ok({ error: 'missing service role key' });
+    }
     if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
       console.error('VAPID secrets not configured — skipping push send.');
       return ok({ error: 'VAPID secrets not configured' });
@@ -86,6 +96,21 @@ Deno.serve(async (req) => {
       body = String(msg.text || '').slice(0, 200);
       url = new URL(`./index.html?push=chat&user=${msg.sender_id}`, APP_URL).href;
       tag = `chat-${msg.conversation_id}`;
+    } else if (payload.table === 'message_reactions') {
+      const reaction = payload.record;
+      if (!reaction) return ok({ skipped: 'no reaction record' });
+
+      const { data: msg } = await admin.from('messages').select('sender_id,conversation_id,text').eq('id', reaction.message_id).maybeSingle();
+      if (!msg) return ok({ skipped: 'reacted message not found' });
+      recipientId = msg.sender_id;
+      if (recipientId === reaction.user_id) return ok({ skipped: 'reactor is recipient' });
+
+      const { data: reactor } = await admin.from('profiles').select('name,username').eq('id', reaction.user_id).maybeSingle();
+      const reactorName = reactor?.name || reactor?.username || 'Alguien';
+      title = reactorName;
+      body = `Reaccionó ${reaction.emoji} a tu mensaje${msg.text ? `: "${String(msg.text).slice(0, 80)}"` : ''}`;
+      url = new URL(`./index.html?push=chat&user=${reaction.user_id}`, APP_URL).href;
+      tag = `chat-${msg.conversation_id}`;
     } else {
       return ok({ skipped: `unhandled table "${payload.table}"` });
     }
@@ -97,18 +122,24 @@ Deno.serve(async (req) => {
     const results = await Promise.allSettled(
       subs.map((s) =>
         webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payloadStr)
-          .catch(async (err: { statusCode?: number }) => {
+          .catch(async (err: { statusCode?: number; body?: string; message?: string }) => {
             if (err?.statusCode === 404 || err?.statusCode === 410) {
               await admin.from('push_subscriptions').delete().eq('id', s.id);
             }
-            throw err;
+            console.error(`push send failed for endpoint ${s.endpoint}:`, err?.statusCode, err?.body || err?.message);
+            throw { endpoint: s.endpoint, statusCode: err?.statusCode, detail: err?.body || err?.message || String(err) };
           })
       )
     );
 
-    return ok({ ok: true, sent: results.filter((r) => r.status === 'fulfilled').length, failed: results.filter((r) => r.status === 'rejected').length });
+    return ok({
+      ok: true,
+      sent: results.filter((r) => r.status === 'fulfilled').length,
+      failed: results.filter((r) => r.status === 'rejected').length,
+      failures: results.filter((r): r is PromiseRejectedResult => r.status === 'rejected').map((r) => r.reason),
+    });
   } catch (e) {
     console.error('send-push failed:', e);
-    return ok({ error: 'internal error' });
+    return ok({ error: 'internal error', detail: e instanceof Error ? e.message : String(e) });
   }
 });
