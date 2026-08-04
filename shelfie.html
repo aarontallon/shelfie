@@ -5840,6 +5840,13 @@ async function signUpForEvent(id){
   if(ev)ev._signups=[...(ev._signups||[]),row];
   toast('✅ ¡Apuntado! Nos vemos allí');
   refreshEventViews(id);
+  // Best-effort, igual que el resto de notificaciones — el organizador tiene
+  // fila en profiles igual que cualquier cuenta (handle_new_user() se lanza
+  // en todo alta nueva), así que notifications.user_id lo admite sin problema.
+  if(ev?.organizer_id&&SUPA_USER&&ev.organizer_id!==SUPA_USER.id){
+    supa.from('notifications').insert({user_id:ev.organizer_id,actor_id:SUPA_USER.id,type:'event_signup'})
+      .then(({error})=>{if(error)console.error('notify event_signup failed:',error);});
+  }
 }
 
 async function cancelEventSignup(id){
@@ -7199,6 +7206,8 @@ function routePushTarget(push,params){
     if(userId)openChat(userId);
   }else if(push==='notifications'){
     openNotifications();
+  }else if(push==='events'){
+    go('events',nbFor('events'));
   }
 }
 function handlePushDeepLink(){
@@ -13498,7 +13507,7 @@ function renderNotifications(){
   if(!NOTIFICATIONS.length){el.innerHTML='<div class="empty" style="padding:24px 10px"><i class="ti ti-bell-off"></i><p>Aún no tienes notificaciones.</p></div>';return;}
   el.innerHTML=NOTIFICATIONS.map(n=>{
     const isFriend=!!FRIENDS.find(f=>f.username===n.actor.username);
-    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':'interactuó contigo';
+    const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':n.type==='event_signup'?'se ha apuntado a tu evento':'interactuó contigo';
     let followBtn='';
     if(n.type==='follow'){
       followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;

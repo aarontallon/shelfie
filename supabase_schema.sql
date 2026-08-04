@@ -1100,3 +1100,37 @@ create policy "push_subscriptions_delete" on public.push_subscriptions for delet
 -- Sin policy de update: para cambiar de claves, el cliente borra la fila
 -- vieja (por endpoint) e inserta una nueva — es como cambia el navegador
 -- una suscripción push, nunca hay que editar una ya existente en el sitio.
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: notificaciones push programadas (racha en peligro, resumen
+-- semanal de eventos) — usa pg_cron para llamar a la Edge Function
+-- send-scheduled-push en un horario fijo, en vez de reaccionar a un INSERT
+-- como el resto de pushes. Requiere activar la extensión pg_cron una vez
+-- (Database → Extensions → actívala si el create extension de abajo no
+-- tiene permiso para hacerlo solo). Segura de volver a ejecutar — cada vez
+-- que se corre, borra y vuelve a crear los dos jobs con el mismo nombre.
+-- ════════════════════════════════════════════════
+
+create extension if not exists pg_cron;
+
+do $$ begin perform cron.unschedule('shelfie-streak-reminder'); exception when others then null; end $$;
+select cron.schedule(
+  'shelfie-streak-reminder',
+  '0 19 * * *', -- ~20h en Madrid en horario de invierno (CET); en verano (CEST) cae sobre las 21h
+  $cron$select net.http_post(
+    url := 'https://zkoarvxhjunwmyiaynyc.supabase.co/functions/v1/send-scheduled-push',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{"job":"streak_reminder"}'::jsonb
+  );$cron$
+);
+
+do $$ begin perform cron.unschedule('shelfie-weekly-digest'); exception when others then null; end $$;
+select cron.schedule(
+  'shelfie-weekly-digest',
+  '0 8 * * 1', -- lunes por la mañana
+  $cron$select net.http_post(
+    url := 'https://zkoarvxhjunwmyiaynyc.supabase.co/functions/v1/send-scheduled-push',
+    headers := '{"Content-Type":"application/json"}'::jsonb,
+    body := '{"job":"weekly_digest"}'::jsonb
+  );$cron$
+);

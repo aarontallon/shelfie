@@ -31,6 +31,7 @@ const NOTIF_MESSAGES: Record<string, (name: string) => { title: string; body: st
   comment: (name) => ({ title: 'Nuevo comentario', body: `${name} ha comentado tu publicación` }),
   comment_like: (name) => ({ title: 'Nuevo me gusta', body: `A ${name} le ha gustado tu comentario` }),
   reaction: (name) => ({ title: 'Nueva reacción', body: `${name} ha reaccionado a tu publicación` }),
+  event_signup: (name) => ({ title: 'Nueva inscripción', body: `${name} se ha apuntado a tu evento` }),
 };
 
 function ok(body: Record<string, unknown>) {
@@ -94,6 +95,21 @@ Deno.serve(async (req) => {
       title = senderName;
       body = String(msg.text || '').slice(0, 200);
       url = new URL(`./index.html?push=chat&user=${msg.sender_id}`, APP_URL).href;
+      tag = `chat-${msg.conversation_id}`;
+    } else if (payload.table === 'message_reactions') {
+      const reaction = payload.record;
+      if (!reaction) return ok({ skipped: 'no reaction record' });
+
+      const { data: msg } = await admin.from('messages').select('sender_id,conversation_id,text').eq('id', reaction.message_id).maybeSingle();
+      if (!msg) return ok({ skipped: 'reacted message not found' });
+      recipientId = msg.sender_id;
+      if (recipientId === reaction.user_id) return ok({ skipped: 'reactor is recipient' });
+
+      const { data: reactor } = await admin.from('profiles').select('name,username').eq('id', reaction.user_id).maybeSingle();
+      const reactorName = reactor?.name || reactor?.username || 'Alguien';
+      title = reactorName;
+      body = `Reaccionó ${reaction.emoji} a tu mensaje${msg.text ? `: "${String(msg.text).slice(0, 80)}"` : ''}`;
+      url = new URL(`./index.html?push=chat&user=${reaction.user_id}`, APP_URL).href;
       tag = `chat-${msg.conversation_id}`;
     } else {
       return ok({ skipped: `unhandled table "${payload.table}"` });
