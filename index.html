@@ -2537,6 +2537,18 @@ a{color:inherit}
 </div>
 </div>
 
+<!-- ══════════════════════ MODAL: PEDIR PERMISO DE NOTIFICACIONES ══════════════════════ -->
+<div class="overlay" id="modal-push-prime" style="display:none" onclick="if(event.target===this)dismissPushPriming()">
+<div class="modal" style="max-width:380px;text-align:center">
+  <button class="modal-close" onclick="dismissPushPriming()"><i class="ti ti-x"></i></button>
+  <div style="width:56px;height:56px;border-radius:50%;background:var(--paper2,#F5F1EA);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:26px">🔔</div>
+  <h2 style="margin-bottom:6px">Activa las notificaciones</h2>
+  <p class="sub" style="margin-bottom:20px">Entérate al instante cuando alguien te siga, comente o te escriba — aunque tengas Shelfie cerrada.</p>
+  <button class="btn btn-red w-full" style="margin-bottom:8px" onclick="acceptPushPriming()">Sí, avísame</button>
+  <button class="btn btn-white w-full" onclick="dismissPushPriming()">Ahora no</button>
+</div>
+</div>
+
 <!-- ══════════════════════ MODAL: REPORTAR ══════════════════════ -->
 <div class="overlay" id="modal-report" style="display:none" onclick="if(event.target===this)closeModal('modal-report')">
 <div class="modal">
@@ -6852,6 +6864,7 @@ function enterApp(skipDemo){
   document.getElementById('home-greeting').textContent=`${h<12?'Buenos días':h<20?'Buenas tardes':'Buenas noches'}, ${PROFILE.name||'lector'} ${h<12?'☀️':h<20?'🌤️':'🌙'}`;
   restoreLastPage();
   handlePushDeepLink();
+  maybePromptPushPriming();
   // Solo para cuentas recién creadas (onboarding_seen=false viene del trigger
   // de alta en Supabase, ver handle_new_user() en supabase_schema.sql) — a
   // cualquier cuenta ya existente restoreLastPage() no le cambia nada aquí.
@@ -7147,6 +7160,33 @@ async function unsubscribeFromPush(){
     await sub.unsubscribe();
   }
   toast('✓ Notificaciones push desactivadas');
+}
+
+// Aviso propio antes del permiso real del navegador — pedir notificaciones
+// a bocajarro nada más entrar quema el único intento fácil (en la mayoría
+// de navegadores, si el usuario le da a "Bloquear" no se le puede volver a
+// preguntar sin que él mismo entre a los ajustes del sitio a mano). Con
+// esto, un "Ahora no" no cuesta nada — el permiso real del navegador solo
+// salta si el usuario ya dijo que sí en este aviso nuestro.
+const PUSH_PRIME_DISMISS_KEY='shelfie_push_prime_dismissed_at';
+const PUSH_PRIME_COOLDOWN_MS=14*24*60*60*1000;
+function maybePromptPushPriming(){
+  if(!isPushSupported())return;
+  if(typeof Notification==='undefined'||Notification.permission!=='default')return;
+  const dismissedAt=Number(localStorage.getItem(PUSH_PRIME_DISMISS_KEY)||0);
+  if(dismissedAt&&Date.now()-dismissedAt<PUSH_PRIME_COOLDOWN_MS)return;
+  setTimeout(()=>{
+    if(document.getElementById('app-shell')?.classList.contains('on')&&Notification.permission==='default')openModal('modal-push-prime');
+  },3000);
+}
+function dismissPushPriming(){
+  localStorage.setItem(PUSH_PRIME_DISMISS_KEY,String(Date.now()));
+  closeModal('modal-push-prime');
+}
+async function acceptPushPriming(){
+  closeModal('modal-push-prime');
+  try{await subscribeToPush();}
+  catch(e){console.error('acceptPushPriming failed:',e);toast('❌ '+(e?.message||'No se pudo activar las notificaciones.'));}
 }
 
 // Adónde llevar al usuario al tocar una notificación push — "chat" abre la
