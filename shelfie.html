@@ -466,6 +466,7 @@ a{color:inherit}
 .book-page-section{margin-bottom:22px}
 .book-page-section-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:7px}
 .book-page-section-title i{color:var(--red);font-size:16px}
+.book-affiliate-links{display:flex;gap:8px;flex-wrap:wrap}
 .year-add-menu{position:relative;display:inline-block}
 .year-add-dropdown{position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:50;min-width:180px;display:none;overflow:hidden}
 .year-add-dropdown.show{display:block}
@@ -10655,6 +10656,58 @@ function shareReviewToFeed(bookId){
   },100);
 }
 
+// ═══════════════════════════════════════════════
+// ENLACES DE AFILIADO
+// Todavía no tenemos ID de afiliado en ningún proveedor — cada uno se queda
+// con enabled:false hasta que exista una cuenta real, así que por ahora
+// affiliateButtonsHtml() no pinta nada (la sección entera desaparece).
+// Para activar uno cuando llegue el alta: rellena su "tag" y pon enabled:true.
+// ═══════════════════════════════════════════════
+const AFFILIATE_PROVIDERS=[
+  {
+    id:'amazon',label:'Amazon',enabled:false,
+    tag:'', // p.ej. 'shelfie0d-21' (código de Amazon Afiliados España)
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.amazon.es/s?k=${q}&i=stripbooks${this.tag?`&tag=${encodeURIComponent(this.tag)}`:''}`;
+    },
+  },
+  {
+    id:'todostuslibros',label:'Todos tus libros',enabled:false,
+    tag:'', // código de afiliado que da su programa al darte de alta
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.todostuslibros.com/busqueda?q=${q}`; // TODO: parámetro de afiliado cuando exista cuenta
+    },
+  },
+  {
+    id:'casadellibro',label:'La Casa del Libro',enabled:false,
+    tag:'',
+    url(book){
+      const q=encodeURIComponent([book.title,book.author].filter(Boolean).join(' '));
+      return `https://www.casadellibro.com/busqueda-generica?q=${q}`; // TODO: parámetro de afiliado cuando exista cuenta
+    },
+  },
+];
+function affiliateButtonsHtml(book){
+  const active=AFFILIATE_PROVIDERS.filter(p=>p.enabled&&p.tag);
+  if(!active.length)return'';
+  const titleEsc=escapeHtml(book.title||'').replace(/'/g,"\\'");
+  return `
+    <div class="book-page-section">
+      <div class="book-page-section-title"><i class="ti ti-shopping-cart"></i> Cómpralo</div>
+      <div class="book-affiliate-links">
+        ${active.map(p=>`<a class="btn btn-white" href="${p.url(book)}" target="_blank" rel="noopener sponsored" onclick="trackAffiliateClick('${p.id}','${titleEsc}')"><i class="ti ti-external-link"></i> Comprar en ${p.label}</a>`).join('')}
+      </div>
+    </div>`;
+}
+// De momento solo deja constancia en consola — si algún día interesa saber
+// qué proveedor convierte mejor, aquí es donde engancharíamos un registro
+// propio (proveedor+libro+fecha, sin datos personales), no antes de tenerlo.
+function trackAffiliateClick(providerId,title){
+  console.log('[afiliado] click',providerId,title);
+}
+
 function renderBookPage(key){
   const book=allBooks().find(b=>bookWorkKey(b)===key);
   if(!book){renderBookPageGeneric(key);return;}
@@ -10765,6 +10818,7 @@ function renderBookPage(key){
     </div>
 
     ${synopsisHtml}
+    ${affiliateButtonsHtml(book)}
     ${book.status==='leidos'?bookReviewSectionHtml(book,selfKey):''}
     ${communityCountsHtml}
     ${ratingBreakdownHtml}
@@ -10968,6 +11022,7 @@ async function renderBookPageGeneric(key){
     </div>
 
     ${synopsisHtml}
+    ${affiliateButtonsHtml({title,author})}
     ${SUPA_USER?'<div class="book-community-stats" id="book-community-counts"></div><div class="book-page-section"><div class="book-page-section-title"><i class="ti ti-star"></i> Valoraciones de la comunidad</div><div id="book-rating-breakdown"><div class="text-sm text-muted">Cargando…</div></div></div>':''}
     ${authorSnippetHtml}
 
