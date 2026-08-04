@@ -106,16 +106,22 @@ Deno.serve(async (req) => {
     const results = await Promise.allSettled(
       subs.map((s) =>
         webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payloadStr)
-          .catch(async (err: { statusCode?: number }) => {
+          .catch(async (err: { statusCode?: number; body?: string; message?: string }) => {
             if (err?.statusCode === 404 || err?.statusCode === 410) {
               await admin.from('push_subscriptions').delete().eq('id', s.id);
             }
-            throw err;
+            console.error(`push send failed for endpoint ${s.endpoint}:`, err?.statusCode, err?.body || err?.message);
+            throw { endpoint: s.endpoint, statusCode: err?.statusCode, detail: err?.body || err?.message || String(err) };
           })
       )
     );
 
-    return ok({ ok: true, sent: results.filter((r) => r.status === 'fulfilled').length, failed: results.filter((r) => r.status === 'rejected').length });
+    return ok({
+      ok: true,
+      sent: results.filter((r) => r.status === 'fulfilled').length,
+      failed: results.filter((r) => r.status === 'rejected').length,
+      failures: results.filter((r): r is PromiseRejectedResult => r.status === 'rejected').map((r) => r.reason),
+    });
   } catch (e) {
     console.error('send-push failed:', e);
     return ok({ error: 'internal error', detail: e instanceof Error ? e.message : String(e) });
