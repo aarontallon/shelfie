@@ -74,9 +74,16 @@ Deno.serve(async (req) => {
     if (job === 'streak_reminder') {
       const today = madridDateKey(0);
       const yesterday = madridDateKey(-1);
-      const { data: candidates, error } = await admin.from('profiles').select('id,reading_days').contains('reading_days', [yesterday]);
+      // .contains() no serializa bien un array plano de JS contra una columna
+      // jsonb (produce sintaxis inválida en el filtro) — más simple y fiable
+      // traer todos los perfiles y comprobar el array de racha a mano aquí,
+      // sin depender de ningún operador especial de jsonb en la consulta.
+      const { data: candidates, error } = await admin.from('profiles').select('id,reading_days');
       if (error) return ok({ error: error.message });
-      const targets = (candidates || []).filter((p) => !(p.reading_days || []).includes(today));
+      const targets = (candidates || []).filter((p) => {
+        const days: string[] = Array.isArray(p.reading_days) ? p.reading_days : [];
+        return days.includes(yesterday) && !days.includes(today);
+      });
       let sent = 0, failed = 0;
       for (const p of targets) {
         const r = await sendToUser(admin, p.id, '🔥 No pierdas tu racha', 'Aún no has marcado tu lectura de hoy — quedan pocas horas.', new URL('./index.html', APP_URL).href, 'streak-reminder');
