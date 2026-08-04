@@ -1134,3 +1134,274 @@ select cron.schedule(
     body := '{"job":"weekly_digest"}'::jsonb
   );$cron$
 );
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN: auditoría de seguridad — organizadores sin perfil,
+-- carrera de aforo en eventos, edición de mensajes ajenos, bloqueos no
+-- aplicados en comentarios/likes/reacciones/notificaciones, y permisos de
+-- avatar demasiado abiertos. Segura de volver a ejecutar.
+-- ════════════════════════════════════════════════
+
+-- handle_new_user() se había quedado redefinida 3 veces en este archivo;
+-- como CREATE OR REPLACE siempre deja ganar a la última que se ejecuta, la
+-- versión que quedaba viva (la del tutorial de bienvenida) había perdido
+-- sin querer la rama que distingue organizador de lector, Y encima nunca
+-- creaba fila en profiles para los organizadores — con lo que la
+-- notificación de "alguien se ha apuntado a tu evento" fallaba siempre por
+-- violar la referencia notifications.user_id -> profiles(id). Esta versión
+-- final crea profiles SIEMPRE (lector u organizador) y, si el alta es de
+-- tipo organizador, además crea su fila en organizers.
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  base_username text;
+begin
+  base_username := lower(regexp_replace(
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    '[^a-z0-9]', '', 'g'
+  ));
+  insert into public.profiles (id, name, username, onboarding_seen)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    base_username || '_reads',
+    false
+  )
+  on conflict (id) do nothing;
+
+  if (new.raw_user_meta_data->>'account_type') = 'organizer' then
+    insert into public.organizers (id, venue_name, city, contact_email)
+    values (
+      new.id,
+      coalesce(new.raw_user_meta_data->>'venue_name', split_part(new.email, '@', 1)),
+      coalesce(new.raw_user_meta_data->>'city', ''),
+      new.email
+    )
+    on conflict (id) do nothing;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- Backfill: cualquier organizador ya existente que se diera de alta
+-- mientras el trigger estaba roto y por tanto se quedó sin fila en
+-- profiles. El sufijo con parte del id evita choques de username único.
+insert into public.profiles (id, name, username, onboarding_seen)
+select
+  o.id,
+  coalesce(nullif(o.venue_name,''), 'Organizador'),
+  lower(regexp_replace(coalesce(nullif(o.venue_name,''),'organizador'), '[^a-z0-9]', '', 'g')) || '_' || substr(o.id::text,1,8),
+  true
+from public.organizers o
+where not exists (select 1 from public.profiles p where p.id = o.id)
+on conflict (id) do nothing;
+
+-- Carrera de aforo: antes solo se comprobaba en el cliente (una lectura de
+-- la caché local antes de insertar), así que dos inscripciones casi
+-- simultáneas para el último hueco podían pasar las dos, y un cliente
+-- modificado podía saltárselo directamente. "select ... for update" bloquea
+-- la fila del evento mientras dura la transacción, así que dos inserts a
+-- la vez quedan serializados y el segundo ve el conteo ya actualizado.
+create or replace function public.enforce_event_capacity()
+returns trigger as $$
+declare
+  cap int;
+  current_count int;
+begin
+  select capacity into cap from public.events where id = new.event_id for update;
+  if cap is not null then
+    select count(*) into current_count from public.event_signups where event_id = new.event_id;
+    if current_count >= cap then
+      raise exception 'Este evento ya está completo.';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists before_event_signup_insert on public.event_signups;
+create trigger before_event_signup_insert
+  before insert on public.event_signups
+  for each row execute function public.enforce_event_capacity();
+
+-- messages_update solo se pensó para marcar read_at como leído, pero la
+-- policy en sí no lo impedía — cualquiera de los dos participantes podía
+-- reescribir el texto (o hasta el remitente) de un mensaje ajeno. Un
+-- trigger sí puede comparar OLD contra NEW columna a columna, cosa que RLS
+-- no puede hacer por sí sola.
+create or replace function public.protect_message_immutable_fields()
+returns trigger as $$
+begin
+  if new.text is distinct from old.text
+     or new.sender_id is distinct from old.sender_id
+     or new.conversation_id is distinct from old.conversation_id
+     or new.created_at is distinct from old.created_at then
+    raise exception 'Solo se puede actualizar read_at en un mensaje.';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists before_message_update on public.messages;
+create trigger before_message_update
+  before update on public.messages
+  for each row execute function public.protect_message_immutable_fields();
+
+-- Mismo problema en conversations_update: un participante podía reasignar
+-- al OTRO participante a un uuid arbitrario, exponiendo el historial de
+-- mensajes a un tercero no invitado. Los únicos cambios legítimos son
+-- status (al aceptar una solicitud) y last_message/last_message_at (los
+-- pone el propio trigger handle_new_message()).
+create or replace function public.protect_conversation_immutable_fields()
+returns trigger as $$
+begin
+  if new.user1_id is distinct from old.user1_id
+     or new.user2_id is distinct from old.user2_id
+     or new.initiator_id is distinct from old.initiator_id
+     or new.created_at is distinct from old.created_at then
+    raise exception 'No se pueden cambiar los participantes de una conversación.';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists before_conversation_update on public.conversations;
+create trigger before_conversation_update
+  before update on public.conversations
+  for each row execute function public.protect_conversation_immutable_fields();
+
+-- Bloquear a alguien ya deshacía el "seguir" en ambos sentidos, pero dejaba
+-- vivas las solicitudes de seguimiento pendientes entre esas dos cuentas.
+create or replace function public.handle_new_block()
+returns trigger as $$
+begin
+  delete from public.friendships
+  where (user_id = new.blocker_id and friend_id = new.blocked_id)
+     or (user_id = new.blocked_id and friend_id = new.blocker_id);
+  delete from public.follow_requests
+  where (requester_id = new.blocker_id and target_id = new.blocked_id)
+     or (requester_id = new.blocked_id and target_id = new.blocker_id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+-- El bloqueo se aplicaba ya al enviar mensajes directos, pero no al dar
+-- like/comentar/reaccionar en publicaciones ni al reaccionar a un mensaje
+-- — alguien a quien has bloqueado podía seguir interactuando con tu
+-- contenido público llamando directamente a la API, saltándose el bloqueo.
+drop policy if exists "comments_insert" on public.comments;
+create policy "comments_insert" on public.comments for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = comments.post_id
+  )
+);
+
+drop policy if exists "likes_insert" on public.likes;
+create policy "likes_insert" on public.likes for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = likes.post_id
+  )
+);
+
+drop policy if exists "comment_likes_insert" on public.comment_likes;
+create policy "comment_likes_insert" on public.comment_likes for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.comments c
+    join public.posts p on p.id = c.post_id
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where c.id = comment_likes.comment_id
+  )
+);
+
+drop policy if exists "post_reactions_insert" on public.post_reactions;
+create policy "post_reactions_insert" on public.post_reactions for insert with check (
+  auth.uid() = user_id
+  and not exists (
+    select 1 from public.posts p
+    join public.blocks b on (b.blocker_id = p.user_id and b.blocked_id = auth.uid())
+                          or (b.blocker_id = auth.uid() and b.blocked_id = p.user_id)
+    where p.id = post_reactions.post_id
+  )
+);
+
+drop policy if exists "message_reactions_insert" on public.message_reactions;
+create policy "message_reactions_insert" on public.message_reactions for insert with check (
+  auth.uid() = user_id
+  and exists (
+    select 1 from public.messages m
+    join public.conversations c on c.id = m.conversation_id
+    where m.id = message_reactions.message_id
+    and (c.user1_id = auth.uid() or c.user2_id = auth.uid())
+    and not exists (
+      select 1 from public.blocks b
+      where (b.blocker_id = c.user1_id and b.blocked_id = c.user2_id)
+         or (b.blocker_id = c.user2_id and b.blocked_id = c.user1_id)
+    )
+  )
+);
+
+-- notifications_insert solo comprobaba "quien la manda soy yo", sin mirar
+-- si hay un bloqueo entre emisor y receptor — cualquier cuenta logueada
+-- podía forzar una notificación (y por tanto un push) a alguien que la
+-- había bloqueado. Nota: esto cierra el caso de abuso más directo, pero no
+-- valida que el evento en sí sea real (p.ej. que ese "like" haya pasado de
+-- verdad) — hacerlo exigiría generar las notificaciones desde triggers en
+-- las propias tablas de origen en vez de confiar en el insert del cliente,
+-- un cambio más grande que queda fuera de este parche.
+drop policy if exists "notifications_insert" on public.notifications;
+create policy "notifications_insert" on public.notifications for insert with check (
+  auth.uid() = actor_id
+  and not exists (
+    select 1 from public.blocks b
+    where (b.blocker_id = notifications.user_id and b.blocked_id = auth.uid())
+       or (b.blocker_id = auth.uid() and b.blocked_id = notifications.user_id)
+  )
+);
+
+-- Los avatares se suben siempre a la ruta "{auth.uid()}/avatar_...ext"
+-- (ver uploadProfilePhoto() en el cliente) — antes cualquier usuario
+-- logueado podía sobrescribir o borrar el archivo de CUALQUIER otro
+-- (vandalismo/DoS: podían dejar sin foto a todo el mundo), porque la
+-- policy solo miraba que estuvieras autenticado, no de quién era la
+-- carpeta. storage.foldername(name) da el primer segmento de la ruta.
+drop policy if exists "avatar_owner_write" on storage.objects;
+create policy "avatar_owner_write" on storage.objects for insert with check (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "avatar_owner_update" on storage.objects;
+create policy "avatar_owner_update" on storage.objects for update using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "avatar_owner_delete" on storage.objects;
+create policy "avatar_owner_delete" on storage.objects for delete using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- push_subscriptions no tenía policy de update — el cliente borraba la fila
+-- vieja e insertaba una nueva, lo que además de no ser atómico (dos
+-- pestañas activando el push a la vez podían chocar) se rompía del todo en
+-- un dispositivo compartido: si la cuenta A ya tenía el push activado y no
+-- lo desactivó al cerrar sesión, la cuenta B no podía ni borrar la fila de
+-- A (no es su dueña) ni insertar la suya (el mismo "endpoint" físico del
+-- dispositivo choca con el unique constraint). Ahora el cliente hace un
+-- upsert por endpoint; el endpoint es un secreto largo e infalsificable
+-- (hace falta acceso real al propio dispositivo para conocerlo), así que
+-- permitir el update en general y solo exigir que el resultado quede a tu
+-- nombre es seguro y resuelve el caso de dispositivo compartido sin más.
+drop policy if exists "push_subscriptions_update" on public.push_subscriptions;
+create policy "push_subscriptions_update" on public.push_subscriptions for update
+  using (true)
+  with check (auth.uid() = user_id);

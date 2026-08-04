@@ -4539,12 +4539,14 @@ async function acceptMessageRequest(convId){
   if(!conv)return;
   conv.status='accepted';
   renderMessagesPage();
+  updateMessagesBadge();
   const{error}=await supa.from('conversations').update({status:'accepted'}).eq('id',convId);
   if(error){
     console.error('acceptMessageRequest failed:',error);
     toast('❌ No se pudo aceptar la solicitud');
     conv.status='pending';
     renderMessagesPage();
+    updateMessagesBadge();
   }
 }
 async function declineMessageRequest(convId){
@@ -4578,6 +4580,10 @@ function subscribeToMessagesRealtime(){
 }
 async function handleIncomingConversation(row){
   if(row.user1_id!==SUPA_USER.id&&row.user2_id!==SUPA_USER.id)return;
+  // Si la iniciaste tú, openChat() ya la añade a CONVERSATIONS al crearla —
+  // este evento es el eco de Realtime de tu propio insert, y llegaba antes
+  // de que openChat() terminara de resolver el id real, duplicando la fila.
+  if(row.initiator_id===SUPA_USER.id)return;
   if(CONVERSATIONS.some(c=>c.id===row.id))return;
   const otherId=row.user1_id===SUPA_USER.id?row.user2_id:row.user1_id;
   await ensureAuthorsLoaded([otherId]);
@@ -4596,7 +4602,17 @@ function handleConversationUpdate(row){
 function handleIncomingMessage(row){
   if(row.sender_id===SUPA_USER.id)return; // ya aplicado optimista al enviar
   const conv=CONVERSATIONS.find(c=>c.id===row.conversation_id);
-  if(!conv)return; // una conversación nueva la trae handleIncomingConversation
+  if(!conv){
+    // Puede llegar mientras openChat() todavía está resolviendo el id real
+    // de una conversación temporal que tú mismo acabas de iniciar — sin
+    // esto, el mensaje se perdía en silencio hasta la siguiente recarga en
+    // vez de solo tardar un pelín en aparecer.
+    loadSupaConversations().then(()=>{
+      updateMessagesBadge();
+      if(document.getElementById('p-messages')?.classList.contains('on'))renderMessagesPage();
+    });
+    return;
+  }
   // Si el historial de esta conversación todavía no se ha cargado nunca
   // (nunca se abrió el chat), no creamos el array aquí — dejamos que
   // loadChatMessages() traiga el historial COMPLETO de la BD la primera vez
@@ -5631,6 +5647,7 @@ function exportEventAttendeesCsv(){
 
 async function organizerLogout(){
   if(!await confirmModal('¿Cerrar sesión de organizador?'))return;
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush on logout failed:',e);}
   await supa.auth.signOut();
   ORGANIZER=null;ORGANIZER_EVENTS=[];
   isLoggedIn=false;SUPA_USER=null;
@@ -7025,6 +7042,11 @@ function renderTourStep(){
 
 async function doLogout(){
   if(!await confirmModal('¿Cerrar sesión?'))return;
+  // Antes de perder la sesión — si no, en un dispositivo compartido la
+  // cuenta que cierra sesión se queda recibiendo pushes igualmente, y la
+  // siguiente que inicie sesión ahí no puede activarlas (choque de
+  // endpoint único). Best-effort: si falla, no bloquea el cierre de sesión.
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush on logout failed:',e);}
   await supa.auth.signOut();
   isLoggedIn=false;
   SUPA_USER=null;
@@ -7150,10 +7172,13 @@ async function subscribeToPush(){
   let sub=await reg.pushManager.getSubscription();
   if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
   const json=sub.toJSON();
-  await supa.from('push_subscriptions').delete().eq('endpoint',json.endpoint);
-  const{error}=await supa.from('push_subscriptions').insert({
+  // upsert por endpoint en vez de borrar-e-insertar: es atómico (dos pestañas
+  // activando el push a la vez no chocan) y en un dispositivo compartido
+  // reclama la fila si la dejó "abierta" una cuenta anterior, en vez de
+  // fallar por el unique constraint sin poder borrar una fila ajena.
+  const{error}=await supa.from('push_subscriptions').upsert({
     user_id:SUPA_USER.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,user_agent:navigator.userAgent
-  });
+  },{onConflict:'endpoint'});
   if(error){console.error('push subscribe insert failed:',error);throw new Error('No se pudo guardar la suscripción.');}
   toast('✓ Notificaciones push activadas');
 }
@@ -7163,7 +7188,8 @@ async function unsubscribeFromPush(){
   const reg=await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.getSubscription();
   if(sub){
-    await supa.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+    const{error}=await supa.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);
+    if(error)console.error('push_subscriptions delete on unsubscribe failed:',error);
     await sub.unsubscribe();
   }
   toast('✓ Notificaciones push desactivadas');
@@ -7214,8 +7240,13 @@ function handlePushDeepLink(){
   const params=new URLSearchParams(location.search);
   const push=params.get('push');
   if(!push)return;
-  history.replaceState({},'',location.pathname);
   routePushTarget(push,params);
+  // Solo quita "push"/"user" (los únicos que pone el propio push) de la URL,
+  // no cualquier otro parámetro que pudiera llevar de antes — se limpian
+  // DESPUÉS de usarlos, para que routePushTarget aún pueda leer "user".
+  params.delete('push');params.delete('user');
+  const rest=params.toString();
+  history.replaceState({},'',location.pathname+(rest?'?'+rest:''));
 }
 
 async function changeAccountPassword(){
@@ -7261,6 +7292,7 @@ async function deleteAccountFlow(){
   const btn=document.getElementById('acc-delete-btn');
   const prevHtml=btn.innerHTML;
   btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Eliminando...';
+  try{await unsubscribeFromPush();}catch(e){console.error('unsubscribeFromPush before delete failed:',e);}
   try{
     const{error}=await supa.functions.invoke('delete-account');
     if(error)throw error;

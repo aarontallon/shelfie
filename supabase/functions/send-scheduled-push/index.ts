@@ -102,28 +102,61 @@ Deno.serve(async (req) => {
       const { data: profilesWithCity, error: profErr } = await admin.from('profiles').select('id,city').not('city', 'is', null).neq('city', '');
       if (profErr) return ok({ error: profErr.message });
 
-      let sent = 0, failed = 0, notified = 0;
+      // Antes: una consulta de event_signups POR perfil que compartía ciudad
+      // con algún evento, y encima un sendToUser() (con su propia consulta a
+      // push_subscriptions) por cada uno notificado — con miles de usuarios
+      // en la misma ciudad eso son miles de idas y vueltas secuenciales,
+      // arriesgando el timeout de la función. Ahora todo va en 2 consultas
+      // en bloque (signups de todos los eventos candidatos, suscripciones de
+      // todos los que van a ser notificados) y el envío real en paralelo.
+      const eventIds = events.map((e) => e.id);
+      const { data: allSignups } = await admin.from('event_signups').select('user_id,event_id').in('event_id', eventIds);
+      const signedUpByUser = new Map<string, Set<string>>();
+      for (const s of allSignups || []) {
+        if (!signedUpByUser.has(s.user_id)) signedUpByUser.set(s.user_id, new Set());
+        signedUpByUser.get(s.user_id)!.add(s.event_id);
+      }
+
+      const toNotify: { id: string; city: string; newOnes: typeof events }[] = [];
       for (const p of profilesWithCity || []) {
         const cityLower = (p.city || '').trim().toLowerCase();
         if (!cityLower) continue;
         const matches = events.filter((e) => (e.city || '').trim().toLowerCase() === cityLower);
         if (!matches.length) continue;
-        const { data: mySignups } = await admin.from('event_signups').select('event_id').eq('user_id', p.id).in('event_id', matches.map((e) => e.id));
-        const signedUpIds = new Set((mySignups || []).map((s) => s.event_id));
+        const signedUpIds = signedUpByUser.get(p.id) || new Set<string>();
         const newOnes = matches.filter((e) => !signedUpIds.has(e.id));
         if (!newOnes.length) continue;
-        notified++;
-        const r = await sendToUser(
-          admin,
-          p.id,
-          '📅 Eventos esta semana',
-          `${newOnes.length} evento${newOnes.length === 1 ? '' : 's'} de lectura en ${p.city} esta semana — échales un ojo.`,
-          new URL('./index.html?push=events', APP_URL).href,
-          'weekly-digest'
-        );
-        sent += r.sent; failed += r.failed;
+        toNotify.push({ id: p.id, city: p.city, newOnes });
       }
-      return ok({ ok: true, job, upcomingEvents: events.length, notifiedUsers: notified, sent, failed });
+      if (!toNotify.length) return ok({ ok: true, job, upcomingEvents: events.length, notifiedUsers: 0, sent: 0, failed: 0 });
+
+      const { data: allSubs } = await admin.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id', toNotify.map((t) => t.id));
+      const subsByUser = new Map<string, NonNullable<typeof allSubs>>();
+      for (const s of allSubs || []) {
+        if (!subsByUser.has(s.user_id)) subsByUser.set(s.user_id, []);
+        subsByUser.get(s.user_id)!.push(s);
+      }
+
+      const sendResults = await Promise.allSettled(
+        toNotify.flatMap((t) => {
+          const subs = subsByUser.get(t.id) || [];
+          const payloadStr = JSON.stringify({
+            title: '📅 Eventos esta semana',
+            body: `${t.newOnes.length} evento${t.newOnes.length === 1 ? '' : 's'} de lectura en ${t.city} esta semana — échales un ojo.`,
+            url: new URL('./index.html?push=events', APP_URL).href,
+            tag: 'weekly-digest',
+          });
+          return subs.map((s) =>
+            webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payloadStr).catch(async (err: { statusCode?: number }) => {
+              if (err?.statusCode === 404 || err?.statusCode === 410) await admin.from('push_subscriptions').delete().eq('id', s.id);
+              throw err;
+            })
+          );
+        })
+      );
+      const sent = sendResults.filter((r) => r.status === 'fulfilled').length;
+      const failed = sendResults.filter((r) => r.status === 'rejected').length;
+      return ok({ ok: true, job, upcomingEvents: events.length, notifiedUsers: toNotify.length, sent, failed });
     }
 
     return ok({ skipped: `unknown job "${job}"` });
