@@ -45,10 +45,19 @@ Deno.serve(async (req) => {
     if (payload?.type !== 'INSERT') return ok({ skipped: 'not an insert' });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // SUPABASE_SERVICE_ROLE_KEY es la clave "legacy" que Supabase inyecta sola —
+    // en proyectos ya migrados al sistema nuevo de API keys puede venir vacía,
+    // así que se admite SB_SECRET_KEY (secret propia, con la clave "secret" /
+    // "service_role" copiada a mano de Project Settings → API Keys) como
+    // alternativa explícita.
+    const serviceRoleKey = Deno.env.get('SB_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     const vapidSubject = Deno.env.get('VAPID_SUBJECT');
+    if (!serviceRoleKey) {
+      console.error('No service-role key available — set the SB_SECRET_KEY secret.');
+      return ok({ error: 'missing service role key' });
+    }
     if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
       console.error('VAPID secrets not configured — skipping push send.');
       return ok({ error: 'VAPID secrets not configured' });
@@ -109,6 +118,6 @@ Deno.serve(async (req) => {
     return ok({ ok: true, sent: results.filter((r) => r.status === 'fulfilled').length, failed: results.filter((r) => r.status === 'rejected').length });
   } catch (e) {
     console.error('send-push failed:', e);
-    return ok({ error: 'internal error' });
+    return ok({ error: 'internal error', detail: e instanceof Error ? e.message : String(e) });
   }
 });
