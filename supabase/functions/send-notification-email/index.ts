@@ -18,24 +18,39 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Cambia esto por tu dominio verificado en Resend en cuanto lo tengas —
-// mientras tanto, el dominio de pruebas de Resend solo entrega a la propia
-// cuenta con la que te registraste.
-const FROM_EMAIL = 'Shelfie <notificaciones@resend.dev>';
+// "notificaciones@resend.dev" no es una dirección válida del dominio de
+// pruebas de Resend (solo aceptan enviar desde onboarding@resend.dev sin
+// verificar dominio propio) — con la anterior, el 100% de los envíos fallaba
+// en silencio (resendRes.ok siempre false). Cambia esto por tu dominio
+// verificado en Resend en cuanto lo tengas.
+const FROM_EMAIL = 'Shelfie <onboarding@resend.dev>';
 const APP_URL = 'https://aarontallon.github.io/shelfie/';
+
+// actorName sale del nombre/username del perfil de otra persona — texto
+// controlado por el usuario que se inserta tal cual en el HTML del email.
+// Sin escapar, alguien podía poner "<img src=x onerror=...>" o un enlace de
+// phishing como su nombre y que le llegara renderizado al destinatario.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 const MESSAGES: Record<string, (actorName: string) => { subject: string; html: string }> = {
   follow: (name) => ({
     subject: `${name} ha empezado a seguirte en Shelfie`,
-    html: `<p><strong>${name}</strong> ha empezado a seguirte en Shelfie.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
+    html: `<p><strong>${escapeHtml(name)}</strong> ha empezado a seguirte en Shelfie.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
   }),
   follow_request: (name) => ({
     subject: `${name} quiere seguirte en Shelfie`,
-    html: `<p><strong>${name}</strong> quiere seguirte en Shelfie. Puedes aceptar o rechazar la solicitud desde tus notificaciones.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
+    html: `<p><strong>${escapeHtml(name)}</strong> quiere seguirte en Shelfie. Puedes aceptar o rechazar la solicitud desde tus notificaciones.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
   }),
   follow_accepted: (name) => ({
     subject: `${name} ha aceptado tu solicitud de seguimiento`,
-    html: `<p><strong>${name}</strong> ha aceptado tu solicitud de seguimiento en Shelfie. Ya puedes ver su shelfie.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
+    html: `<p><strong>${escapeHtml(name)}</strong> ha aceptado tu solicitud de seguimiento en Shelfie. Ya puedes ver su shelfie.</p><p><a href="${APP_URL}">Ver en Shelfie →</a></p>`,
   }),
 };
 
@@ -61,8 +76,18 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // SUPABASE_SERVICE_ROLE_KEY puede venir vacía en proyectos migrados al
+    // nuevo sistema de claves de Supabase — igual que en send-push y
+    // send-scheduled-push, se prueba primero la clave nombrada nueva.
+    const serviceRoleKey = Deno.env.get('SB_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!serviceRoleKey) {
+      console.error('No service role key configured (SB_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY) — skipping email send.');
+      return new Response(JSON.stringify({ error: 'missing service role key' }), {
+        status: 200,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
     if (!resendApiKey) {
       console.error('RESEND_API_KEY secret is not set — skipping email send.');
       return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {

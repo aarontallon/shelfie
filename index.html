@@ -4839,6 +4839,7 @@ async function searchChatUsers(q){
       .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
       .neq('id',SUPA_USER.id)
       .not('username','is',null)
+      .eq('is_organizer',false)
       .limit(8);
     if(error)throw error;
     if(token!==_chatUserSearchToken)return;
@@ -5808,6 +5809,7 @@ async function organizerLogout(){
   await supa.auth.signOut();
   ORGANIZER=null;ORGANIZER_EVENTS=[];
   isLoggedIn=false;SUPA_USER=null;
+  try{localStorage.removeItem('shelfie_last_page');}catch(e){}
   document.getElementById('organizer-shell').classList.remove('on');
   showAuth('landing');
   toast('Sesión cerrada');
@@ -8710,7 +8712,16 @@ function quickAddDirect(title,author,status,olKey,cover,color){
   // (Discover) pass them through so the added copy keeps its real cover art
   // instead of falling back to a plain color block.
   const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:cover||null,color:color||COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null,olKey:olKey||null};
+  if(status==='leidos'){
+    // Igual que en confirmAdd(): sin esto, un libro añadido directamente como
+    // "leído" (sin pasar por el modal normal) no tenía finishedAt/readHistory
+    // y desaparecía sin más de las estadísticas por año, el gráfico mensual y
+    // el contador de relecturas.
+    book.finishedAt=new Date().toLocaleDateString('es-ES');
+    book.readHistory=[{stars:0,finishedAt:book.finishedAt}];
+  }
   DB[status].unshift(book);
+  if(status==='leidos')countBookTowardsRetos(book);
   saveSupaBook(book);
   updateAll();
   toast(`✅ «${title}» añadido a ${status==='quiero'?'Quiero leer':'tu shelfie'}`);
@@ -9279,6 +9290,15 @@ async function uploadProfilePhoto(file){
   const path=`${SUPA_USER.id}/avatar_${Date.now()}.${ext}`;
   const{error}=await supa.storage.from('avatars').upload(path,file,{upsert:true,cacheControl:'3600'});
   if(error)throw error;
+  // Cada subida usa un nombre con timestamp (para no chocar con la caché del
+  // navegador en la URL anterior), así que sin esto las fotos antiguas se
+  // quedaban acumulando para siempre en el bucket, una por cada cambio de
+  // avatar. Best-effort: si falla el borrado, no debe tumbar la subida ya hecha.
+  try{
+    const{data:files}=await supa.storage.from('avatars').list(SUPA_USER.id);
+    const stale=(files||[]).map(f=>`${SUPA_USER.id}/${f.name}`).filter(p=>p!==path);
+    if(stale.length)await supa.storage.from('avatars').remove(stale);
+  }catch(e){console.error('cleanup de avatares antiguos falló (no bloqueante):',e);}
   const{data}=supa.storage.from('avatars').getPublicUrl(path);
   return data.publicUrl;
 }
@@ -9290,7 +9310,13 @@ async function saveProfile(){
   // UI show a change that silently never reached the database.
   const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,photo:PROFILE.photo};
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
-  PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
+  // A diferencia del campo de registro (onUsernameInput), este no tenía
+  // ninguna normalización — se podía guardar "Ana"/"ANA"/"ana " con mayúsculas
+  // o espacios, y como la columna username es un unique case-sensitive,
+  // esas variantes conviven como usuarios distintos y rompen las búsquedas
+  // exactas por username (perfil público, @menciones...).
+  const cleanUsername=document.getElementById('prof-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  PROFILE.username=cleanUsername||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
   PROFILE.city=document.getElementById('prof-city').value.trim();
   const saveBtn=document.querySelector('#modal-profile-edit .btn-red');
@@ -11896,8 +11922,13 @@ function computeStatsData(filterYear){
   // contribution graph de GitHub.
   const hmYear=filterYear||new Date().getFullYear();
   const start=new Date(hmYear,0,1);
-  const hmEnd=filterYear&&filterYear<new Date().getFullYear()?new Date(hmYear,11,31):new Date();
   const todayDate=new Date();
+  // hmEnd tiene que estar normalizado a medianoche igual que start — si no,
+  // en el año en curso (hmEnd=ahora, con hora) la resta ya no es un número
+  // exacto de días, Math.ceil redondea hacia arriba de más, y el +1 de abajo
+  // duplica ese redondeo: sale un día (a veces una columna entera) de más.
+  const todayMidnight=new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate());
+  const hmEnd=filterYear&&filterYear<todayDate.getFullYear()?new Date(hmYear,11,31):todayMidnight;
   const totalDays=Math.ceil((hmEnd-start)/86400000)+1;
   const startPad=(start.getDay()+6)%7;
   const heatmapDays=[];
@@ -11937,6 +11968,11 @@ function computeStatsData(filterYear){
     const n=leidos.filter(b=>b.stars===s).length;
     return{stars:s,n,pct:leidos.length?Math.round(n/leidos.length*100):0};
   });
+  // avgStars() global siempre cuenta TODOS los años — con un filtro de año
+  // activo, "libros leídos" ya mostraba solo ese año pero "valoración media"
+  // seguía mezclando la nota de libros de otros años sin decirlo.
+  const ratedLeidos=leidos.filter(b=>b.stars>0).map(b=>b.stars);
+  const avgStarsVal=ratedLeidos.length?(ratedLeidos.reduce((a,b)=>a+b,0)/ratedLeidos.length).toFixed(1)+'★':'—';
 
   // Denominador = suma de las filas que se muestran, no `leidos.length` — con un
   // filtro de año activo, leyendo/quiero/dnf (que no se filtran por año) pueden
@@ -11965,7 +12001,7 @@ function computeStatsData(filterYear){
 
   return{
     filterYear,hmYear,leidos,totalPages,streak,bestStreak,autoresDistintos,
-    librosEsteAnio:YEAR_GOAL_IDS.size,avgStarsVal:avgStars(),
+    librosEsteAnio:YEAR_GOAL_IDS.size,avgStarsVal,
     heatmapDays,monthNames,monthCounts,genreEntries,topAuthors,starDist,distStates,records,progresos,
   };
 }
@@ -12936,7 +12972,7 @@ async function loadSuggestedReaders(){
   const token=++_suggToken;
   const el=document.getElementById('suggested-readers');
   try{
-    const{data,error}=await supa.from('profiles').select('id,name,username,photo,bio').neq('id',SUPA_USER.id).order('created_at',{ascending:false}).limit(30);
+    const{data,error}=await supa.from('profiles').select('id,name,username,photo,bio').neq('id',SUPA_USER.id).eq('is_organizer',false).order('created_at',{ascending:false}).limit(30);
     if(error)throw error;
     if(token!==_suggToken)return;
     const sugg=(data||[]).filter(r=>r.username&&!FRIENDS.find(f=>f.username===r.username)).slice(0,5);
@@ -13087,6 +13123,7 @@ async function searchFriends(q){
       .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
       .neq('id',SUPA_USER.id)
       .not('username','is',null)
+      .eq('is_organizer',false)
       .limit(15);
     if(error)throw error;
     if(token!==_friendSearchToken)return; // a newer search superseded this response
