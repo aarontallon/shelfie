@@ -467,6 +467,8 @@ a{color:inherit}
 .book-page-section-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;gap:7px}
 .book-page-section-title i{color:var(--red);font-size:16px}
 .book-affiliate-links{display:flex;gap:8px;flex-wrap:wrap}
+.book-synopsis-p{margin:0 0 10px}
+.book-synopsis-p:last-child{margin-bottom:0}
 .year-add-menu{position:relative;display:inline-block}
 .year-add-dropdown{position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:50;min-width:180px;display:none;overflow:hidden}
 .year-add-dropdown.show{display:block}
@@ -8136,14 +8138,17 @@ async function searchOL(q, dropId, onAddClick){
 
 async function fetchOLWorkDetails(bookData){
   if(!bookData.olKey||!pendingBook||pendingBook.title!==bookData.title)return;
-  try{
-    const res=await fetch(`https://openlibrary.org${bookData.olKey}.json`);
-    const d=await res.json();
-    const desc=typeof d.description==='string'?d.description:(d.description?.value||'');
-    if(desc&&pendingBook&&pendingBook.title===bookData.title){
-      pendingBook.synopsis=cleanSynopsis(desc);
-    }
-  }catch(_){}
+  // Google Books en paralelo con Open Library — se prefiere su sinopsis si la
+  // hay (ver fetchGoogleBooksSynopsis), y si no, se usa la de Open Library.
+  const[gbSynopsis,olDesc]=await Promise.all([
+    fetchGoogleBooksSynopsis(bookData.title,bookData.author,bookData.isbn),
+    fetch(`https://openlibrary.org${bookData.olKey}.json`).then(r=>r.json())
+      .then(d=>typeof d.description==='string'?d.description:(d.description?.value||''))
+      .catch(()=>null),
+  ]);
+  if(!pendingBook||pendingBook.title!==bookData.title)return;
+  const synopsis=gbSynopsis||(olDesc?cleanSynopsis(olDesc):null);
+  if(synopsis)pendingBook.synopsis=synopsis;
 }
 
 function setSearchMode(mode){
@@ -8307,6 +8312,21 @@ async function fetchFromGoogleBooks(isbn){
       synopsis:cleanSynopsis(info.description),
     };
   }catch(e){console.error('fetchFromGoogleBooks failed:',e);return null;}
+}
+
+// Solo el resumen — Google Books casi siempre tiene la sinopsis real del
+// editor, mejor redactada y con mucha mejor cobertura en español que la
+// descripción cruda (y a veces vacía o llena de notas de catalogación) de
+// Open Library. Se usa como fuente preferida; Open Library queda de respaldo.
+async function fetchGoogleBooksSynopsis(title,author,isbn){
+  try{
+    const q=isbn?`isbn:${isbn}`:`intitle:${title}${author?` inauthor:${author}`:''}`;
+    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=1`);
+    if(!res.ok)return null;
+    const d=await res.json();
+    const desc=d.items?.[0]?.volumeInfo?.description;
+    return desc?cleanSynopsis(desc):null;
+  }catch(e){console.error('fetchGoogleBooksSynopsis failed:',e);return null;}
 }
 
 let _isbnTimer=null;
@@ -9339,9 +9359,23 @@ function cleanSynopsis(raw){
   s=s.split(/-{3,}/)[0];
   s=s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(m,p1,p2)=>p2||p1);
   s=s.replace(/\(source:[^)]*\)/gi,'');
+  // Convertir saltos de párrafo/línea en HTML a \n reales antes de quitar las
+  // etiquetas — así una sinopsis de Google Books (que llega como HTML con
+  // <p>/<br>) conserva su estructura igual que una de Open Library (texto
+  // plano con líneas en blanco entre párrafos).
+  s=s.replace(/<\/p>\s*<p[^>]*>/gi,'\n\n').replace(/<br\s*\/?>/gi,'\n');
   s=s.replace(/<[^>]+>/g,'');
-  s=s.replace(/\s+/g,' ').trim();
+  s=s.replace(/\r\n/g,'\n');
+  // Antes esto aplastaba todo el texto (incluidos los saltos de párrafo) a
+  // una sola línea con /\s+/g. Ahora solo se colapsa el espacio DENTRO de
+  // cada párrafo, conservando los saltos dobles entre ellos.
+  s=s.split(/\n{2,}/).map(p=>p.replace(/\s+/g,' ').trim()).filter(Boolean).join('\n\n');
   return s.substring(0,1200)||null;
+}
+// Renderiza una sinopsis ya limpiada (con \n\n entre párrafos) como <p> reales,
+// escapando cada párrafo por separado.
+function synopsisParagraphsHtml(text){
+  return text.split(/\n{2,}/).map(p=>`<p class="book-synopsis-p">${escapeHtml(p)}</p>`).join('');
 }
 function avgStars(){const rs=DB.leidos.filter(b=>b.stars>0).map(b=>b.stars);return rs.length?(rs.reduce((a,b)=>a+b,0)/rs.length).toFixed(1)+'★':'—';}
 
@@ -10765,7 +10799,7 @@ function renderBookPage(key){
   const synopsisHtml=synopsisText?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
-      <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(synopsisText)}</p>
+      <div class="text-sm book-synopsis" style="color:var(--ink2);line-height:1.7;max-width:760px">${synopsisParagraphsHtml(synopsisText)}</div>
     </div>`:'';
 
   // Community counts, rating breakdown and third-party reviews used to come from
@@ -10971,6 +11005,14 @@ async function renderBookPageGeneric(key){
     author=author||parts[1]||'';
   }
 
+  // Con título (y autor, si lo hay) ya resueltos, Google Books suele dar una
+  // sinopsis mejor que la de Open Library — se usa si la encuentra, si no se
+  // mantiene la que ya teníamos (o ninguna).
+  if(title){
+    const gbSynopsis=await fetchGoogleBooksSynopsis(title,author,null);
+    if(gbSynopsis)synopsis=gbSynopsis;
+  }
+
   // The user may have navigated to a different book (or away) while this was in flight.
   if(!document.getElementById('p-book-detail').classList.contains('on')||CURRENT_ENTITY.bookdetail!==key)return;
 
@@ -10978,7 +11020,7 @@ async function renderBookPageGeneric(key){
   const synopsisHtml=synopsis?`
     <div class="book-page-section">
       <div class="book-page-section-title"><i class="ti ti-align-left"></i> Sinopsis</div>
-      <p class="text-sm" style="color:var(--ink2);line-height:1.7;max-width:760px">${escapeHtml(synopsis)}</p>
+      <div class="text-sm book-synopsis" style="color:var(--ink2);line-height:1.7;max-width:760px">${synopsisParagraphsHtml(synopsis)}</div>
     </div>`:'';
 
   const friendsWith=getFriendsWithBook(title);
@@ -11046,9 +11088,47 @@ function setBookActivityTab(btn,tab){
   document.getElementById('book-activity-'+tab).classList.add('on');
 }
 
+// Estado del filtro de idioma de la lista de obras de la ficha de autor —
+// vive fuera de renderAuthorPage para poder alternarlo (toggleAuthorLangFilter)
+// sin volver a pedir nada a la red; se resetea a "solo español" cada vez que
+// se abre la ficha de un autor.
+let _authorShowAllLangs=false;
+let _authorWorksCache=null;
+
+// Wikipedia en español como fuente de biografía cuando no hay una curada a
+// mano — su API REST (con CORS habilitado, sin necesidad de clave) da un
+// extracto bien redactado, normalmente mucho mejor que la bio cruda (a veces
+// vacía o de una sola frase) de Open Library.
+async function fetchWikipediaBio(name){
+  try{
+    const direct=await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name.replace(/ /g,'_'))}`);
+    if(direct.ok){
+      const d=await direct.json();
+      if(d.extract&&d.type!=='disambiguation')return d.extract;
+    }
+    // El nombre no siempre coincide con el título exacto del artículo (acentos,
+    // "(escritor)" de desambiguación...) — se busca el título real primero.
+    const search=await fetch(`https://es.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=1&search=${encodeURIComponent(name)}`);
+    if(search.ok){
+      const arr=await search.json();
+      const title=arr?.[1]?.[0];
+      if(title){
+        const r2=await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g,'_'))}`);
+        if(r2.ok){
+          const d2=await r2.json();
+          if(d2.extract&&d2.type!=='disambiguation')return d2.extract;
+        }
+      }
+    }
+  }catch(e){console.error('fetchWikipediaBio failed:',e);}
+  return null;
+}
+
 async function renderAuthorPage(authorName){
   const data=getAuthorData(authorName);
   const cont=document.getElementById('author-page-content');
+  _authorShowAllLangs=false;
+  _authorWorksCache=null;
 
   const authorBooks=allBooks().filter(b=>b.author&&b.author.toLowerCase()===authorName.toLowerCase());
   let olAuthorKey=authorBooks.find(b=>b.authorOlKey)?.authorOlKey||null;
@@ -11100,7 +11180,10 @@ async function renderAuthorPage(authorName){
 
     <div id="author-works-section">
       <div class="card" style="margin-bottom:16px">
-        <div class="card-title" style="margin-bottom:10px"><i class="ti ti-books" style="color:var(--red)"></i> Obras <span id="author-works-count" style="font-weight:400;color:var(--ink3);font-size:12px"></span></div>
+        <div class="card-title" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <span><i class="ti ti-books" style="color:var(--red)"></i> Obras <span id="author-works-count" style="font-weight:400;color:var(--ink3);font-size:12px"></span></span>
+          <button id="author-works-lang-toggle" class="card-link" style="display:none" onclick="toggleAuthorLangFilter()"></button>
+        </div>
         <div id="author-works-list"><div style="color:var(--ink3);font-size:13px"><i class="ti ti-loader-2 spin"></i> Cargando obras…</div></div>
       </div>
     </div>
@@ -11111,78 +11194,119 @@ async function renderAuthorPage(authorName){
     </div>`:''}
   `;
 
-  // Fetch OL bio and works in parallel
-  const bioFetch=(!bio&&olAuthorKey)
-    ?fetch(`https://openlibrary.org/authors/${olAuthorKey}.json`).then(r=>r.json()).catch(()=>({}))
+  // Bio: Wikipedia (mejor redactada) + Open Library (birth_date y respaldo si
+  // Wikipedia no tiene nada) en paralelo. Obras: búsqueda de Open Library con
+  // idioma por obra, para poder filtrar por defecto a solo español.
+  const bioFetch=(!bio&&name)
+    ?Promise.all([
+        fetchWikipediaBio(name),
+        olAuthorKey?fetch(`https://openlibrary.org/authors/${olAuthorKey}.json`).then(r=>r.json()).catch(()=>null):Promise.resolve(null),
+      ]).then(([wikiBio,olData])=>({wikiBio,olData}))
     :Promise.resolve(null);
 
   const worksFetch=olAuthorKey
-    ?fetch(`https://openlibrary.org/authors/${olAuthorKey}/works.json?limit=50`).then(r=>r.json()).catch(()=>({}))
+    ?fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent('author_key:'+olAuthorKey)}&fields=title,key,cover_i,first_publish_year,language&limit=100`).then(r=>r.json()).catch(()=>({}))
     :Promise.resolve(null);
 
-  Promise.all([bioFetch,worksFetch]).then(([bioData,worksData])=>{
+  Promise.all([bioFetch,worksFetch]).then(([bioResult,worksData])=>{
     // Update bio
-    if(bioData){
-      const olBio=typeof bioData.bio==='string'?bioData.bio:(bioData.bio?.value||'');
+    if(bioResult){
+      const olBioRaw=bioResult.olData?(typeof bioResult.olData.bio==='string'?bioResult.olData.bio:(bioResult.olData.bio?.value||'')):'';
+      const finalBio=bioResult.wikiBio||olBioRaw;
       const slot=document.getElementById('ol-bio-slot');
-      if(slot&&olBio)slot.textContent=olBio.substring(0,600)+(olBio.length>600?'…':'');
+      if(slot&&finalBio)slot.textContent=finalBio.substring(0,600)+(finalBio.length>600?'…':'');
       else if(slot)slot.textContent='';
-      if(bioData.birth_date){
+      if(bioResult.olData?.birth_date){
         const metaEl=cont.querySelector('.author-page-meta');
-        if(metaEl&&!metaEl.textContent)metaEl.textContent=bioData.birth_date;
+        if(metaEl&&!metaEl.textContent)metaEl.textContent=bioResult.olData.birth_date;
       }
     }
 
-    // Render works list
-    const listEl=document.getElementById('author-works-list');
-    if(!listEl)return;
-
-    // Merge OL works + static works + user shelf books for this author
-    const olWorks=(worksData?.entries||[]).map(w=>({
+    // Merge OL works (con idioma por obra) + static works + user shelf books
+    const allDocs=(worksData?.docs||[]).filter(w=>w.title);
+    const allWorks=allDocs.map(w=>({
       title:w.title,
-      year:w.first_publish_date?w.first_publish_date.replace(/\D.*$/,''):null,
+      year:w.first_publish_year?String(w.first_publish_year):null,
       olKey:w.key||null,
-      cover:w.covers?.[0]>0?`https://covers.openlibrary.org/b/id/${w.covers[0]}-M.jpg`:null
-    }));
-
-    // Fill in with static works if OL returned nothing
+      cover:w.cover_i>0?`https://covers.openlibrary.org/b/id/${w.cover_i}-M.jpg`:null,
+      languages:w.language||[],
+    })).sort((a,b)=>{
+      if(!a.year&&!b.year)return 0;
+      if(!a.year)return 1;
+      if(!b.year)return -1;
+      return a.year-b.year;
+    });
+    // Por defecto solo obras con alguna edición en español — Open Library
+    // catalogaba aquí traducciones sueltas y ediciones raras como si fueran
+    // "obras" distintas, sin filtrar por idioma. Si el autor no tiene ninguna
+    // obra en español indexada, se cae a mostrar todas (mejor eso que una
+    // ficha vacía).
+    const spanishWorks=allWorks.filter(w=>w.languages.includes('spa'));
     const staticWorks=(data?.works||[]).map(w=>({title:w.title,year:w.year?String(w.year):null,olKey:null,cover:null}));
-    const works=olWorks.length?olWorks:staticWorks;
 
-    document.getElementById('author-works-count').textContent=works.length?`(${works.length} obras)`:'';
+    _authorWorksCache={all:allWorks,spanish:spanishWorks,staticWorks,name};
+    renderAuthorWorksList();
+  });
+}
 
-    if(!works.length){
-      listEl.innerHTML='<div style="color:var(--ink3);font-size:13px">No se encontraron obras</div>';
-      return;
+// Reconstruye la lista de obras a partir de la última respuesta guardada, sin
+// volver a pedir nada a la red — así toggleAuthorLangFilter() es instantáneo.
+function renderAuthorWorksList(){
+  const listEl=document.getElementById('author-works-list');
+  const countEl=document.getElementById('author-works-count');
+  const toggleEl=document.getElementById('author-works-lang-toggle');
+  if(!listEl||!_authorWorksCache)return;
+  const{all,spanish,staticWorks,name}=_authorWorksCache;
+  const hasSpanish=spanish.length>0;
+  const showAll=_authorShowAllLangs||!hasSpanish;
+  const works=all.length?(showAll?all:spanish):staticWorks;
+
+  if(countEl)countEl.textContent=works.length?`(${works.length} obras)`:'';
+
+  if(toggleEl){
+    if(all.length&&hasSpanish&&all.length>spanish.length){
+      toggleEl.style.display='';
+      toggleEl.textContent=showAll?'Ver solo en español':`Ver también en otros idiomas (${all.length-spanish.length})`;
+    } else {
+      toggleEl.style.display='none';
+    }
+  }
+
+  if(!works.length){
+    listEl.innerHTML='<div style="color:var(--ink3);font-size:13px">No se encontraron obras</div>';
+    return;
+  }
+
+  listEl.innerHTML=works.map(w=>{
+    const userBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
+    const coverHtml=w.cover
+      ?`<img src="${w.cover}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
+      :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
+
+    let actionHtml='';
+    if(userBook){
+      const labels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
+      actionHtml=`<span class="author-work-badge">${labels[userBook.status]||''}</span>`;
+    } else {
+      actionHtml=`<button class="btn btn-sm btn-white author-work-want" onclick="event.stopPropagation();quickAddDirect('${escapeHtml(w.title).replace(/'/g,"\\'")}','${escapeHtml(name).replace(/'/g,"\\'")}','quiero'${w.olKey?`,'${w.olKey.replace(/'/g,"\\'")}'`:''});this.textContent='🔖 Añadido';this.disabled=true">🔖 Quiero leer</button>`;
     }
 
-    listEl.innerHTML=works.map(w=>{
-      const userBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
-      const coverHtml=w.cover
-        ?`<img src="${w.cover}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
-        :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
-
-      let actionHtml='';
-      if(userBook){
-        const labels={leidos:'✅ Leído',leyendo:'📖 Leyendo',quiero:'🔖 Quiero leer',dnf:'❌ Abandonado'};
-        actionHtml=`<span class="author-work-badge">${labels[userBook.status]||''}</span>`;
-      } else {
-        actionHtml=`<button class="btn btn-sm btn-white author-work-want" onclick="event.stopPropagation();quickAddDirect('${escapeHtml(w.title).replace(/'/g,"\\'")}','${escapeHtml(name).replace(/'/g,"\\'")}','quiero'${w.olKey?`,'${w.olKey.replace(/'/g,"\\'")}'`:''});this.textContent='🔖 Añadido';this.disabled=true">🔖 Quiero leer</button>`;
-      }
-
-      const clickAttr=userBook?`onclick="go('bookdetail',null,'${bkKey(userBook)}')" style="cursor:pointer"`:'';
-      return `<div class="author-work-row-full" ${clickAttr}>
-        <div style="display:flex;align-items:center;gap:10px;min-width:0">
-          ${coverHtml}
-          <div style="min-width:0">
-            <div class="author-work-title">${escapeHtml(w.title)}</div>
-            ${w.year?`<div class="author-work-year">${w.year}</div>`:''}
-          </div>
+    const clickAttr=userBook?`onclick="go('bookdetail',null,'${bkKey(userBook)}')" style="cursor:pointer"`:'';
+    return `<div class="author-work-row-full" ${clickAttr}>
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        ${coverHtml}
+        <div style="min-width:0">
+          <div class="author-work-title">${escapeHtml(w.title)}</div>
+          ${w.year?`<div class="author-work-year">${w.year}</div>`:''}
         </div>
-        <div style="flex-shrink:0">${actionHtml}</div>
-      </div>`;
-    }).join('');
-  });
+      </div>
+      <div style="flex-shrink:0">${actionHtml}</div>
+    </div>`;
+  }).join('');
+}
+function toggleAuthorLangFilter(){
+  _authorShowAllLangs=!_authorShowAllLangs;
+  renderAuthorWorksList();
 }
 
 
