@@ -4197,6 +4197,19 @@ async function loadSupaBooks(){
       sortOrder:Number.isInteger(row.sort_order)?row.sort_order:null,
     });
   });
+  // Autorreparación: libros "leído" con finished_at guardado pero sin ninguna
+  // entrada en read_history (datos de antes de que las distintas vías de
+  // guardado — sobre todo una importación de Goodreads hecha con una versión
+  // anterior de confirmGoodreadsImport — empezaran a rellenarlo). Las
+  // estadísticas por año, el gráfico mensual y el contador de relecturas leen
+  // SOLO read_history, así que sin esto esos libros contaban en el total
+  // general pero desaparecían por completo al filtrar por cualquier año.
+  DB.leidos.forEach(b=>{
+    if((!b.readHistory||!b.readHistory.length)&&b.finishedAt){
+      b.readHistory=[{stars:b.stars||0,finishedAt:b.finishedAt}];
+      saveSupaBook(b); // fire-and-forget: ya encola en local antes del await, ver saveSupaBook
+    }
+  });
 }
 
 function _delay(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -8813,12 +8826,19 @@ function mapGoodreadsRow(row){
     const[y,m,d]=dateReadRaw.split('/').map(Number);
     if(y&&m&&d)finishedAt=new Date(y,m-1,d).toLocaleDateString('es-ES');
   }
+  // Todo el resto de la app (confirmAdd, quickAddDirect, markFinishedFrom...)
+  // guarda "leído" con un finishedAt SUELTO además de una entrada en
+  // readHistory — las estadísticas por año, el gráfico mensual y el contador
+  // de relecturas leen SOLO readHistory. Sin esto, un libro importado de
+  // Goodreads contaba en el total general pero desaparecía en cualquier
+  // vista filtrada por año, como si nunca se hubiera terminado.
+  const readHistory=(status==='leidos'&&finishedAt)?[{stars,finishedAt}]:[];
   const review=decodeHtmlEntities((row['My Review']||'').trim());
   // ?default=false evita el placeholder feo de Open Library ("sin portada") —
   // si el ISBN no tiene portada real, que falle en silencio (queda el color
   // de fondo del lomo) en vez de mostrar ese cuadro genérico.
   const cover=isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`:null;
-  return{title,author,isbn,pages,year,stars,status,finishedAt,review,cover,publisher:(row['Publisher']||'').trim()||null};
+  return{title,author,isbn,pages,year,stars,status,finishedAt,readHistory,review,cover,publisher:(row['Publisher']||'').trim()||null};
 }
 
 // La portada por ISBN falla muy a menudo (muchas ediciones concretas no
