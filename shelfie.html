@@ -4113,6 +4113,7 @@ async function loadSupaProfile(){
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
+  PAGES_TODAY={date:data.pages_today_date||null,count:data.pages_today_count||0};
   SHELFIE_YEARS_ARCHIVE=Array.isArray(data.shelfie_archive)?data.shelfie_archive:[];
   YEAR_GOAL_IDS=new Set(Array.isArray(data.year_goal_ids)?data.year_goal_ids:[]);
   _loadedYearGoalYear=data.year_goal_year||null;
@@ -6333,6 +6334,12 @@ let CURRENT_THREAD_ID=null;
 let QUOTE_REPLY_TARGET=null; // {author, text} for quote-reply in thread
 let _clubBookPending=null;   // book object to add to club
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
+// Páginas avanzadas HOY (sumando todas las actualizaciones de progreso del
+// día) — el botón "¡Hoy he leído!" exige un mínimo real de lectura, no solo
+// un clic sin haber tocado el progreso de ningún libro.
+let PAGES_TODAY={date:null,count:0};
+const MIN_PAGES_FOR_STREAK=5;
+function pagesReadToday(){return PAGES_TODAY.date===todayKey()?PAGES_TODAY.count:0;}
 let retoAssigned=[];
 let starVal=0;
 let currentTab='leidos';
@@ -7120,7 +7127,7 @@ const ONBOARDING_STEPS=[
   {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... Toca un día del calendario de actividad para ver la fecha exacta, y desliza a los lados para ver meses anteriores. Puedes exportarlo todo en PDF o Excel.',nav:'stats',target:'.stats-hero-grid'},
   {title:'Tus logros',desc:'Desbloqueas medallas a medida que lees — por rachas, número de libros, géneros distintos y más. Se ven en tu perfil, para ti y para quien te siga.',nav:'profile',target:'.ach-card .card-link'},
   {title:'Añade tus libros',desc:'Volvamos a Inicio. Aquí añades cada libro, y hay varias formas de encontrarlo: buscar por título o autor, por ISBN, escanear el código de barras con la cámara, o escribirlo tú mismo si no aparece.',nav:'home',target:'#p-home .tb-right .btn-red'},
-  {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',nav:'home',target:'#streak-mark-btn'},
+  {title:'Marca tu racha',desc:'Actualiza las páginas del libro que estás leyendo al menos 5 páginas y tu racha se marca sola — o pulsa aquí si prefieres confirmarlo a mano. Sin avanzar páginas de verdad no cuenta, para que la racha signifique algo.',nav:'home',target:'#streak-mark-btn'},
   {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',nav:'home',target:'#p-home .stats-grid'},
   {title:'¡Listo! 🎉',desc:'Eso es todo. Ve a añadir tu primer libro y empieza a construir tu shelfie.',nav:'home',target:null},
 ];
@@ -7225,6 +7232,7 @@ async function doLogout(){
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   USER_POSTS=[];
   READING_DAYS=new Set();
+  PAGES_TODAY={date:null,count:0};
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -7489,6 +7497,7 @@ async function deleteAccountFlow(){
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   USER_POSTS=[];
   READING_DAYS=new Set();
+  PAGES_TODAY={date:null,count:0};
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -9579,6 +9588,12 @@ function streakTierClass(streak){
 async function markTodayAsRead(){
   const key=todayKey();
   if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
+  const progress=pagesReadToday();
+  if(progress<MIN_PAGES_FOR_STREAK){
+    const missing=MIN_PAGES_FOR_STREAK-progress;
+    toast(`📖 Actualiza al menos ${MIN_PAGES_FOR_STREAK} páginas del libro que estás leyendo hoy para marcar tu racha (te faltan ${missing}).`,5000);
+    return;
+  }
   READING_DAYS.add(key);
   updateStreakDisplay();
   const streak=calculateCurrentStreak();
@@ -9684,6 +9699,32 @@ function addPages(id){
   openModal('modal-add-pages');
 }
 
+// Acumula páginas avanzadas hoy y, en cuanto se llega al mínimo, marca la
+// racha automáticamente — así no hace falta un segundo clic aparte una vez
+// que ya has leído de verdad. El botón "¡Hoy he leído!" usa el mismo mínimo
+// (ver markTodayAsRead) para cuando alguien prefiere marcarlo a mano.
+async function registerPagesProgress(delta){
+  if(delta<=0)return;
+  const key=todayKey();
+  if(PAGES_TODAY.date!==key)PAGES_TODAY={date:key,count:0};
+  PAGES_TODAY.count+=delta;
+  const patch={pages_today_date:PAGES_TODAY.date,pages_today_count:PAGES_TODAY.count};
+  const justMarked=PAGES_TODAY.count>=MIN_PAGES_FOR_STREAK&&!READING_DAYS.has(key);
+  if(justMarked){
+    READING_DAYS.add(key);
+    patch.reading_days=[...READING_DAYS];
+  }
+  updateStreakDisplay();
+  if(justMarked){
+    const streak=calculateCurrentStreak();
+    toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
+  }
+  if(SUPA_USER){
+    const{error}=await supa.from('profiles').update(patch).eq('id',SUPA_USER.id);
+    if(error)console.error('registerPagesProgress: failed to save progress:',error);
+  }
+}
+
 async function confirmAddPages(){
   const book=allBooks().find(b=>b.id===pendingAddPagesId);
   if(!book){closeModal('modal-add-pages');return;}
@@ -9705,15 +9746,7 @@ async function confirmAddPages(){
   saveSupaBook(book);
   toast(`Pág. ${book.curPage}/${book.pages} · ${pct}%`);
   if(advanced){
-    const key=todayKey();
-    if(!READING_DAYS.has(key)){
-      READING_DAYS.add(key);
-      updateStreakDisplay();
-      if(SUPA_USER){
-        const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
-        if(error)console.error('confirmAddPages: failed to save reading_days:',error);
-      }
-    }
+    await registerPagesProgress(book.curPage-prevPage);
   }
   updateAll();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
