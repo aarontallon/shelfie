@@ -1688,3 +1688,13 @@ do $$ begin
   alter table public.reports add constraint reports_target_user_id_fkey
     foreign key (target_user_id) references public.profiles(id) on delete set null;
 exception when others then null; end $$;
+
+-- ACTUALIZACIÓN: la racha ("¡Hoy he leído!") exigía cero esfuerzo real — se
+-- podía marcar el día sin haber tocado ningún libro. Ahora hace falta haber
+-- avanzado al menos 5 páginas ESE DÍA (sumando todas las actualizaciones de
+-- progreso), tanto si se marca a mano como si se autodetecta al actualizar
+-- páginas. Solo hace falta guardar el acumulado del día actual, no un
+-- historial — se resetea solo en cuanto cambia la fecha (ver
+-- registerPagesProgress() en el cliente).
+alter table public.profiles add column if not exists pages_today_date text;
+alter table public.profiles add column if not exists pages_today_count integer not null default 0;

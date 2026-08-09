@@ -34,11 +34,12 @@
      grande) y la hoja de estilos se carga sin bloquear el render con el truco media="print". -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-<!-- Exportar Estadísticas a PDF/Excel con diseño propio (antes era un window.print()
+<!-- Exportar Estadísticas a PDF con diseño propio (antes era un window.print()
      del propio DOM, que salía con la barra del navegador, el pie de la URL y cortaba
-     las tarjetas por la mitad entre páginas) -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+     las tarjetas por la mitad entre páginas). jsPDF + su plugin de tablas ya NO se
+     cargan aquí: son ~600KB que solo hacían falta para un botón de exportar que
+     casi nadie pulsa en cada carga — ahora se cargan bajo demanda, ver
+     loadJsPDFLibs() y exportStatsPDF(). -->
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -2921,7 +2922,7 @@ a{color:inherit}
     <div class="sb-lbl">Social</div>
     <button class="sb-notif-btn" onclick="openNotifications()"><i class="ti ti-bell"></i> Notificaciones <span class="nb-badge" id="notif-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('feed',this)"><i class="ti ti-antenna-bars-5"></i> Feed</button>
-    <button class="nb" onclick="go('messages',this)"><i class="ti ti-send"></i> Mensajes <span class="nb-badge" id="messages-badge" style="display:none">0</span></button>
+    <button class="nb" id="nb-messages" onclick="go('messages',this)"><i class="ti ti-send"></i> Mensajes <span class="nb-badge" id="messages-badge" style="display:none">0</span></button>
     <button class="nb" onclick="go('friends',this)"><i class="ti ti-users"></i> Amigos</button>
     <button class="nb" onclick="go('clubs',this)"><i class="ti ti-users-group"></i> Clubs</button>
   </div>
@@ -4112,6 +4113,7 @@ async function loadSupaProfile(){
   if(data.reading_days&&Array.isArray(data.reading_days)){
     READING_DAYS=new Set(data.reading_days);
   }
+  PAGES_TODAY={date:data.pages_today_date||null,count:data.pages_today_count||0};
   SHELFIE_YEARS_ARCHIVE=Array.isArray(data.shelfie_archive)?data.shelfie_archive:[];
   YEAR_GOAL_IDS=new Set(Array.isArray(data.year_goal_ids)?data.year_goal_ids:[]);
   _loadedYearGoalYear=data.year_goal_year||null;
@@ -4196,6 +4198,19 @@ async function loadSupaBooks(){
       cameFromDnf:row.came_from_dnf||false,
       sortOrder:Number.isInteger(row.sort_order)?row.sort_order:null,
     });
+  });
+  // Autorreparación: libros "leído" con finished_at guardado pero sin ninguna
+  // entrada en read_history (datos de antes de que las distintas vías de
+  // guardado — sobre todo una importación de Goodreads hecha con una versión
+  // anterior de confirmGoodreadsImport — empezaran a rellenarlo). Las
+  // estadísticas por año, el gráfico mensual y el contador de relecturas leen
+  // SOLO read_history, así que sin esto esos libros contaban en el total
+  // general pero desaparecían por completo al filtrar por cualquier año.
+  DB.leidos.forEach(b=>{
+    if((!b.readHistory||!b.readHistory.length)&&b.finishedAt){
+      b.readHistory=[{stars:b.stars||0,finishedAt:b.finishedAt}];
+      saveSupaBook(b); // fire-and-forget: ya encola en local antes del await, ver saveSupaBook
+    }
   });
 }
 
@@ -4839,6 +4854,7 @@ async function searchChatUsers(q){
       .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
       .neq('id',SUPA_USER.id)
       .not('username','is',null)
+      .eq('is_organizer',false)
       .limit(8);
     if(error)throw error;
     if(token!==_chatUserSearchToken)return;
@@ -5649,7 +5665,7 @@ async function runEventBookSearch(q){
     books.forEach(b=>{
       const row=document.createElement('div');
       row.className='s-item';
-      const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+      const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
       row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div>`;
       row.addEventListener('click',()=>selectEventBook(b));
       drop.appendChild(row);
@@ -5808,6 +5824,7 @@ async function organizerLogout(){
   await supa.auth.signOut();
   ORGANIZER=null;ORGANIZER_EVENTS=[];
   isLoggedIn=false;SUPA_USER=null;
+  try{localStorage.removeItem('shelfie_last_page');}catch(e){}
   document.getElementById('organizer-shell').classList.remove('on');
   showAuth('landing');
   toast('Sesión cerrada');
@@ -6317,6 +6334,12 @@ let CURRENT_THREAD_ID=null;
 let QUOTE_REPLY_TARGET=null; // {author, text} for quote-reply in thread
 let _clubBookPending=null;   // book object to add to club
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
+// Páginas avanzadas HOY (sumando todas las actualizaciones de progreso del
+// día) — el botón "¡Hoy he leído!" exige un mínimo real de lectura, no solo
+// un clic sin haber tocado el progreso de ningún libro.
+let PAGES_TODAY={date:null,count:0};
+const MIN_PAGES_FOR_STREAK=5;
+function pagesReadToday(){return PAGES_TODAY.date===todayKey()?PAGES_TODAY.count:0;}
 let retoAssigned=[];
 let starVal=0;
 let currentTab='leidos';
@@ -7086,7 +7109,7 @@ const ONBOARDING_STEPS=[
     const hamburger=document.querySelector('.mobile-menu-btn');
     return(hamburger&&getComputedStyle(hamburger).display!=='none')?'.mobile-menu-btn':'.sidebar .sb-logo';
   }},
-  {title:'Mi shelfie',desc:'Aquí ves y organizas todos tus libros: leídos, leyendo, quiero leer y abandonados. Arrástralos para colocarlos donde quieras (también funciona con el dedo en el móvil), y desde el menú de tres puntos de cada libro puedes cambiarle la portada o elegir otra edición.',nav:'shelf',target:'#shelf-tabs'},
+  {title:'Mi shelfie',desc:'Aquí ves y organizas todos tus libros: leídos, leyendo, quiero leer y abandonados. Arrástralos para colocarlos donde quieras (también funciona con el dedo en el móvil), y desde el menú de tres puntos de cada libro puedes cambiarle la portada o elegir otra edición. Desde la ficha de cualquier libro también puedes añadirlo a tu Shelfie de este año, tu objetivo de lectura anual.',nav:'shelf',target:'#shelf-tabs'},
   {title:'Personaliza tu estantería',desc:'Elige el fondo y el color de las baldas de tu estantería — se aplica también en tu perfil, para quien lo vea desde fuera.',nav:'shelf',target:'#shelf-theme-btn'},
   {title:'Importa tu biblioteca',desc:'¿Ya tienes tu biblioteca en Goodreads? Súbela de una vez con este botón — leídos, pendientes y valoraciones incluidas. Si a algún libro le falta portada luego, el icono de la foto de al lado te busca una mejor automáticamente.',nav:'shelf',target:'#goodreads-import-btn'},
   {title:'Comparte tu shelfie',desc:'Genera una story lista para Instagram con tu estantería, tu lista de pendientes o lo que estás leyendo ahora mismo — con tu racha y tu progreso si quieres.',nav:'shelf',target:'#shelf-share-btn'},
@@ -7096,13 +7119,15 @@ const ONBOARDING_STEPS=[
     return(body&&getComputedStyle(body).display!=='none')?'#events-search-inp':'#events-no-city';
   }},
   {title:'Feed',desc:'Comparte lo que lees — reseñas, citas, anotaciones de una página, tu shelfie del mes — y ve lo que publican los lectores a los que sigues.',nav:'feed',target:'.composer-card'},
+  {title:'Notificaciones',desc:'Te avisamos aquí cuando alguien te sigue, te pide seguirte, comenta o reacciona a algo tuyo, o se apunta a tu evento. Actívalas también como notificación push desde Ajustes de cuenta para enterarte al instante, incluso con la app cerrada.',nav:'feed',target:'.sb-notif-btn'},
+  {title:'Mensajes',desc:'Chatea en privado con otros lectores. Si os seguís mutuamente el mensaje llega directo a la conversación; si no, primero pasa por "Solicitudes" hasta que la otra persona lo acepte, como en Instagram.',nav:'feed',target:'#nb-messages'},
   {title:'Amigos',desc:'Busca y sigue a otros lectores para ver su actividad en el feed. Aquí ves a quién sigues, quién te sigue a ti, y algunas sugerencias.',nav:'friends',target:'#p-friends .tb .btn-red'},
   {title:'Clubs de lectura',desc:'Únete a un club existente o crea el tuyo — con su propio foro para debatir, elegir el libro del mes y organizar la lectura en comunidad.',nav:'clubs',target:'#p-clubs .tb .btn-red'},
   {title:'Retos',desc:'Crea tus propios retos de lectura o únete a los de la comunidad — como leer un libro por país o superar tu récord de páginas.',nav:'retos',target:'#p-retos .tb .btn-red'},
   {title:'Estadísticas',desc:'Todos tus datos de lectura de un vistazo: libros, páginas, rachas, géneros... Toca un día del calendario de actividad para ver la fecha exacta, y desliza a los lados para ver meses anteriores. Puedes exportarlo todo en PDF o Excel.',nav:'stats',target:'.stats-hero-grid'},
   {title:'Tus logros',desc:'Desbloqueas medallas a medida que lees — por rachas, número de libros, géneros distintos y más. Se ven en tu perfil, para ti y para quien te siga.',nav:'profile',target:'.ach-card .card-link'},
   {title:'Añade tus libros',desc:'Volvamos a Inicio. Aquí añades cada libro, y hay varias formas de encontrarlo: buscar por título o autor, por ISBN, escanear el código de barras con la cámara, o escribirlo tú mismo si no aparece.',nav:'home',target:'#p-home .tb-right .btn-red'},
-  {title:'Marca tu racha',desc:'Pulsa aquí cada día que leas para mantener viva tu racha — hay logros por llegar muy lejos con esto.',nav:'home',target:'#streak-mark-btn'},
+  {title:'Marca tu racha',desc:'Actualiza las páginas del libro que estás leyendo al menos 5 páginas y tu racha se marca sola — o pulsa aquí si prefieres confirmarlo a mano. Sin avanzar páginas de verdad no cuenta, para que la racha signifique algo.',nav:'home',target:'#streak-mark-btn'},
   {title:'Tu resumen',desc:'De un vistazo: cuántos libros llevas leídos, cuántos estás leyendo y cuántos tienes en tu lista de deseos.',nav:'home',target:'#p-home .stats-grid'},
   {title:'¡Listo! 🎉',desc:'Eso es todo. Ve a añadir tu primer libro y empieza a construir tu shelfie.',nav:'home',target:null},
 ];
@@ -7207,6 +7232,7 @@ async function doLogout(){
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   USER_POSTS=[];
   READING_DAYS=new Set();
+  PAGES_TODAY={date:null,count:0};
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -7471,6 +7497,7 @@ async function deleteAccountFlow(){
   DB={leidos:[],leyendo:[],quiero:[],dnf:[]};
   USER_POSTS=[];
   READING_DAYS=new Set();
+  PAGES_TODAY={date:null,count:0};
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -8125,7 +8152,7 @@ async function searchOL(q, dropId, onAddClick){
       const row=document.createElement('div');
       row.className='s-item';
       row.innerHTML=`
-        ${coverUrl?`<img class="s-cover" src="${coverUrl}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="object-fit:cover"><div class="s-cover" style="background:${COLORS[i%COLORS.length]};display:none"></div>`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
+        ${coverUrl?`<img class="s-cover" src="${coverUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="object-fit:cover"><div class="s-cover" style="background:${COLORS[i%COLORS.length]};display:none"></div>`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
         <div class="s-info"><div class="s-title">${escapeHtml(title)}</div><div class="s-author">${escapeHtml(author)}${year?' · '+year:''}${pages?' · '+pages+' p':''}</div></div>
         <button class="btn btn-sm btn-red">Añadir</button>`;
       const bookData={title,author,year,pages,cover:coverUrl,olKey,authorOlKey};
@@ -8430,7 +8457,7 @@ function showCoverPicker(bookData, covers, mode){
     const fullUrl=isUrl?c:`https://covers.openlibrary.org/b/id/${c}-L.jpg`;
     const item=document.createElement('div');
     item.className='cover-pick-item';
-    item.innerHTML=`<img src="${thumbUrl}" alt="" onerror="this.closest('.cover-pick-item').remove()">`;
+    item.innerHTML=`<img src="${thumbUrl}" alt="" loading="lazy" onerror="this.closest('.cover-pick-item').remove()">`;
     item.addEventListener('click',()=>{
       picker.style.display='none';
       selectBookForAdd({...bookData,cover:fullUrl});
@@ -8490,7 +8517,7 @@ async function fetchEditionsAndPick(bookData){
       const imgId='ecov-'+Math.random().toString(36).slice(2);
       item.innerHTML=`
         <div class="edition-cover" style="background:#E8E5DF;position:relative;overflow:hidden">
-          ${thumbUrl?`<img id="${imgId}" src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'" alt="">`:``}
+          ${thumbUrl?`<img id="${imgId}" src="${thumbUrl}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'" alt="">`:``}
           <i class="ti ti-book" style="font-size:14px;color:var(--ink3)"></i>
         </div>
         <div class="edition-info">
@@ -8583,7 +8610,7 @@ function onRetoSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       if(!retoAssigned.find(x=>x.id===b.id)){retoAssigned.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});renderRetoAssigned();}
@@ -8599,7 +8626,7 @@ function onRetoSearch(q){
 
 function renderRetoAssigned(){
   document.getElementById('reto-assigned').innerHTML=retoAssigned.map((b,i)=>{
-    const cover=b.cover?`<img src="${b.cover}" style="width:22px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0">`:`<div style="width:22px;height:32px;border-radius:3px;background:${b.color||'var(--ink3)'};flex-shrink:0"></div>`;
+    const cover=b.cover?`<img src="${b.cover}" loading="lazy" style="width:22px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0">`:`<div style="width:22px;height:32px;border-radius:3px;background:${b.color||'var(--ink3)'};flex-shrink:0"></div>`;
     return `<div class="ch-book-tag">${cover} ${escapeHtml(b.title)} <button onclick="retoAssigned.splice(${i},1);renderRetoAssigned()">×</button></div>`;
   }).join('');
 }
@@ -8680,7 +8707,10 @@ function confirmAdd(){
     book.readHistory=[{stars:starVal,finishedAt:book.finishedAt}];
   }
   DB[status].unshift(book);
-  if(status==='leidos')countBookTowardsRetos(book);
+  if(status==='leidos'){
+    countBookTowardsRetos(book);
+    registerFinishedToday(book.finishedAt);
+  }
   saveSupaBook(book);
   closeModal('modal-add');
   updateAll();
@@ -8710,7 +8740,19 @@ function quickAddDirect(title,author,status,olKey,cover,color){
   // (Discover) pass them through so the added copy keeps its real cover art
   // instead of falling back to a plain color block.
   const book={id:uuid(),title,author,year:'',status,stars:0,review:'',cover:cover||null,color:color||COLORS[(title.charCodeAt(0)||0)%COLORS.length],addedAt:new Date().toLocaleDateString('es-ES'),pages:null,curPage:0,rankPos:null,olKey:olKey||null};
+  if(status==='leidos'){
+    // Igual que en confirmAdd(): sin esto, un libro añadido directamente como
+    // "leído" (sin pasar por el modal normal) no tenía finishedAt/readHistory
+    // y desaparecía sin más de las estadísticas por año, el gráfico mensual y
+    // el contador de relecturas.
+    book.finishedAt=new Date().toLocaleDateString('es-ES');
+    book.readHistory=[{stars:0,finishedAt:book.finishedAt}];
+  }
   DB[status].unshift(book);
+  if(status==='leidos'){
+    countBookTowardsRetos(book);
+    registerFinishedToday(book.finishedAt);
+  }
   saveSupaBook(book);
   updateAll();
   toast(`✅ «${title}» añadido a ${status==='quiero'?'Quiero leer':'tu shelfie'}`);
@@ -8802,12 +8844,19 @@ function mapGoodreadsRow(row){
     const[y,m,d]=dateReadRaw.split('/').map(Number);
     if(y&&m&&d)finishedAt=new Date(y,m-1,d).toLocaleDateString('es-ES');
   }
+  // Todo el resto de la app (confirmAdd, quickAddDirect, markFinishedFrom...)
+  // guarda "leído" con un finishedAt SUELTO además de una entrada en
+  // readHistory — las estadísticas por año, el gráfico mensual y el contador
+  // de relecturas leen SOLO readHistory. Sin esto, un libro importado de
+  // Goodreads contaba en el total general pero desaparecía en cualquier
+  // vista filtrada por año, como si nunca se hubiera terminado.
+  const readHistory=(status==='leidos'&&finishedAt)?[{stars,finishedAt}]:[];
   const review=decodeHtmlEntities((row['My Review']||'').trim());
   // ?default=false evita el placeholder feo de Open Library ("sin portada") —
   // si el ISBN no tiene portada real, que falle en silencio (queda el color
   // de fondo del lomo) en vez de mostrar ese cuadro genérico.
   const cover=isbn?`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`:null;
-  return{title,author,isbn,pages,year,stars,status,finishedAt,review,cover,publisher:(row['Publisher']||'').trim()||null};
+  return{title,author,isbn,pages,year,stars,status,finishedAt,readHistory,review,cover,publisher:(row['Publisher']||'').trim()||null};
 }
 
 // La portada por ISBN falla muy a menudo (muchas ediciones concretas no
@@ -9279,6 +9328,15 @@ async function uploadProfilePhoto(file){
   const path=`${SUPA_USER.id}/avatar_${Date.now()}.${ext}`;
   const{error}=await supa.storage.from('avatars').upload(path,file,{upsert:true,cacheControl:'3600'});
   if(error)throw error;
+  // Cada subida usa un nombre con timestamp (para no chocar con la caché del
+  // navegador en la URL anterior), así que sin esto las fotos antiguas se
+  // quedaban acumulando para siempre en el bucket, una por cada cambio de
+  // avatar. Best-effort: si falla el borrado, no debe tumbar la subida ya hecha.
+  try{
+    const{data:files}=await supa.storage.from('avatars').list(SUPA_USER.id);
+    const stale=(files||[]).map(f=>`${SUPA_USER.id}/${f.name}`).filter(p=>p!==path);
+    if(stale.length)await supa.storage.from('avatars').remove(stale);
+  }catch(e){console.error('cleanup de avatares antiguos falló (no bloqueante):',e);}
   const{data}=supa.storage.from('avatars').getPublicUrl(path);
   return data.publicUrl;
 }
@@ -9290,7 +9348,13 @@ async function saveProfile(){
   // UI show a change that silently never reached the database.
   const prevProfile={name:PROFILE.name,username:PROFILE.username,bio:PROFILE.bio,city:PROFILE.city,photo:PROFILE.photo};
   PROFILE.name=document.getElementById('prof-name').value.trim()||PROFILE.name;
-  PROFILE.username=document.getElementById('prof-username').value.trim()||PROFILE.username;
+  // A diferencia del campo de registro (onUsernameInput), este no tenía
+  // ninguna normalización — se podía guardar "Ana"/"ANA"/"ana " con mayúsculas
+  // o espacios, y como la columna username es un unique case-sensitive,
+  // esas variantes conviven como usuarios distintos y rompen las búsquedas
+  // exactas por username (perfil público, @menciones...).
+  const cleanUsername=document.getElementById('prof-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  PROFILE.username=cleanUsername||PROFILE.username;
   PROFILE.bio=document.getElementById('prof-bio').value.trim();
   PROFILE.city=document.getElementById('prof-city').value.trim();
   const saveBtn=document.querySelector('#modal-profile-edit .btn-red');
@@ -9527,20 +9591,59 @@ function streakTierClass(streak){
   return'tier-spark';
 }
 
-async function markTodayAsRead(){
+// "D/M/YYYY" (formato de finishedAt, toLocaleDateString('es-ES')) es hoy —
+// comparado por componentes en vez de por texto porque el día/mes no
+// siempre lleva cero delante.
+function isDMYToday(dmy){
+  if(!dmy)return false;
+  const now=new Date();
+  const parts=dmy.split('/').map(Number);
+  return parts.length===3&&parts[0]===now.getDate()&&parts[1]===(now.getMonth()+1)&&parts[2]===now.getFullYear();
+}
+// Cubre el caso de terminar un libro sin haber actualizado 5 páginas nuevas
+// ese mismo día (p.ej. ya ibas muy avanzado, o lo terminaste de una sentada
+// larga) — sin esto, terminar un libro entero en un día no bastaría para
+// mantener la racha si además no se tocaba el contador de páginas.
+function finishedBookToday(){return DB.leidos.some(b=>isDMYToday(b.finishedAt));}
+
+// Punto único que de verdad marca la racha de hoy — usado tanto por el botón
+// manual como por las señales automáticas (progreso de páginas, terminar un
+// libro), para no repetir la lógica de guardado en cada sitio.
+async function markStreakToday(extraPatch){
   const key=todayKey();
-  if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
+  if(READING_DAYS.has(key))return false;
   READING_DAYS.add(key);
   updateStreakDisplay();
   const streak=calculateCurrentStreak();
   toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
   if(SUPA_USER){
-    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS],...(extraPatch||{})}).eq('id',SUPA_USER.id);
     if(error){
-      console.error('markTodayAsRead: failed to save reading_days:',error);
+      console.error('markStreakToday: failed to save reading_days:',error);
       toast('⚠️ Racha marcada localmente, pero no se pudo guardar en el servidor. Revisa tu conexión.');
     }
   }
+  return true;
+}
+
+// Si acabas de terminar un libro hoy mismo, cuenta igual que las páginas
+// para poder marcar la racha — aunque ese día no llegues al mínimo de
+// páginas nuevas en el libro que sigues leyendo.
+async function registerFinishedToday(finishedAtStr){
+  if(!isDMYToday(finishedAtStr))return;
+  await markStreakToday();
+}
+
+async function markTodayAsRead(){
+  const key=todayKey();
+  if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
+  const progress=pagesReadToday();
+  if(progress<MIN_PAGES_FOR_STREAK&&!finishedBookToday()){
+    const missing=MIN_PAGES_FOR_STREAK-progress;
+    toast(`📖 Actualiza al menos ${MIN_PAGES_FOR_STREAK} páginas del libro que estás leyendo hoy (o termina uno) para marcar tu racha — te faltan ${missing} páginas.`,5000);
+    return;
+  }
+  await markStreakToday();
 }
 
 function calculateCurrentStreak(days){
@@ -9635,6 +9738,32 @@ function addPages(id){
   openModal('modal-add-pages');
 }
 
+// Acumula páginas avanzadas hoy y, en cuanto se llega al mínimo, marca la
+// racha automáticamente — así no hace falta un segundo clic aparte una vez
+// que ya has leído de verdad. El botón "¡Hoy he leído!" usa el mismo mínimo
+// (ver markTodayAsRead) para cuando alguien prefiere marcarlo a mano.
+async function registerPagesProgress(delta){
+  if(delta<=0)return;
+  const key=todayKey();
+  if(PAGES_TODAY.date!==key)PAGES_TODAY={date:key,count:0};
+  PAGES_TODAY.count+=delta;
+  const patch={pages_today_date:PAGES_TODAY.date,pages_today_count:PAGES_TODAY.count};
+  const justMarked=PAGES_TODAY.count>=MIN_PAGES_FOR_STREAK&&!READING_DAYS.has(key);
+  if(justMarked){
+    READING_DAYS.add(key);
+    patch.reading_days=[...READING_DAYS];
+  }
+  updateStreakDisplay();
+  if(justMarked){
+    const streak=calculateCurrentStreak();
+    toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
+  }
+  if(SUPA_USER){
+    const{error}=await supa.from('profiles').update(patch).eq('id',SUPA_USER.id);
+    if(error)console.error('registerPagesProgress: failed to save progress:',error);
+  }
+}
+
 async function confirmAddPages(){
   const book=allBooks().find(b=>b.id===pendingAddPagesId);
   if(!book){closeModal('modal-add-pages');return;}
@@ -9656,15 +9785,7 @@ async function confirmAddPages(){
   saveSupaBook(book);
   toast(`Pág. ${book.curPage}/${book.pages} · ${pct}%`);
   if(advanced){
-    const key=todayKey();
-    if(!READING_DAYS.has(key)){
-      READING_DAYS.add(key);
-      updateStreakDisplay();
-      if(SUPA_USER){
-        const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
-        if(error)console.error('confirmAddPages: failed to save reading_days:',error);
-      }
-    }
+    await registerPagesProgress(book.curPage-prevPage);
   }
   updateAll();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
@@ -9712,6 +9833,7 @@ function confirmFinishBook(){
   DB.leidos.unshift(book);
   saveSupaBook(book);
   countBookTowardsRetos(book);
+  registerFinishedToday(finishedDate);
   updateAll();
   closeModal('modal-finish-book');
   toast(`🎉 «${book.title}» marcado como leído con ${book.stars}★`);
@@ -11280,7 +11402,7 @@ function renderAuthorWorksList(){
   listEl.innerHTML=works.map(w=>{
     const userBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
     const coverHtml=w.cover
-      ?`<img src="${w.cover}" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
+      ?`<img src="${w.cover}" loading="lazy" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
       :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
 
     let actionHtml='';
@@ -11405,7 +11527,7 @@ function onRankSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();addBookToRanking(b.id);});
     row.addEventListener('click',()=>addBookToRanking(b.id));
@@ -11509,7 +11631,7 @@ function onProfileFavSearch(q){
   pool.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();pfAddFav(b.id);});
     row.addEventListener('click',()=>pfAddFav(b.id));
@@ -11587,7 +11709,7 @@ function discoverBookCard(b){
   // Library cover URLs 404 often enough (cover_id present but file missing)
   // that a background-image would just silently show nothing on failure.
   const coverHtml=b.cover
-    ?`<img class="disc-cover" src="${b.cover}" alt="" style="object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="disc-cover" style="background:${b.color||'#555'};display:none">${initials||'?'}</div>`
+    ?`<img class="disc-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="disc-cover" style="background:${b.color||'#555'};display:none">${initials||'?'}</div>`
     :`<div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>`;
   const metaBits=[];
   if(b.stars)metaBits.push(`<span class="disc-stars">${'★'.repeat(Math.round(b.stars))}${'☆'.repeat(5-Math.round(b.stars))}</span>`);
@@ -11896,8 +12018,13 @@ function computeStatsData(filterYear){
   // contribution graph de GitHub.
   const hmYear=filterYear||new Date().getFullYear();
   const start=new Date(hmYear,0,1);
-  const hmEnd=filterYear&&filterYear<new Date().getFullYear()?new Date(hmYear,11,31):new Date();
   const todayDate=new Date();
+  // hmEnd tiene que estar normalizado a medianoche igual que start — si no,
+  // en el año en curso (hmEnd=ahora, con hora) la resta ya no es un número
+  // exacto de días, Math.ceil redondea hacia arriba de más, y el +1 de abajo
+  // duplica ese redondeo: sale un día (a veces una columna entera) de más.
+  const todayMidnight=new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate());
+  const hmEnd=filterYear&&filterYear<todayDate.getFullYear()?new Date(hmYear,11,31):todayMidnight;
   const totalDays=Math.ceil((hmEnd-start)/86400000)+1;
   const startPad=(start.getDay()+6)%7;
   const heatmapDays=[];
@@ -11937,6 +12064,11 @@ function computeStatsData(filterYear){
     const n=leidos.filter(b=>b.stars===s).length;
     return{stars:s,n,pct:leidos.length?Math.round(n/leidos.length*100):0};
   });
+  // avgStars() global siempre cuenta TODOS los años — con un filtro de año
+  // activo, "libros leídos" ya mostraba solo ese año pero "valoración media"
+  // seguía mezclando la nota de libros de otros años sin decirlo.
+  const ratedLeidos=leidos.filter(b=>b.stars>0).map(b=>b.stars);
+  const avgStarsVal=ratedLeidos.length?(ratedLeidos.reduce((a,b)=>a+b,0)/ratedLeidos.length).toFixed(1)+'★':'—';
 
   // Denominador = suma de las filas que se muestran, no `leidos.length` — con un
   // filtro de año activo, leyendo/quiero/dnf (que no se filtran por año) pueden
@@ -11965,7 +12097,7 @@ function computeStatsData(filterYear){
 
   return{
     filterYear,hmYear,leidos,totalPages,streak,bestStreak,autoresDistintos,
-    librosEsteAnio:YEAR_GOAL_IDS.size,avgStarsVal:avgStars(),
+    librosEsteAnio:YEAR_GOAL_IDS.size,avgStarsVal,
     heatmapDays,monthNames,monthCounts,genreEntries,topAuthors,starDist,distStates,records,progresos,
   };
 }
@@ -12202,11 +12334,41 @@ function shelfieLogoDataUrl(size,color){
   return canvas.toDataURL('image/png');
 }
 
+// jsPDF (~600KB con su plugin de tablas) ya no se carga en cada visita a la
+// app — solo aquí, la primera vez que alguien pulsa "Exportar PDF". Mismo
+// patrón que loadZXingScript() para el escáner de códigos de barras.
+let _jsPDFLoadPromise=null;
+function loadJsPDFLibs(){
+  if(window.jspdf?.jsPDF)return Promise.resolve();
+  if(_jsPDFLoadPromise)return _jsPDFLoadPromise;
+  _jsPDFLoadPromise=new Promise((resolve,reject)=>{
+    const s1=document.createElement('script');
+    s1.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+    s1.onload=()=>{
+      const s2=document.createElement('script');
+      s2.src='https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js';
+      s2.onload=()=>resolve();
+      s2.onerror=()=>reject(new Error('No se pudo cargar el generador de PDF'));
+      document.head.appendChild(s2);
+    };
+    s1.onerror=()=>{_jsPDFLoadPromise=null;reject(new Error('No se pudo cargar el generador de PDF'));};
+    document.head.appendChild(s1);
+  });
+  return _jsPDFLoadPromise;
+}
+
 async function exportStatsPDF(){
   const btn=document.getElementById('stats-export-pdf-btn');
-  if(!window.jspdf?.jsPDF){toast('❌ No se pudo cargar el generador de PDF. Comprueba tu conexión e inténtalo de nuevo.');return;}
   const prevHtml=btn?.innerHTML;
   if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2 spin"></i> Generando...';}
+  try{
+    await loadJsPDFLibs();
+  }catch(e){
+    console.error('loadJsPDFLibs failed:',e);
+    if(btn){btn.disabled=false;btn.innerHTML=prevHtml;}
+    toast('❌ No se pudo cargar el generador de PDF. Comprueba tu conexión e inténtalo de nuevo.');
+    return;
+  }
   try{
     const filterYear=_statsYear==='all'?null:parseInt(_statsYear);
     const d=computeStatsData(filterYear);
@@ -12589,7 +12751,7 @@ function renderRetos(){
     const pct=r.goal?Math.min(100,Math.round(r.progress/r.goal*100)):0;
     const visBadge=r.vis==='publico'?`<span class="reto-badge reto-badge-pub"><i class="ti ti-world" style="font-size:10px"></i> Público</span>`:r.vis==='amigos'?`<span class="reto-badge reto-badge-friends"><i class="ti ti-users" style="font-size:10px"></i> Amigos</span>`:`<span class="reto-badge reto-badge-priv"><i class="ti ti-lock" style="font-size:10px"></i> Privado</span>`;
     const joinedBadge=!r.createdByMe?`<span class="reto-badge reto-badge-joined"><i class="ti ti-user-check" style="font-size:10px"></i> Unido</span>`:'';
-    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${b.cover}" alt="">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
+    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${b.cover}" alt="" loading="lazy">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
     const deadlineHtml=r.deadline?`<span style="font-size:11px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> Hasta ${r.deadline}</span>`:'';
     return `<div class="reto-card">
       <div class="reto-card-head">
@@ -12800,7 +12962,7 @@ function onAssignRetoBookSearch(q){
   drop.style.display='block';drop.innerHTML='';
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       const r=RETOS[pendingAssignRetoIdx];
@@ -12936,7 +13098,7 @@ async function loadSuggestedReaders(){
   const token=++_suggToken;
   const el=document.getElementById('suggested-readers');
   try{
-    const{data,error}=await supa.from('profiles').select('id,name,username,photo,bio').neq('id',SUPA_USER.id).order('created_at',{ascending:false}).limit(30);
+    const{data,error}=await supa.from('profiles').select('id,name,username,photo,bio').neq('id',SUPA_USER.id).eq('is_organizer',false).order('created_at',{ascending:false}).limit(30);
     if(error)throw error;
     if(token!==_suggToken)return;
     const sugg=(data||[]).filter(r=>r.username&&!FRIENDS.find(f=>f.username===r.username)).slice(0,5);
@@ -13087,6 +13249,7 @@ async function searchFriends(q){
       .or(`name.ilike.%${safe}%,username.ilike.%${safe}%`)
       .neq('id',SUPA_USER.id)
       .not('username','is',null)
+      .eq('is_organizer',false)
       .limit(15);
     if(error)throw error;
     if(token!==_friendSearchToken)return; // a newer search superseded this response
@@ -15943,7 +16106,7 @@ function onShelfiePostSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       composerShelfiePostBooks.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
@@ -16110,7 +16273,7 @@ function onComposerBookSearch(q,isCharCtx){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div>`;
     row.addEventListener('click',()=>isCharCtx?selectComposerCharacterBook(b):selectComposerBook(b));
     drop.appendChild(row);
