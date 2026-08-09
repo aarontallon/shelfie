@@ -8707,7 +8707,10 @@ function confirmAdd(){
     book.readHistory=[{stars:starVal,finishedAt:book.finishedAt}];
   }
   DB[status].unshift(book);
-  if(status==='leidos')countBookTowardsRetos(book);
+  if(status==='leidos'){
+    countBookTowardsRetos(book);
+    registerFinishedToday(book.finishedAt);
+  }
   saveSupaBook(book);
   closeModal('modal-add');
   updateAll();
@@ -8746,7 +8749,10 @@ function quickAddDirect(title,author,status,olKey,cover,color){
     book.readHistory=[{stars:0,finishedAt:book.finishedAt}];
   }
   DB[status].unshift(book);
-  if(status==='leidos')countBookTowardsRetos(book);
+  if(status==='leidos'){
+    countBookTowardsRetos(book);
+    registerFinishedToday(book.finishedAt);
+  }
   saveSupaBook(book);
   updateAll();
   toast(`✅ «${title}» añadido a ${status==='quiero'?'Quiero leer':'tu shelfie'}`);
@@ -9585,26 +9591,59 @@ function streakTierClass(streak){
   return'tier-spark';
 }
 
-async function markTodayAsRead(){
+// "D/M/YYYY" (formato de finishedAt, toLocaleDateString('es-ES')) es hoy —
+// comparado por componentes en vez de por texto porque el día/mes no
+// siempre lleva cero delante.
+function isDMYToday(dmy){
+  if(!dmy)return false;
+  const now=new Date();
+  const parts=dmy.split('/').map(Number);
+  return parts.length===3&&parts[0]===now.getDate()&&parts[1]===(now.getMonth()+1)&&parts[2]===now.getFullYear();
+}
+// Cubre el caso de terminar un libro sin haber actualizado 5 páginas nuevas
+// ese mismo día (p.ej. ya ibas muy avanzado, o lo terminaste de una sentada
+// larga) — sin esto, terminar un libro entero en un día no bastaría para
+// mantener la racha si además no se tocaba el contador de páginas.
+function finishedBookToday(){return DB.leidos.some(b=>isDMYToday(b.finishedAt));}
+
+// Punto único que de verdad marca la racha de hoy — usado tanto por el botón
+// manual como por las señales automáticas (progreso de páginas, terminar un
+// libro), para no repetir la lógica de guardado en cada sitio.
+async function markStreakToday(extraPatch){
   const key=todayKey();
-  if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
-  const progress=pagesReadToday();
-  if(progress<MIN_PAGES_FOR_STREAK){
-    const missing=MIN_PAGES_FOR_STREAK-progress;
-    toast(`📖 Actualiza al menos ${MIN_PAGES_FOR_STREAK} páginas del libro que estás leyendo hoy para marcar tu racha (te faltan ${missing}).`,5000);
-    return;
-  }
+  if(READING_DAYS.has(key))return false;
   READING_DAYS.add(key);
   updateStreakDisplay();
   const streak=calculateCurrentStreak();
   toast(streak>1?`🔥 ¡${streak} días de racha! Sigue leyendo`:'🔥 ¡Día de lectura registrado!');
   if(SUPA_USER){
-    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS]}).eq('id',SUPA_USER.id);
+    const{error}=await supa.from('profiles').update({reading_days:[...READING_DAYS],...(extraPatch||{})}).eq('id',SUPA_USER.id);
     if(error){
-      console.error('markTodayAsRead: failed to save reading_days:',error);
+      console.error('markStreakToday: failed to save reading_days:',error);
       toast('⚠️ Racha marcada localmente, pero no se pudo guardar en el servidor. Revisa tu conexión.');
     }
   }
+  return true;
+}
+
+// Si acabas de terminar un libro hoy mismo, cuenta igual que las páginas
+// para poder marcar la racha — aunque ese día no llegues al mínimo de
+// páginas nuevas en el libro que sigues leyendo.
+async function registerFinishedToday(finishedAtStr){
+  if(!isDMYToday(finishedAtStr))return;
+  await markStreakToday();
+}
+
+async function markTodayAsRead(){
+  const key=todayKey();
+  if(READING_DAYS.has(key)){toast('Ya has marcado hoy. ¡Sigue así! 🔥');return;}
+  const progress=pagesReadToday();
+  if(progress<MIN_PAGES_FOR_STREAK&&!finishedBookToday()){
+    const missing=MIN_PAGES_FOR_STREAK-progress;
+    toast(`📖 Actualiza al menos ${MIN_PAGES_FOR_STREAK} páginas del libro que estás leyendo hoy (o termina uno) para marcar tu racha — te faltan ${missing} páginas.`,5000);
+    return;
+  }
+  await markStreakToday();
 }
 
 function calculateCurrentStreak(days){
@@ -9794,6 +9833,7 @@ function confirmFinishBook(){
   DB.leidos.unshift(book);
   saveSupaBook(book);
   countBookTowardsRetos(book);
+  registerFinishedToday(finishedDate);
   updateAll();
   closeModal('modal-finish-book');
   toast(`🎉 «${book.title}» marcado como leído con ${book.stars}★`);
