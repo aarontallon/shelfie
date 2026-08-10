@@ -3705,7 +3705,7 @@ a{color:inherit}
     <div class="stat-hero"><div class="stat-hero-icon" style="background:var(--amber-light)"><i class="ti ti-star" style="color:var(--amber)"></i></div><div><div class="stat-hero-val" id="st-avg">—</div><div class="stat-hero-lbl">Valoración media</div></div></div>
     <div class="stat-hero"><div class="stat-hero-icon" style="background:var(--blue-light)"><i class="ti ti-user" style="color:var(--blue)"></i></div><div><div class="stat-hero-val" id="st-autores">0</div><div class="stat-hero-lbl">Autores distintos</div></div></div>
     <div class="stat-hero"><div class="stat-hero-icon" style="background:#FFF7ED"><i class="ti ti-flame" style="color:var(--amber)"></i></div><div><div class="stat-hero-val" id="st-streak">0</div><div class="stat-hero-lbl">Racha actual</div></div></div>
-    <div class="stat-hero"><div class="stat-hero-icon" style="background:var(--green-light)"><i class="ti ti-calendar-event" style="color:var(--green)"></i></div><div><div class="stat-hero-val" id="st-anio">0</div><div class="stat-hero-lbl">Libros este año</div></div></div>
+    <div class="stat-hero" title="Libros que has añadido a mano a tu Shelfie de este año desde la ficha de cada libro — tu objetivo de lectura anual, no el total de libros leídos en el año."><div class="stat-hero-icon" style="background:var(--green-light)"><i class="ti ti-calendar-event" style="color:var(--green)"></i></div><div><div class="stat-hero-val" id="st-anio">0</div><div class="stat-hero-lbl">Shelfie de este año</div></div></div>
   </div>
 
   <!-- Heatmap actividad -->
@@ -6339,6 +6339,57 @@ let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
 // un clic sin haber tocado el progreso de ningún libro.
 let PAGES_TODAY={date:null,count:0};
 const MIN_PAGES_FOR_STREAK=5;
+// Detalle de qué libro (y cuántas páginas) se leyó cada día — READING_DAYS
+// solo dice sí/no, esto es lo que permite que al tocar un día del calendario
+// de Estadísticas se pueda decir "leíste X páginas de «Título»" en vez de
+// solo "leíste ese día". Mapa: fecha (YYYY-MM-DD) → array de entradas
+// {title, pages} (pages null = "terminaste este libro", no una actualización
+// de progreso concreta). Se carga por año al abrir Estadísticas — ver
+// loadReadingLog().
+let READING_LOG=new Map();
+// Deduplicado por (fecha,título,páginas): loadReadingLog() puede traer de la
+// base de datos una entrada que una acción de esta misma sesión ya había
+// metido en memoria un instante antes (el insert y el select no tienen
+// ningún orden garantizado entre sí) — sin este filtro, esa misma lectura
+// aparecería contada dos veces en el detalle del día.
+function _addToReadingLog(dateKey,entry){
+  if(!READING_LOG.has(dateKey))READING_LOG.set(dateKey,[]);
+  const list=READING_LOG.get(dateKey);
+  if(!list.some(e=>e.title===entry.title&&e.pages===entry.pages))list.push(entry);
+}
+async function logReadingProgress(book,delta){
+  const key=todayKey();
+  _addToReadingLog(key,{title:book.title,pages:delta});
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('reading_log').insert({user_id:SUPA_USER.id,date:key,book_id:book.id,book_title:book.title,pages:delta});
+  if(error)console.error('logReadingProgress failed:',error);
+}
+async function logFinishedToday(book){
+  const key=todayKey();
+  _addToReadingLog(key,{title:book.title,pages:null});
+  if(!SUPA_USER)return;
+  const{error}=await supa.from('reading_log').insert({user_id:SUPA_USER.id,date:key,book_id:book.id,book_title:book.title,pages:null});
+  if(error)console.error('logFinishedToday failed:',error);
+}
+// Trae el registro del año que se está mirando en Estadísticas (o todo si no
+// hay filtro) — se pide bajo demanda, no en cada carga de la app, porque
+// puede crecer bastante con el tiempo y solo hace falta aquí. NO se vacía
+// READING_LOG antes de traerlo (solo se añade, con deduplicado): si acabas
+// de actualizar páginas y entras directo a Estadísticas, esa entrada ya está
+// en memoria — vaciar el mapa mientras el select todavía está en vuelo la
+// haría desaparecer un instante del detalle del día.
+let _readingLogFetchedYears=new Set();
+async function loadReadingLog(year){
+  if(!SUPA_USER)return;
+  const cacheKey=year||'all';
+  if(_readingLogFetchedYears.has(cacheKey))return;
+  _readingLogFetchedYears.add(cacheKey);
+  let q=supa.from('reading_log').select('date,book_title,pages').eq('user_id',SUPA_USER.id);
+  if(year)q=q.gte('date',`${year}-01-01`).lte('date',`${year}-12-31`);
+  const{data,error}=await q;
+  if(error){console.error('loadReadingLog failed:',error);_readingLogFetchedYears.delete(cacheKey);return;}
+  (data||[]).forEach(r=>_addToReadingLog(r.date,{title:r.book_title,pages:r.pages}));
+}
 function pagesReadToday(){return PAGES_TODAY.date===todayKey()?PAGES_TODAY.count:0;}
 let retoAssigned=[];
 let starVal=0;
@@ -7233,6 +7284,8 @@ async function doLogout(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   PAGES_TODAY={date:null,count:0};
+  READING_LOG=new Map();
+  _readingLogFetchedYears=new Set();
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -7498,6 +7551,8 @@ async function deleteAccountFlow(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   PAGES_TODAY={date:null,count:0};
+  READING_LOG=new Map();
+  _readingLogFetchedYears=new Set();
   RETOS=[];
   // Se quedaban vivos entre sesiones: al iniciar sesión otra cuenta en la
   // misma pestaña, el contador del "Shelfie <año>" seguía mostrando el de la
@@ -8709,7 +8764,7 @@ function confirmAdd(){
   DB[status].unshift(book);
   if(status==='leidos'){
     countBookTowardsRetos(book);
-    registerFinishedToday(book.finishedAt);
+    registerFinishedToday(book);
   }
   saveSupaBook(book);
   closeModal('modal-add');
@@ -8751,7 +8806,7 @@ function quickAddDirect(title,author,status,olKey,cover,color){
   DB[status].unshift(book);
   if(status==='leidos'){
     countBookTowardsRetos(book);
-    registerFinishedToday(book.finishedAt);
+    registerFinishedToday(book);
   }
   saveSupaBook(book);
   updateAll();
@@ -9629,8 +9684,9 @@ async function markStreakToday(extraPatch){
 // Si acabas de terminar un libro hoy mismo, cuenta igual que las páginas
 // para poder marcar la racha — aunque ese día no llegues al mínimo de
 // páginas nuevas en el libro que sigues leyendo.
-async function registerFinishedToday(finishedAtStr){
-  if(!isDMYToday(finishedAtStr))return;
+async function registerFinishedToday(book){
+  if(!isDMYToday(book.finishedAt))return;
+  logFinishedToday(book);
   await markStreakToday();
 }
 
@@ -9742,8 +9798,9 @@ function addPages(id){
 // racha automáticamente — así no hace falta un segundo clic aparte una vez
 // que ya has leído de verdad. El botón "¡Hoy he leído!" usa el mismo mínimo
 // (ver markTodayAsRead) para cuando alguien prefiere marcarlo a mano.
-async function registerPagesProgress(delta){
+async function registerPagesProgress(book,delta){
   if(delta<=0)return;
+  logReadingProgress(book,delta);
   const key=todayKey();
   if(PAGES_TODAY.date!==key)PAGES_TODAY={date:key,count:0};
   PAGES_TODAY.count+=delta;
@@ -9785,7 +9842,7 @@ async function confirmAddPages(){
   saveSupaBook(book);
   toast(`Pág. ${book.curPage}/${book.pages} · ${pct}%`);
   if(advanced){
-    await registerPagesProgress(book.curPage-prevPage);
+    await registerPagesProgress(book,book.curPage-prevPage);
   }
   updateAll();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
@@ -9833,7 +9890,7 @@ function confirmFinishBook(){
   DB.leidos.unshift(book);
   saveSupaBook(book);
   countBookTowardsRetos(book);
-  registerFinishedToday(finishedDate);
+  registerFinishedToday(book);
   updateAll();
   closeModal('modal-finish-book');
   toast(`🎉 «${book.title}» marcado como leído con ${book.stars}★`);
@@ -12009,7 +12066,14 @@ function computeStatsData(filterYear){
         });
       })
     : DB.leidos;
-  const totalPages=leidos.reduce((s,b)=>s+(b.pages||0),0);
+  // Antes solo contaba libros TERMINADOS — si estabas a mitad de un libro
+  // (por definición sin fecha de fin todavía), esas páginas ya leídas no
+  // aparecían en ningún sitio, ni en "todos los años" ni en el año en curso.
+  // Solo tiene sentido sumar el progreso de "leyendo" al año REAL de hoy (no
+  // a un año pasado que estés mirando con el filtro) o a la vista sin filtro.
+  const includeInProgress=!filterYear||filterYear===new Date().getFullYear();
+  const inProgressPages=includeInProgress?DB.leyendo.reduce((s,b)=>s+(b.curPage||0),0):0;
+  const totalPages=leidos.reduce((s,b)=>s+(b.pages||0),0)+inProgressPages;
   const streak=calculateCurrentStreak();
   const bestStreak=Math.max(calculateBestStreak(),streak);
   const autoresDistintos=new Set(leidos.map(b=>b.author)).size;
@@ -12105,6 +12169,10 @@ function computeStatsData(filterYear){
 function renderStats(){
   const filterYear=_statsYear==='all'?null:parseInt(_statsYear);
   const d=computeStatsData(filterYear);
+  // No se espera esta carga — los clics en el calendario de actividad leen
+  // READING_LOG en el momento del clic, no al pintar, así que llega de sobra
+  // aunque la petición todavía esté en vuelo cuando se pinta la página.
+  loadReadingLog(d.hmYear);
 
   // ── Hero stats ──
   document.getElementById('st-leidos').textContent=d.leidos.length;
@@ -12154,7 +12222,24 @@ function renderStats(){
       c.onclick=()=>{
         let nice=date.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
         nice=nice.charAt(0).toUpperCase()+nice.slice(1);
-        toast(isRead?`📖 ${nice} · leíste ese día`:nice);
+        if(!isRead){toast(nice);return;}
+        const entries=READING_LOG.get(key);
+        if(!entries||!entries.length){toast(`📖 ${nice} · leíste ese día`);return;}
+        // Varias entradas del mismo libro el mismo día (progreso a lo largo del
+        // día, o progreso Y haberlo terminado ese mismo día) se juntan en una
+        // sola línea, sumando páginas sin perder el aviso de "terminado".
+        const byTitle=new Map();
+        entries.forEach(e=>{
+          const prev=byTitle.get(e.title)||{pages:0,finished:false};
+          if(e.pages==null)prev.finished=true;
+          else prev.pages+=e.pages;
+          byTitle.set(e.title,prev);
+        });
+        const parts=[...byTitle].map(([title,v])=>{
+          if(v.finished)return v.pages>0?`terminaste «${title}» (+${v.pages} pp)`:`terminaste «${title}»`;
+          return`«${title}» +${v.pages} pp`;
+        });
+        toast(`📖 ${nice} · ${parts.join(', ')}`,4500);
       };
     }
     hm.appendChild(c);
