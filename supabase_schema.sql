@@ -1698,3 +1698,27 @@ exception when others then null; end $$;
 -- registerPagesProgress() en el cliente).
 alter table public.profiles add column if not exists pages_today_date text;
 alter table public.profiles add column if not exists pages_today_count integer not null default 0;
+
+-- ACTUALIZACIÓN: registro de qué libro (y cuántas páginas) se leyó cada día,
+-- para poder mostrar el detalle al tocar un día del calendario de actividad
+-- en Estadísticas — antes READING_DAYS solo guardaba "sí/no leíste este día",
+-- sin decir de qué libro ni cuánto. Una fila por actualización de progreso
+-- (o por terminar un libro, con pages=null). Se guarda el título aparte
+-- (denormalizado) para que sobreviva si el libro se borra más adelante.
+create table if not exists public.reading_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  date text not null,
+  book_id uuid,
+  book_title text not null,
+  pages integer,
+  created_at timestamptz not null default now()
+);
+create index if not exists reading_log_user_date_idx on public.reading_log(user_id, date);
+alter table public.reading_log enable row level security;
+drop policy if exists reading_log_select on public.reading_log;
+create policy reading_log_select on public.reading_log for select using (auth.uid() = user_id);
+drop policy if exists reading_log_insert on public.reading_log;
+create policy reading_log_insert on public.reading_log for insert with check (auth.uid() = user_id);
+drop policy if exists reading_log_delete on public.reading_log;
+create policy reading_log_delete on public.reading_log for delete using (auth.uid() = user_id);
