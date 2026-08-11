@@ -691,6 +691,9 @@ a{color:inherit}
 .streak-mark-btn i{display:inline-block;animation:flicker 1.6s ease-in-out infinite}
 .streak-mark-btn.done i{animation:none}
 .streak-week-dots{display:flex;gap:5px;margin-top:8px}
+.streak-dash-progress{margin-top:10px;font-size:12px;color:var(--ink2)}
+.streak-dash-progress-track{width:140px;height:6px;border-radius:3px;background:#EEE;margin-top:4px;overflow:hidden}
+.streak-dash-progress-bar{height:100%;background:var(--red);border-radius:3px;transition:width .3s}
 .streak-week-dot{width:9px;height:9px;border-radius:50%;background:#EDEDED}
 .streak-week-dot.on{background:var(--amber)}
 
@@ -3003,6 +3006,7 @@ a{color:inherit}
           <div class="streak-dash-lbl">Racha de lectura actual</div>
           <div class="streak-dash-best" id="streak-best">Mejor racha: 0 días</div>
           <div class="streak-week-dots" id="streak-week-dots"></div>
+          <div id="streak-dash-progress" class="streak-dash-progress"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button class="btn btn-red btn-lg streak-mark-btn" id="streak-mark-btn" onclick="markTodayAsRead()"><i class="ti ti-flame"></i> ¡Hoy he leído!</button>
@@ -9760,7 +9764,28 @@ function updateStreakDisplay(){
     btn.innerHTML='<i class="ti ti-check"></i> ¡Hoy ya leíste!';
   } else {
     btn.classList.remove('done');
-    btn.innerHTML='<i class="ti ti-flame"></i> ¡Hoy he leído!';
+    // El botón dice literalmente lo que hace al pulsarlo — antes siempre
+    // decía "¡Hoy he leído!" aunque en la práctica lo que hacía falta (y a
+    // lo que en realidad lleva) es añadir páginas, y eso solo se descubría
+    // después de pulsarlo.
+    const needsPages=DB.leyendo.length&&pagesReadToday()<MIN_PAGES_FOR_STREAK&&!finishedBookToday();
+    btn.innerHTML=needsPages?'<i class="ti ti-plus"></i> Añadir páginas':'<i class="ti ti-flame"></i> ¡Hoy he leído!';
+  }
+  // Antes la racha era un botón suelto sin ninguna pista de qué la mantiene
+  // viva — ahora que depende de verdad de las páginas que avances, esa
+  // conexión tiene que verse aquí mismo, no solo en la tarjeta "Leyendo
+  // ahora" de más arriba: es la acción clave para no perder la racha.
+  const progressEl=document.getElementById('streak-dash-progress');
+  if(progressEl){
+    if(markedToday){
+      progressEl.innerHTML='';
+    } else {
+      const pages=pagesReadToday();
+      const pct=Math.min(100,Math.round(pages/MIN_PAGES_FOR_STREAK*100));
+      progressEl.innerHTML=DB.leyendo.length
+        ?`<div>📖 ${pages}/${MIN_PAGES_FOR_STREAK} páginas hoy</div><div class="streak-dash-progress-track"><div class="streak-dash-progress-bar" style="width:${pct}%"></div></div>`
+        :`<div>Empieza un libro para poder marcar tu racha</div>`;
+    }
   }
   // last 7 days dots
   const dotsWrap=document.getElementById('streak-week-dots');
