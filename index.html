@@ -4118,6 +4118,7 @@ async function loadSupaProfile(){
     READING_DAYS=new Set(data.reading_days);
   }
   PAGES_TODAY={date:data.pages_today_date||null,count:data.pages_today_count||0};
+  PAGE_BASELINES=new Map(Object.entries(data.page_baselines_today||{}));
   SHELFIE_YEARS_ARCHIVE=Array.isArray(data.shelfie_archive)?data.shelfie_archive:[];
   YEAR_GOAL_IDS=new Set(Array.isArray(data.year_goal_ids)?data.year_goal_ids:[]);
   _loadedYearGoalYear=data.year_goal_year||null;
@@ -6338,11 +6339,23 @@ let CURRENT_THREAD_ID=null;
 let QUOTE_REPLY_TARGET=null; // {author, text} for quote-reply in thread
 let _clubBookPending=null;   // book object to add to club
 let READING_DAYS=new Set(); // dates (YYYY-MM-DD) marked as "leí hoy"
-// Páginas avanzadas HOY (sumando todas las actualizaciones de progreso del
-// día) — el botón "¡Hoy he leído!" exige un mínimo real de lectura, no solo
-// un clic sin haber tocado el progreso de ningún libro.
+// Páginas avanzadas HOY — el botón "¡Hoy he leído!" exige un mínimo real de
+// lectura, no solo un clic sin haber tocado el progreso de ningún libro.
+// PAGES_TODAY.count es el progreso NETO (no la suma de cada subida): se
+// calcula contra PAGE_BASELINES, la página que tenía cada libro al empezar
+// el día — así bajar el número por error y volver a subirlo no cuenta como
+// páginas nuevas de verdad. Ver registerPagesProgress().
 let PAGES_TODAY={date:null,count:0};
+let PAGE_BASELINES=new Map(); // bookId -> página al empezar el día de hoy
 const MIN_PAGES_FOR_STREAK=5;
+function computeNetPagesToday(){
+  let total=0;
+  for(const[bookId,startPage]of PAGE_BASELINES){
+    const book=allBooks().find(b=>b.id===bookId);
+    if(book)total+=Math.max(0,(book.curPage||0)-startPage);
+  }
+  return total;
+}
 // Detalle de qué libro (y cuántas páginas) se leyó cada día — READING_DAYS
 // solo dice sí/no, esto es lo que permite que al tocar un día del calendario
 // de Estadísticas se pueda decir "leíste X páginas de «Título»" en vez de
@@ -7288,6 +7301,7 @@ async function doLogout(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   PAGES_TODAY={date:null,count:0};
+  PAGE_BASELINES=new Map();
   READING_LOG=new Map();
   _readingLogFetchedYears=new Set();
   RETOS=[];
@@ -7555,6 +7569,7 @@ async function deleteAccountFlow(){
   USER_POSTS=[];
   READING_DAYS=new Set();
   PAGES_TODAY={date:null,count:0};
+  PAGE_BASELINES=new Map();
   READING_LOG=new Map();
   _readingLogFetchedYears=new Set();
   RETOS=[];
@@ -9829,17 +9844,30 @@ function addPages(id){
   openModal('modal-add-pages');
 }
 
-// Acumula páginas avanzadas hoy y, en cuanto se llega al mínimo, marca la
-// racha automáticamente — así no hace falta un segundo clic aparte una vez
-// que ya has leído de verdad. El botón "¡Hoy he leído!" usa el mismo mínimo
-// (ver markTodayAsRead) para cuando alguien prefiere marcarlo a mano.
-async function registerPagesProgress(book,delta){
-  if(delta<=0)return;
-  logReadingProgress(book,delta);
+// Se llama en CUALQUIER cambio de página (suba o baje el número), no solo
+// cuando avanza — hace falta ver también las bajadas para poder fijar bien
+// la página de partida del día la primera vez que se toca un libro. Calcula
+// el progreso neto contra esa partida y, en cuanto se llega al mínimo,
+// marca la racha automáticamente — así no hace falta un segundo clic aparte
+// una vez que ya has leído de verdad. El botón "¡Hoy he leído!" usa el
+// mismo mínimo (ver markTodayAsRead) para cuando alguien prefiere marcarlo
+// a mano.
+async function registerPagesProgress(book,prevPage){
   const key=todayKey();
-  if(PAGES_TODAY.date!==key)PAGES_TODAY={date:key,count:0};
-  PAGES_TODAY.count+=delta;
-  const patch={pages_today_date:PAGES_TODAY.date,pages_today_count:PAGES_TODAY.count};
+  if(PAGES_TODAY.date!==key){PAGES_TODAY={date:key,count:0};PAGE_BASELINES=new Map();}
+  // Solo se fija la primera vez que se toca este libro HOY — con la página
+  // de ANTES de este cambio, así una bajada de corrección no mueve la
+  // referencia y un progreso real posterior se sigue midiendo desde donde
+  // estabas al empezar el día, no desde el número que acabas de corregir.
+  if(!PAGE_BASELINES.has(book.id))PAGE_BASELINES.set(book.id,prevPage);
+  const delta=book.curPage-prevPage;
+  if(delta>0)logReadingProgress(book,delta); // el detalle del calendario sigue mostrando solo subidas reales
+  PAGES_TODAY.count=computeNetPagesToday();
+  const patch={
+    pages_today_date:PAGES_TODAY.date,
+    pages_today_count:PAGES_TODAY.count,
+    page_baselines_today:Object.fromEntries(PAGE_BASELINES),
+  };
   const justMarked=PAGES_TODAY.count>=MIN_PAGES_FOR_STREAK&&!READING_DAYS.has(key);
   if(justMarked){
     READING_DAYS.add(key);
@@ -9869,15 +9897,17 @@ async function confirmAddPages(){
   if(isNaN(n)||n<0){toast('⚠️ Indica en qué página vas');return;}
   const prevPage=book.curPage||0;
   book.curPage=Math.max(0,Math.min(n,book.pages));
-  const advanced=book.curPage>prevPage;
   const pct=Math.round(book.curPage/book.pages*100);
   const id=book.id;
   closeModal('modal-add-pages');
   pendingAddPagesId=null;
   saveSupaBook(book);
   toast(`Pág. ${book.curPage}/${book.pages} · ${pct}%`);
-  if(advanced){
-    await registerPagesProgress(book,book.curPage-prevPage);
+  // Se llama también cuando el número BAJA (una corrección) — hace falta
+  // para fijar bien la página de partida del día la primera vez que se
+  // toca el libro, ver registerPagesProgress().
+  if(book.curPage!==prevPage){
+    await registerPagesProgress(book,prevPage);
   }
   updateAll();
   if(document.getElementById('p-shelf').classList.contains('on'))renderShelf();
