@@ -677,6 +677,26 @@ a{color:inherit}
   0%,100%{box-shadow:0 4px 16px rgba(61,107,82,0.30)}
   50%{box-shadow:0 6px 28px rgba(61,107,82,0.55),0 0 0 6px rgba(75,111,165,0.1)}
 }
+/* Halo que late sobre el punto exacto que hay que tocar, en las maquetas de
+   la guía de instalación (Instalar la app) */
+@keyframes tapPulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(1.9);opacity:0}100%{transform:scale(1.9);opacity:0}}
+/* Tarjetas de la guía de instalación: la maqueta del móvil arriba (con su
+   fondo de color) y el texto del paso debajo. */
+.install-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
+.install-card{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+/* Altura fija en la zona de la maqueta para que los tres pasos (número, título
+   y texto) queden alineados en la misma línea aunque cada móvil dibujado mida
+   distinto. En una sola columna no hay nada que alinear, así que ahí se deja
+   crecer para no dejar huecos. */
+.install-card-visual{padding:28px 24px;display:flex;align-items:center;justify-content:center;height:288px;box-sizing:border-box}
+@media(max-width:670px){.install-card-visual{height:auto;min-height:200px}}
+.install-card-body{padding:26px 26px 30px;display:flex;flex-direction:column;gap:14px}
+.install-card-num{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;font-size:20px}
+.install-card-title{margin:0;font-size:19px;font-weight:700;letter-spacing:-0.02em}
+.install-card-desc{margin:0;font-size:14.5px;line-height:1.65;color:var(--ink2)}
+.install-mock{width:100%;max-width:300px;border-radius:16px;overflow:hidden}
+.install-mock-light{background:#fff;box-shadow:0 8px 24px rgba(26,26,26,.10)}
+.install-mock-dark{background:#1C1C1E;box-shadow:0 10px 26px rgba(0,0,0,.22)}
 /* dashboard streak card */
 .streak-dash-card{background:linear-gradient(120deg,#FFF7ED,white);border:1px solid #FED7AA;border-radius:14px;padding:18px 22px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .streak-icon-big{width:54px;height:54px;border-radius:50%;background:var(--amber);color:white;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;animation:glowPulse 2.4s ease-in-out infinite}
@@ -1930,159 +1950,194 @@ a{color:inherit}
       <h2 class="landing-section-title">Con Safari, en tres pasos</h2>
       <p class="landing-section-sub">Tiene que ser desde <strong>Safari</strong> — Chrome y otros navegadores en iOS no pueden instalar la app.</p>
     </div>
-    <div class="landing-features">
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#EBF4EF"/>
-          <rect x="24" y="14" width="252" height="142" rx="16" fill="#FFFFFF" stroke="#EEE"/>
-          <rect x="40" y="26" width="220" height="22" rx="11" fill="#F0F0F0"/>
-          <path d="M52 37 a3.5 3.5 0 1 1 0.01 0" fill="none" stroke="#BBB" stroke-width="1.3"/>
-          <text x="154" y="41" font-family="Inter,sans-serif" font-size="10" fill="#888" text-anchor="middle">shelfie.app</text>
-          <rect x="40" y="62" width="52" height="52" rx="8" fill="#F0F0F0"/>
-          <rect x="102" y="64" width="154" height="8" rx="4" fill="#EDEDED"/>
-          <rect x="102" y="78" width="126" height="8" rx="4" fill="#EDEDED"/>
-          <rect x="102" y="92" width="104" height="8" rx="4" fill="#EDEDED"/>
-          <line x1="24" y1="128" x2="276" y2="128" stroke="#EEE"/>
-          <rect x="24" y="128" width="252" height="28" fill="#FAFAFA"/>
-          <path d="M48 138 L42 142 L48 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M68 138 L74 142 L68 146" stroke="#AAA" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="150" cy="142" r="16" fill="#2563EB" fill-opacity="0.14"/>
-          <path d="M150 134.5 L150 145 M145.5 139 L150 134 L154.5 139" stroke="#2563EB" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <rect x="143" y="141" width="14" height="9" rx="2" stroke="#2563EB" stroke-width="1.6" fill="none"/>
-          <path d="M198 136 v11.5 a2 2 0 0 0 2 2 h4 v-15.5 h-4 a2 2 0 0 0 -2 2 z M204 134 h4 a2 2 0 0 1 2 2 v11.5 a2 2 0 0 1 -2 2 h-4 z" fill="none" stroke="#2563EB" stroke-width="1.3"/>
-          <rect x="228" y="134" width="15" height="15" rx="3.5" stroke="#2563EB" stroke-width="1.3" fill="none"/>
-          <rect x="224" y="138" width="15" height="15" rx="3.5" stroke="#2563EB" stroke-width="1.3" fill="#FAFAFA"/>
-          <text x="182" y="152" font-family="Inter,sans-serif" font-size="17">👆</text>
-        </svg>
-        <div class="landing-feature-icon" style="background:var(--red-light);color:var(--red);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">1</div>
-        <div class="landing-feature-title">Toca "Compartir"</div>
-        <div class="landing-feature-desc">Abre shelfie en Safari y toca el icono de compartir (el cuadrado con la flecha hacia arriba) en la barra inferior.</div>
+    <div class="install-steps">
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#ECFDF5">
+          <div class="install-mock install-mock-light">
+            <div style="padding:12px 12px 0"><div style="height:30px;border-radius:9px;background:#F2F2F7;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:#8E8E93;font-weight:500">
+              <span style="display:inline-block;width:9px;height:11px;border:1.5px solid #8E8E93;border-radius:2px 2px 3px 3px;border-top-width:5px;border-top-left-radius:5px;border-top-right-radius:5px"></span>shelfie.app</div></div>
+            <div style="padding:14px 12px 12px;display:flex;gap:10px">
+              <div style="width:56px;height:56px;border-radius:6px;background:#EDEDF0;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:7px;padding-top:3px">
+                <div style="height:7px;border-radius:4px;background:#EDEDF0"></div>
+                <div style="height:7px;border-radius:4px;background:#EDEDF0"></div>
+                <div style="height:7px;width:62%;border-radius:4px;background:#EDEDF0"></div>
+              </div>
+            </div>
+            <div style="border-top:1px solid #E5E5EA;background:#F7F7F9;padding:9px 18px;display:flex;align-items:center;justify-content:space-between">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"></path></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 L16 12 L9 19"></path></svg>
+              <div style="position:relative;display:flex;align-items:center;justify-content:center">
+                <span style="position:absolute;inset:-7px;border-radius:50%;background:#007AFF;animation:tapPulse 1.9s ease-out infinite"></span>
+                <span style="position:absolute;inset:-7px;border-radius:50%;border:1.5px solid #007AFF"></span>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15 V3"></path><path d="M8.5 6.5 L12 3 L15.5 6.5"></path><path d="M7 10 H5.5 A1.5 1.5 0 0 0 4 11.5 V19.5 A1.5 1.5 0 0 0 5.5 21 H18.5 A1.5 1.5 0 0 0 20 19.5 V11.5 A1.5 1.5 0 0 0 18.5 10 H17"></path></svg>
+              </div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4 h11 a2 2 0 0 1 2 2 v15"></path><path d="M5 4 v17 h13"></path></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="7.5" width="12" height="12" rx="2.5"></rect><path d="M8 7.5 V6 a2.5 2.5 0 0 1 2.5-2.5 H18 a2.5 2.5 0 0 1 2.5 2.5 v7.5 a2.5 2.5 0 0 1-2.5 2.5 h-1.5"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#ECFDF5;color:#3D6B52">1</div>
+          <h3 class="install-card-title">Toca "Compartir"</h3>
+          <p class="install-card-desc">Abre shelfie en Safari y toca el icono de compartir — el cuadrado con la flecha hacia arriba, en la barra inferior.</p>
+        </div>
       </div>
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#EFF6FF"/>
-          <rect x="24" y="10" width="252" height="150" rx="16" fill="#1C1C1E"/>
-          <rect x="132" y="18" width="36" height="4" rx="2" fill="#48484A"/>
-          <rect x="36" y="28" width="26" height="26" rx="5" fill="#3D6B52"/>
-          <rect x="42" y="42" width="3" height="8" fill="#FFFFFF"/>
-          <rect x="47" y="38" width="3" height="12" fill="#FFFFFF"/>
-          <rect x="52" y="44" width="3" height="6" fill="#FFFFFF"/>
-          <text x="70" y="40" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#FFFFFF">Shelfie — Tu shelfie...</text>
-          <text x="70" y="51" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93">aarontallon.github.io</text>
-          <line x1="36" y1="62" x2="264" y2="62" stroke="#38383A"/>
-          <text x="44" y="76" font-family="Inter,sans-serif" font-size="9" fill="#8E8E93">Añadir marcador</text>
-          <line x1="36" y1="84" x2="264" y2="84" stroke="#2C2C2E"/>
-          <text x="44" y="98" font-family="Inter,sans-serif" font-size="9" fill="#8E8E93">Añadir a favoritos</text>
-          <line x1="36" y1="106" x2="264" y2="106" stroke="#2C2C2E"/>
-          <rect x="30" y="112" width="240" height="30" rx="8" fill="#2563EB" fill-opacity="0.2" stroke="#4A9BFF" stroke-width="1.3"/>
-          <rect x="42" y="120" width="14" height="14" rx="3" stroke="#7DB6FF" stroke-width="1.6" fill="none"/>
-          <path d="M49 124 L49 132 M45 128 L53 128" stroke="#7DB6FF" stroke-width="1.6" stroke-linecap="round"/>
-          <text x="66" y="132" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#FFFFFF">Añadir a pantalla de inicio</text>
-          <text x="150" y="155" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93" text-anchor="middle">︾ hay más opciones debajo</text>
-        </svg>
-        <div class="landing-feature-icon" style="background:var(--blue-light);color:var(--blue);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">2</div>
-        <div class="landing-feature-title">"Añadir a pantalla de inicio"</div>
-        <div class="landing-feature-desc">Desliza hacia abajo en el menú que se abre y toca esa opción — puede estar más abajo del todo si tienes muchas apps configuradas.</div>
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#EFF6FF">
+          <div class="install-mock install-mock-dark" style="padding-bottom:8px">
+            <div style="display:flex;justify-content:center;padding:8px 0 10px"><span style="width:36px;height:5px;border-radius:3px;background:#48484A"></span></div>
+            <div style="display:flex;align-items:center;gap:11px;padding:0 14px 12px">
+              <img src="icon-192.png" alt="" loading="lazy" style="width:38px;height:38px;border-radius:9px;flex-shrink:0;display:block">
+              <div style="flex:1;min-width:0">
+                <div style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Shelfie — Tu shelfie social</div>
+                <div style="color:#98989E;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">aarontallon.github.io</div>
+              </div>
+            </div>
+            <div style="margin:0 10px;background:#2C2C2E;border-radius:12px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid #3A3A3C">
+                <span style="color:#fff;font-size:13.5px">Añadir marcador</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M6 3.5 h12 v17 l-6-4.5 -6 4.5 z"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px">
+                <span style="color:#fff;font-size:13.5px">Añadir a favoritos</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 8 v8 M8 12 h8" stroke-linecap="round"></path></svg>
+              </div>
+            </div>
+            <div style="margin:8px 10px 0;background:#2C2C2E;border:1.5px solid #0A84FF;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px">
+              <span style="color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap">Añadir a pantalla de inicio</span>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0A84FF" stroke-width="1.9" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"></rect><path d="M12 8.5 v7 M8.5 12 h7" stroke-linecap="round"></path></svg>
+            </div>
+            <div style="text-align:center;color:#8E8E93;font-size:10.5px;padding:9px 0 2px">desliza para ver más opciones</div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#EFF6FF;color:#2563EB">2</div>
+          <h3 class="install-card-title">"Añadir a pantalla de inicio"</h3>
+          <p class="install-card-desc">Desliza hacia abajo en el menú que se abre y toca esa opción. Puede quedar bastante abajo si tienes muchas apps configuradas.</p>
+        </div>
       </div>
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#FFFBEB"/>
-          <rect x="20" y="14" width="260" height="142" rx="16" fill="#1C1C1E"/>
-          <text x="36" y="34" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#4A9BFF">Cancelar</text>
-          <text x="150" y="34" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">Añadir a inicio</text>
-          <text x="264" y="34" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#4A9BFF" text-anchor="end">Añadir</text>
-          <line x1="20" y1="46" x2="280" y2="46" stroke="#38383A"/>
-          <rect x="36" y="58" width="42" height="42" rx="10" fill="#0A0A0A"/>
-          <rect x="45" y="86" width="3" height="10" fill="#FFFFFF"/>
-          <rect x="50" y="81" width="3" height="15" fill="#FFFFFF"/>
-          <rect x="55" y="88" width="3" height="8" fill="#FFFFFF"/>
-          <rect x="60" y="78" width="3" height="18" fill="#FFFFFF"/>
-          <rect x="65" y="83" width="3" height="13" fill="#FFFFFF"/>
-          <rect x="90" y="64" width="140" height="16" rx="4" fill="#2C2C2E"/>
-          <text x="98" y="76" font-family="Inter,sans-serif" font-size="10" fill="#FFFFFF">Shelfie</text>
-          <text x="90" y="95" font-family="Inter,sans-serif" font-size="7.5" fill="#8E8E93">aarontallon.github.io/shelfie</text>
-          <line x1="36" y1="110" x2="264" y2="110" stroke="#2C2C2E"/>
-          <text x="36" y="124" font-family="Inter,sans-serif" font-size="8" fill="#8E8E93">Se añadirá un icono a la pantalla</text>
-          <text x="36" y="135" font-family="Inter,sans-serif" font-size="8" fill="#8E8E93">de inicio para acceder más rápido.</text>
-          <circle cx="150" cy="148" r="9" fill="none" stroke="#5A9E7E" stroke-width="1.4" stroke-dasharray="2 2"/>
-          <path d="M145.5 148 L149 151.5 L155.5 144.5" stroke="#5A9E7E" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="landing-feature-icon" style="background:var(--amber-light);color:var(--amber);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">3</div>
-        <div class="landing-feature-title">Toca "Añadir"</div>
-        <div class="landing-feature-desc">Confirma arriba a la derecha. El icono de shelfie aparece al momento en tu pantalla de inicio, listo para abrir.</div>
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#FFFBEB">
+          <div class="install-mock install-mock-dark">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 13px 12px;border-bottom:1px solid #3A3A3C">
+              <span style="color:#0A84FF;font-size:11.5px;white-space:nowrap">Cancelar</span>
+              <span style="color:#fff;font-size:12.5px;font-weight:600;white-space:nowrap">Añadir a inicio</span>
+              <span style="color:#0A84FF;font-size:11.5px;font-weight:700;white-space:nowrap">Añadir</span>
+            </div>
+            <div style="display:flex;gap:12px;padding:16px 14px 14px">
+              <img src="icon-192.png" alt="" loading="lazy" style="width:52px;height:52px;border-radius:12px;flex-shrink:0;display:block">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+                <div style="background:#fff;border-radius:7px;padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+                  <span style="color:#1A1A1A;font-size:13px;font-weight:600">Shelfie</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#C7C7CC"><circle cx="12" cy="12" r="10"></circle><path d="M8.6 8.6 L15.4 15.4 M15.4 8.6 L8.6 15.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round"></path></svg>
+                </div>
+                <div style="color:#98989E;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">aarontallon.github.io/shelfie</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid #3A3A3C;padding:12px 14px 16px;color:#98989E;font-size:11.5px;line-height:1.5">Se añadirá un icono a la pantalla de inicio para acceder más rápido.</div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#FFFBEB;color:#D97706">3</div>
+          <h3 class="install-card-title">Toca "Añadir"</h3>
+          <p class="install-card-desc">Confirma arriba a la derecha. El icono de shelfie aparece al momento en tu pantalla de inicio, listo para abrir.</p>
+        </div>
       </div>
+
     </div>
   </section>
 
   <section class="landing-section" style="padding-top:20px;display:none" id="install-android-section">
     <div class="landing-section-head" style="margin-bottom:28px">
-      <h2 class="landing-section-title">Con Chrome, en tres pasos</h2>
-      <p class="landing-section-sub">En algunos móviles Chrome muestra directamente un aviso de "Instalar app" — si lo ves, tócalo y te saltas los pasos siguientes.</p>
+      <h2 class="landing-section-title">En Android, con Chrome</h2>
+      <p class="landing-section-sub">A veces Chrome muestra solo un aviso de <strong>"Instalar app"</strong> al entrar. Si lo ves, tócalo y te saltas los pasos siguientes.</p>
     </div>
-    <div class="landing-features">
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#F5F3FF"/>
-          <rect x="24" y="14" width="252" height="142" rx="16" fill="#FFFFFF" stroke="#EEE"/>
-          <rect x="40" y="26" width="196" height="22" rx="11" fill="#F0F0F0"/>
-          <text x="138" y="41" font-family="Inter,sans-serif" font-size="10" fill="#888" text-anchor="middle">shelfie.app</text>
-          <circle cx="252" cy="37" r="15" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.6"/>
-          <circle cx="247" cy="37" r="1.8" fill="#7C3AED"/>
-          <circle cx="252" cy="37" r="1.8" fill="#7C3AED"/>
-          <circle cx="257" cy="37" r="1.8" fill="#7C3AED"/>
-          <rect x="40" y="66" width="52" height="52" rx="8" fill="#F0F0F0"/>
-          <rect x="102" y="68" width="154" height="8" rx="4" fill="#EDEDED"/>
-          <rect x="102" y="82" width="126" height="8" rx="4" fill="#EDEDED"/>
-          <rect x="102" y="96" width="104" height="8" rx="4" fill="#EDEDED"/>
-          <text x="176" y="70" font-family="Inter,sans-serif" font-size="17">👆</text>
-        </svg>
-        <div class="landing-feature-icon" style="background:#F5F3FF;color:var(--purple);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">1</div>
-        <div class="landing-feature-title">Abre el menú ⋮</div>
-        <div class="landing-feature-desc">Abre shelfie en Chrome y toca los tres puntos verticales, arriba a la derecha.</div>
+    <div class="install-steps">
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#F5F3FF">
+          <div class="install-mock install-mock-light">
+            <div style="display:flex;align-items:center;gap:9px;padding:11px 12px 10px">
+              <div style="flex:1;height:30px;border-radius:15px;background:#F1F3F4;display:flex;align-items:center;padding:0 12px;gap:7px;font-size:11.5px;color:#5F6368">
+                <span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #9AA0A6;flex-shrink:0"></span>shelfie.app</div>
+              <div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <span style="position:absolute;inset:0;border-radius:50%;background:#7C3AED;animation:tapPulse 1.9s ease-out infinite"></span>
+                <span style="position:absolute;inset:0;border-radius:50%;border:1.5px solid #7C3AED"></span>
+                <span style="display:flex;flex-direction:column;gap:3px">
+                  <span style="width:3.5px;height:3.5px;border-radius:50%;background:#5F6368"></span>
+                  <span style="width:3.5px;height:3.5px;border-radius:50%;background:#5F6368"></span>
+                  <span style="width:3.5px;height:3.5px;border-radius:50%;background:#5F6368"></span>
+                </span>
+              </div>
+            </div>
+            <div style="padding:6px 12px 18px;display:flex;gap:10px">
+              <div style="width:56px;height:56px;border-radius:6px;background:#EDEDF0;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:7px;padding-top:3px">
+                <div style="height:7px;border-radius:4px;background:#EDEDF0"></div>
+                <div style="height:7px;border-radius:4px;background:#EDEDF0"></div>
+                <div style="height:7px;width:55%;border-radius:4px;background:#EDEDF0"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#F5F3FF;color:#7C3AED">1</div>
+          <h3 class="install-card-title">Abre el menú</h3>
+          <p class="install-card-desc">Abre shelfie en Chrome y toca los tres puntos verticales, arriba a la derecha.</p>
+        </div>
       </div>
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#ECFDF5"/>
-          <rect x="150" y="10" width="126" height="146" rx="12" fill="#FFFFFF" stroke="#EEE"/>
-          <line x1="164" y1="34" x2="262" y2="34" stroke="#F0F0F0"/>
-          <text x="172" y="30" font-family="Inter,sans-serif" font-size="9.5" fill="#BBB">Nueva pestaña</text>
-          <line x1="164" y1="56" x2="262" y2="56" stroke="#F0F0F0"/>
-          <text x="172" y="52" font-family="Inter,sans-serif" font-size="9.5" fill="#BBB">Favoritos</text>
-          <rect x="160" y="66" width="108" height="30" rx="7" fill="#ECFDF5" stroke="#4A7C5F" stroke-width="1.4"/>
-          <rect x="168" y="75" width="13" height="13" rx="3" stroke="#4A7C5F" stroke-width="1.6" fill="none"/>
-          <path d="M174.5 78.5 L174.5 84.5 M171.5 81.5 L177.5 81.5" stroke="#4A7C5F" stroke-width="1.6" stroke-linecap="round"/>
-          <text x="190" y="86" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#4A7C5F">Instalar aplicación</text>
-          <line x1="164" y1="108" x2="262" y2="108" stroke="#F0F0F0"/>
-          <text x="172" y="104" font-family="Inter,sans-serif" font-size="9.5" fill="#BBB">Historial</text>
-          <text x="172" y="126" font-family="Inter,sans-serif" font-size="9.5" fill="#BBB">Descargas</text>
-        </svg>
-        <div class="landing-feature-icon" style="background:var(--green-light);color:var(--green);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">2</div>
-        <div class="landing-feature-title">"Instalar aplicación"</div>
-        <div class="landing-feature-desc">En algunos móviles aparece como "Añadir a pantalla de inicio" — es la misma opción, distinto nombre según el fabricante.</div>
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#ECFDF5;justify-content:flex-end">
+          <div style="width:214px;background:#fff;border-radius:12px;box-shadow:0 10px 28px rgba(26,26,26,.16);padding:6px 0;overflow:hidden">
+            <div style="padding:10px 16px;font-size:13px;color:#3C4043">Nueva pestaña</div>
+            <div style="padding:10px 16px;font-size:13px;color:#3C4043">Favoritos</div>
+            <div style="padding:10px 16px;font-size:13px;color:#3C4043">Historial</div>
+            <div style="margin:4px 6px;padding:9px 10px;border-radius:8px;background:#ECFDF5;border:1.5px solid #3D6B52;display:flex;align-items:center;gap:9px">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3D6B52" stroke-width="1.9" stroke-linejoin="round" style="flex-shrink:0"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"></rect><path d="M12 8.5 v7 M8.5 12 h7" stroke-linecap="round"></path></svg>
+              <span style="font-size:13px;font-weight:600;color:#2A4F3C;white-space:nowrap">Instalar aplicación</span>
+            </div>
+            <div style="padding:10px 16px;font-size:13px;color:#3C4043">Descargas</div>
+            <div style="padding:10px 16px;font-size:13px;color:#3C4043">Configuración</div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#ECFDF5;color:#3D6B52">2</div>
+          <h3 class="install-card-title">"Instalar aplicación"</h3>
+          <p class="install-card-desc">En algunos móviles aparece como "Añadir a pantalla de inicio": es la misma opción con otro nombre según el fabricante.</p>
+        </div>
       </div>
-      <div class="landing-feature-card">
-        <svg class="landing-feature-illus" viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg">
-          <rect width="300" height="170" fill="#EBF4EF"/>
-          <rect x="46" y="30" width="208" height="90" rx="14" fill="#FFFFFF" stroke="#EEE"/>
-          <rect x="66" y="46" width="40" height="40" rx="10" fill="#1A1A1A"/>
-          <rect x="78" y="72" width="3" height="10" fill="#FFFFFF"/>
-          <rect x="83" y="67" width="3" height="15" fill="#FFFFFF"/>
-          <rect x="88" y="74" width="3" height="8" fill="#FFFFFF"/>
-          <rect x="93" y="64" width="3" height="18" fill="#FFFFFF"/>
-          <text x="118" y="62" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1A1A1A">¿Instalar shelfie?</text>
-          <text x="118" y="78" font-family="Inter,sans-serif" font-size="9" fill="#999">shelfie.app</text>
-          <text x="170" y="106" font-family="Inter,sans-serif" font-size="10" fill="#999" text-anchor="middle">Cancelar</text>
-          <rect x="196" y="94" width="52" height="24" rx="12" fill="#3D6B52"/>
-          <text x="222" y="110" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">Instalar</text>
-          <circle cx="150" cy="146" r="14" fill="none" stroke="#3D6B52" stroke-width="1.4" stroke-dasharray="2 2"/>
-          <path d="M144 146 L149 151 L157 141" stroke="#3D6B52" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="landing-feature-icon" style="background:var(--red-light);color:var(--red);font-family:'Playfair Display',serif;font-weight:900;font-size:18px">3</div>
-        <div class="landing-feature-title">Toca "Instalar"</div>
-        <div class="landing-feature-desc">Confirma en el aviso que aparece. El icono de shelfie se añade a tu pantalla de inicio y al cajón de aplicaciones.</div>
+
+      <div class="install-card">
+        <div class="install-card-visual" style="background:#ECFDF5">
+          <div style="width:100%;max-width:284px;background:#fff;border-radius:16px;box-shadow:0 10px 28px rgba(26,26,26,.16);padding:18px 18px 14px">
+            <div style="display:flex;gap:13px;align-items:center">
+              <img src="icon-192.png" alt="" loading="lazy" style="width:46px;height:46px;border-radius:11px;flex-shrink:0;display:block">
+              <div style="min-width:0">
+                <div style="font-size:15px;font-weight:700;letter-spacing:-0.01em">¿Instalar shelfie?</div>
+                <div style="font-size:12px;color:#5F6368;margin-top:2px">shelfie.app</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:18px">
+              <span style="font-size:13px;font-weight:600;color:#5F6368;padding:9px 14px">Cancelar</span>
+              <span style="font-size:13px;font-weight:600;color:#fff;background:#3D6B52;border-radius:20px;padding:9px 20px">Instalar</span>
+            </div>
+          </div>
+        </div>
+        <div class="install-card-body">
+          <div class="install-card-num" style="background:#ECFDF5;color:#3D6B52">3</div>
+          <h3 class="install-card-title">Toca "Instalar"</h3>
+          <p class="install-card-desc">Confirma en el aviso. El icono de shelfie se añade a tu pantalla de inicio y al cajón de aplicaciones.</p>
+        </div>
       </div>
+
     </div>
   </section>
+
 
   <section class="landing-cta-band">
     <div class="landing-cta-band-inner">
