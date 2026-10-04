@@ -1790,3 +1790,9 @@ grant execute on function public.claim_push_subscription(text, text, text, text)
 alter table public.profiles drop constraint if exists profiles_username_format;
 alter table public.profiles add constraint profiles_username_format
   check (username is null or username ~ '^[a-z0-9_]+$') not valid;
+-- ACTUALIZACIÓN: el progreso de páginas de hoy se sumaba tal cual cada vez
+-- que subía el número, así que bajarlo por error (o a propósito) y volver
+-- a subirlo contaba como páginas nuevas de verdad. Se guarda ahora, por
+-- libro, la página que tenías al EMPEZAR el día — solo cuenta el progreso
+-- neto contra ese punto de partida, corrijas lo que corrijas por el camino.
+alter table public.profiles add column if not exists page_baselines_today jsonb not null default '{}'::jsonb;
