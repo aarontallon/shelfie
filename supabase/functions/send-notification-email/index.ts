@@ -15,7 +15,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
 };
 
 // "notificaciones@resend.dev" no es una dirección válida del dominio de
@@ -54,8 +54,21 @@ const MESSAGES: Record<string, (actorName: string) => { subject: string; html: s
   }),
 };
 
+// Autenticación opcional del llamador: estas funciones las invocan los
+// Database Webhooks / pg_cron, no el navegador, pero con "verify JWT"
+// desactivado (o con la anon key, que es pública) cualquiera podría hacer
+// POST con un payload inventado y disparar pushes/emails a quien quisiera.
+// Si defines la secret WEBHOOK_SECRET, se exige la cabecera
+// "x-webhook-secret" con ese mismo valor (añádela en cada Database Webhook
+// y en las cabeceras de net.http_post). Sin la secret, todo sigue como antes.
+function unauthorized(req: Request): boolean {
+  const expected = Deno.env.get('WEBHOOK_SECRET');
+  return !!expected && req.headers.get('x-webhook-secret') !== expected;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
+  if (unauthorized(req)) return new Response('unauthorized', { status: 401, headers: CORS_HEADERS });
 
   try {
     const payload = await req.json();

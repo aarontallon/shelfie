@@ -7421,9 +7421,9 @@ async function subscribeToPush(){
   // activando el push a la vez no chocan) y en un dispositivo compartido
   // reclama la fila si la dejó "abierta" una cuenta anterior, en vez de
   // fallar por el unique constraint sin poder borrar una fila ajena.
-  const{error}=await supa.from('push_subscriptions').upsert({
-    user_id:SUPA_USER.id,endpoint:json.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,user_agent:navigator.userAgent
-  },{onConflict:'endpoint'});
+  const{error}=await supa.rpc('claim_push_subscription',{
+    p_endpoint:json.endpoint,p_p256dh:json.keys.p256dh,p_auth:json.keys.auth,p_user_agent:navigator.userAgent
+  });
   if(error){console.error('push subscribe insert failed:',error);throw new Error('No se pudo guardar la suscripción.');}
   toast('✓ Notificaciones push activadas');
 }
