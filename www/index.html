@@ -1551,6 +1551,106 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 #auth-install .content-page-body p{max-width:60ch;margin-left:auto;margin-right:auto}
 .landing-feature-icon{font-variant-numeric:lining-nums}
 #install-ios-section,#install-android-section{padding-top:36px!important}
+
+/* ═══════ LANDING v2 (hero, valores, funciones, pasos, FAQ) ═══════ */
+.landing-hero{background:radial-gradient(1200px 520px at 85% -10%,rgba(74,124,95,.42),transparent 60%),radial-gradient(900px 480px at -10% 110%,rgba(61,107,82,.30),transparent 60%),#16201B;padding:72px 40px 104px}
+.landing-hero-copy{max-width:560px}
+.landing-h1{font-size:58px;line-height:1.04;letter-spacing:-.02em;margin-bottom:20px}
+.landing-h1 em{background:linear-gradient(100deg,#9AD0B1,#E3F3EA);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.06em}
+.landing-sub{font-size:17.5px;line-height:1.62;max-width:500px;margin-bottom:32px;color:rgba(255,255,255,.78)}
+.landing-cta-row .btn-red{background:#4A8F69;box-shadow:0 8px 24px rgba(74,143,105,.38)}
+.landing-cta-row .btn-red:hover{background:#3F7F5C;transform:translateY(-1px)}
+.landing-cta-row .btn{transition:transform .15s,box-shadow .15s,background .15s}
+.landing-trust{list-style:none;display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:22px}
+.landing-trust li{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:rgba(255,255,255,.72)}
+.landing-trust i{color:#8FC5A8;font-size:16px}
+.landing-hero-visual{max-width:360px}
+.landing-hero-glow{position:absolute;inset:6% -8% -4%;background:radial-gradient(circle at 50% 45%,rgba(143,197,168,.35),transparent 68%);filter:blur(18px);z-index:0}
+.landing-hero-visual .landing-shelfie-card{position:relative;z-index:1;transform:rotate(-2deg)}
+.landing-hero-visual:hover .landing-shelfie-card{transform:rotate(0) translateY(-4px)}
+.landing-floaty{z-index:2;font-size:12.5px;font-weight:600;color:var(--ink);animation:landing-float 6s ease-in-out infinite}
+.landing-floaty-2{animation-delay:-2s}
+.landing-floaty-3{top:46%;right:-34px;animation-delay:-4s}
+@keyframes landing-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.landing-values{max-width:1100px;margin:-38px auto 0;position:relative;z-index:3;display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:0 20px 50px rgba(20,32,26,.12)}
+.landing-value{display:flex;align-items:center;gap:12px;padding:20px 22px;font-size:12.5px;line-height:1.4;color:var(--ink3)}
+.landing-value+.landing-value{border-left:1px solid var(--border)}
+.landing-value i{flex:none;width:40px;height:40px;border-radius:12px;background:var(--red-light);color:var(--red-dark);display:flex;align-items:center;justify-content:center;font-size:20px}
+.landing-value strong{display:block;font-size:14px;color:var(--ink);font-weight:700}
+#landing-features,.landing-how,.landing-faq{padding-top:72px;padding-bottom:24px}
+#landing-features .landing-feature-card{padding:28px;border-radius:18px}
+#landing-features .landing-feature-icon{width:48px;height:48px;border-radius:14px;font-size:22px}
+.landing-steps{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:none}
+.landing-step{display:flex;gap:16px;align-items:flex-start;background:#FBF9F7;border:1px solid var(--border);border-radius:18px;padding:24px}
+.landing-step-n{flex:none;width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;font-family:'Playfair Display',serif;font-weight:900;font-size:18px;display:flex;align-items:center;justify-content:center}
+.landing-step-title{font-weight:700;font-size:16px;margin-bottom:4px;color:var(--ink)}
+.landing-step-desc{font-size:13.5px;line-height:1.55;color:var(--ink2)}
+.landing-how-cta{text-align:center;margin-top:28px}
+.landing-faq-list{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.landing-faq-item{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0 20px;transition:box-shadow .15s}
+.landing-faq-item[open]{box-shadow:0 8px 22px rgba(0,0,0,.06)}
+.landing-faq-item summary{cursor:pointer;list-style:none;font-weight:600;font-size:15px;padding:16px 28px 16px 0;position:relative;color:var(--ink)}
+.landing-faq-item summary::-webkit-details-marker{display:none}
+.landing-faq-item summary::after{content:'+';position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;color:var(--red);transition:transform .2s}
+.landing-faq-item[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.landing-faq-item p{font-size:14px;line-height:1.65;color:var(--ink2);padding:0 0 18px}
+.landing-faq-more{text-align:center;margin-top:18px;font-size:14px;font-weight:600}
+.landing-faq-more a{color:var(--red);text-decoration:none}
+.landing-faq-more a:hover{text-decoration:underline}
+.landing-cta-band{padding:84px 40px;background:radial-gradient(700px 320px at 50% -20%,rgba(74,124,95,.45),transparent 70%),#16201B}
+.landing-cta-band-title{font-size:38px;line-height:1.12}
+.landing-cta-band-sub{font-size:15.5px}
+.landing-split-visual .landing-demo-card,.landing-split-visual svg{transition:transform .25s}
+.landing-split-visual:hover .landing-demo-card{transform:translateY(-3px)}
+@media (max-width:980px){
+  .landing-values{grid-template-columns:repeat(2,1fr);margin:-30px 20px 0}
+  .landing-value:nth-child(3){border-left:none}
+  .landing-value:nth-child(n+3){border-top:1px solid var(--border)}
+  .landing-steps{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .landing-hero{padding:44px 20px 72px}
+  .landing-hero-copy{max-width:none}
+  .landing-h1{font-size:40px}
+  .landing-sub{font-size:16px}
+  .landing-trust{gap:8px 16px}
+  .landing-floaty-3{display:none}
+  #landing-features,.landing-how,.landing-faq{padding-top:52px}
+  .landing-cta-band{padding:64px 22px}
+  .landing-cta-band-title{font-size:28px}
+}
+@media (max-width:520px){
+  .landing-values{grid-template-columns:1fr;margin:-26px 16px 0}
+  .landing-value+.landing-value{border-left:none;border-top:1px solid var(--border)}
+  .landing-value:nth-child(3){border-top:1px solid var(--border)}
+}
+@media (prefers-reduced-motion:reduce){.landing-floaty{animation:none}}
+
+/* ═══════ PÁGINAS DE CONTENIDO v2 (tarjeta editorial + pie) ═══════ */
+#auth-about,#auth-terms,#auth-privacy,#auth-contact,#auth-install,#auth-cookies,#auth-faq,#auth-community{background:#F5F3EE}
+#auth-about .landing-nav,#auth-terms .landing-nav,#auth-privacy .landing-nav,#auth-contact .landing-nav,#auth-install .landing-nav,#auth-cookies .landing-nav,#auth-faq .landing-nav,#auth-community .landing-nav{border-bottom:1px solid rgba(0,0,0,.05)}
+#auth-about .content-page-wrap,#auth-terms .content-page-wrap,#auth-privacy .content-page-wrap,#auth-contact .content-page-wrap,#auth-cookies .content-page-wrap,#auth-faq .content-page-wrap,#auth-community .content-page-wrap{background:#fff;border:1px solid var(--border);border-radius:24px;box-shadow:0 18px 50px rgba(20,32,26,.07);margin:44px auto 56px;padding:52px 56px 56px;max-width:780px;position:relative;overflow:hidden}
+#auth-about .content-page-wrap::before,#auth-terms .content-page-wrap::before,#auth-privacy .content-page-wrap::before,#auth-contact .content-page-wrap::before,#auth-cookies .content-page-wrap::before,#auth-faq .content-page-wrap::before,#auth-community .content-page-wrap::before{content:'';position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#3D6B52,#8FC5A8)}
+.content-page-title{font-size:40px;line-height:1.1}
+.content-page-updated{display:inline-block;background:var(--red-light);color:var(--red-dark);font-weight:600;border-radius:20px;padding:4px 12px;margin-bottom:30px}
+.content-page-body h3{position:relative;padding-left:14px}
+.content-page-body h3::before{content:'';position:absolute;left:0;top:.2em;bottom:.2em;width:4px;border-radius:2px;background:var(--red)}
+.content-page-body a{color:var(--red-dark);text-underline-offset:2px}
+.content-page-body ul li::marker{color:var(--red)}
+.landing-screen .landing-footer{margin-top:0}
+@media (max-width:860px){
+  #auth-about .content-page-wrap,#auth-terms .content-page-wrap,#auth-privacy .content-page-wrap,#auth-contact .content-page-wrap,#auth-cookies .content-page-wrap,#auth-faq .content-page-wrap,#auth-community .content-page-wrap{margin:20px 14px 36px;padding:36px 22px 40px;border-radius:20px}
+  .content-page-title{font-size:30px}
+}
+/* Nav móvil: una sola fila */
+@media (max-width:520px){
+  #auth-landing .landing-nav-actions .btn-ghost-nav:first-child{display:none}
+  #auth-landing .landing-nav-actions{flex-wrap:nowrap}
+}
+/* Pantallas de acceso: mismo fondo que el hero */
+.auth-screen{background:radial-gradient(900px 480px at 85% -10%,rgba(74,124,95,.35),transparent 60%),#16201B}
+.auth-box{box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.landing-organizers{background:#16201B}
 </style>
 </head>
 <body>
@@ -1579,16 +1679,22 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 
   <header class="landing-hero">
     <div class="landing-hero-inner">
-      <div>
-        <div class="landing-eyebrow"><i class="ti ti-users"></i> La red social de los lectores</div>
-        <h1 class="landing-h1">Comparte tu <em>shelfie</em> con la comunidad</h1>
-        <p class="landing-sub">Monta tu estantería con lo que lees, compártela con quien quieras, y descubre qué está leyendo el resto de la comunidad.</p>
+      <div class="landing-hero-copy">
+        <div class="landing-eyebrow"><i class="ti ti-books"></i> La red social de los lectores</div>
+        <h1 class="landing-h1">Tu estantería, <em>tu shelfie</em>, tu comunidad</h1>
+        <p class="landing-sub">Lleva la cuenta de lo que lees, mantén tu racha, completa retos y descubre qué leen los demás. Todo en un único perfil que puedes compartir.</p>
         <div class="landing-cta-row">
-          <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crea tu shelfie</button>
+          <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crea tu shelfie gratis</button>
           <button class="btn btn-white btn-lg" onclick="showAuth('login')"><i class="ti ti-login"></i> Ya tengo cuenta</button>
         </div>
+        <ul class="landing-trust">
+          <li><i class="ti ti-circle-check"></i> Gratis, sin límite de libros</li>
+          <li><i class="ti ti-circle-check"></i> Sin anuncios</li>
+          <li><i class="ti ti-circle-check"></i> Instálala en tu móvil</li>
+        </ul>
       </div>
       <div class="landing-hero-visual">
+        <div class="landing-hero-glow" aria-hidden="true"></div>
         <svg class="landing-shelfie-card" viewBox="0 0 320 340" xmlns="http://www.w3.org/2000/svg">
           <rect x="10" y="10" width="300" height="320" rx="18" fill="#FFFFFF"/>
           <rect x="10" y="10" width="300" height="320" rx="18" fill="none" stroke="#EEE" stroke-width="1"/>
@@ -1619,9 +1725,17 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
         </svg>
         <div class="landing-floaty landing-floaty-1"><span style="color:var(--heart-red);display:inline-flex"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" style="display:inline-block;vertical-align:-2px"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></span> A Ana le encantó tu reseña</div>
         <div class="landing-floaty landing-floaty-2"><i class="ti ti-trophy" style="color:var(--amber)"></i> Reto completado 🎉</div>
+        <div class="landing-floaty landing-floaty-3"><i class="ti ti-flame" style="color:#EA580C"></i> Racha de 12 días</div>
       </div>
     </div>
   </header>
+
+  <div class="landing-values" role="list">
+    <div class="landing-value" role="listitem"><i class="ti ti-books"></i><span><strong>Tu shelfie</strong> leídos, leyendo y quiero leer</span></div>
+    <div class="landing-value" role="listitem"><i class="ti ti-flame"></i><span><strong>Tu racha</strong> calculada con tu actividad real</span></div>
+    <div class="landing-value" role="listitem"><i class="ti ti-users-group"></i><span><strong>Tu comunidad</strong> clubs, amigos y mensajes</span></div>
+    <div class="landing-value" role="listitem"><i class="ti ti-lock"></i><span><strong>Tú decides</strong> perfil público o privado</span></div>
+  </div>
 
   <section class="landing-section landing-split">
     <div class="landing-split-visual">
@@ -1679,20 +1793,81 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
     </div>
   </section>
 
-  <section class="landing-section" style="padding-top:0">
-    <div class="landing-also-strip">
-      <div class="landing-also-item"><i class="ti ti-users-group"></i> Clubs de lectura</div>
-      <div class="landing-also-item"><i class="ti ti-trophy"></i> Retos de lectura</div>
-      <div class="landing-also-item"><i class="ti ti-chart-bar"></i> Estadísticas reales</div>
-      <div class="landing-also-item"><i class="ti ti-telescope"></i> Descubre tu próxima lectura</div>
+  <section class="landing-section" id="landing-features">
+    <div class="landing-section-head">
+      <div class="landing-section-eyebrow">Todo en un mismo sitio</div>
+      <h2 class="landing-section-title">Más que una lista de libros</h2>
+      <p class="landing-section-sub">Shelfie junta tu diario de lectura y tu vida social lectora, sin hojas de cálculo ni grupos de mensajería por separado.</p>
     </div>
+    <div class="landing-features">
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#EBF4EF;color:#2A4F3C"><i class="ti ti-users-group"></i></div>
+        <div class="landing-feature-title">Clubs de lectura</div>
+        <div class="landing-feature-desc">Crea o únete a un club, abre hilos de conversación, propón libros y fija retos para leer en grupo.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#FFFBEB;color:#B45309"><i class="ti ti-trophy"></i></div>
+        <div class="landing-feature-title">Retos de lectura</div>
+        <div class="landing-feature-desc">Define una meta de libros con fecha límite, añade una lista sugerida y compártela. Con logros por el camino.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#EFF6FF;color:#1D4ED8"><i class="ti ti-chart-bar"></i></div>
+        <div class="landing-feature-title">Estadísticas reales</div>
+        <div class="landing-feature-desc">Libros, páginas, géneros y ritmo calculados a partir de tu historial. Y puedes exportarlas a PDF.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#F5F3FF;color:#6D28D9"><i class="ti ti-telescope"></i></div>
+        <div class="landing-feature-title">Descubre tu próxima lectura</div>
+        <div class="landing-feature-desc">Explora lo que leen otros lectores y encuentra libros por género, autor o recomendación de la comunidad.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#FEF2F2;color:#B91C1C"><i class="ti ti-calendar-event"></i></div>
+        <div class="landing-feature-title">Eventos cerca de ti</div>
+        <div class="landing-feature-desc">Presentaciones, firmas y encuentros de librerías y bibliotecas, con mapa y plazas.</div>
+      </div>
+      <div class="landing-feature-card">
+        <div class="landing-feature-icon" style="background:#ECFDF5;color:#047857"><i class="ti ti-file-import"></i></div>
+        <div class="landing-feature-title">Importa desde Goodreads</div>
+        <div class="landing-feature-desc">¿Ya tienes tu biblioteca en otro sitio? Tráela entera y empieza con tu estantería llena.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section landing-how">
+    <div class="landing-section-head">
+      <div class="landing-section-eyebrow">Cómo funciona</div>
+      <h2 class="landing-section-title">Empieza en tres pasos</h2>
+    </div>
+    <ol class="landing-steps">
+      <li class="landing-step"><span class="landing-step-n">1</span><div><div class="landing-step-title">Crea tu shelfie</div><div class="landing-step-desc">Regístrate gratis con tu email o con Google. En menos de un minuto tienes tu perfil.</div></div></li>
+      <li class="landing-step"><span class="landing-step-n">2</span><div><div class="landing-step-title">Añade lo que lees</div><div class="landing-step-desc">Busca libros por título, márcalos como leídos, leyendo o quiero leer, y ordénalos a tu manera.</div></div></li>
+      <li class="landing-step"><span class="landing-step-n">3</span><div><div class="landing-step-title">Comparte y descubre</div><div class="landing-step-desc">Publica reseñas, sigue a otros lectores, únete a clubs y completa retos con tu racha.</div></div></li>
+    </ol>
+    <div class="landing-how-cta"><button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Empezar ahora</button></div>
+  </section>
+
+  <section class="landing-section landing-faq">
+    <div class="landing-section-head">
+      <div class="landing-section-eyebrow">Preguntas rápidas</div>
+      <h2 class="landing-section-title">Antes de empezar</h2>
+    </div>
+    <div class="landing-faq-list">
+      <details class="landing-faq-item"><summary>¿Shelfie es gratis?</summary><p>Sí. Sin planes de pago, sin límite de libros y sin funciones bloqueadas tras una suscripción.</p></details>
+      <details class="landing-faq-item"><summary>¿Cualquiera puede ver mi shelfie?</summary><p>Por defecto tu perfil es público, pero puedes activar la <strong>cuenta privada</strong> desde Cuenta: entonces solo te ven quienes aceptes como seguidores.</p></details>
+      <details class="landing-faq-item"><summary>¿Hay app para el móvil?</summary><p>Puedes instalar Shelfie en tu pantalla de inicio en unos segundos: se abre a pantalla completa y funciona como una app.</p></details>
+      <details class="landing-faq-item"><summary>¿De dónde salen los datos de los libros?</summary><p>De Open Library, un catálogo bibliográfico abierto. Si un libro no aparece, también puedes añadirlo a mano.</p></details>
+    </div>
+    <p class="landing-faq-more"><a href="javascript:void(0)" onclick="showAuth('faq')">Ver todas las preguntas frecuentes <i class="ti ti-arrow-right"></i></a></p>
   </section>
 
   <section class="landing-cta-band">
     <div class="landing-cta-band-inner">
       <div class="landing-cta-band-title">Tu próxima lectura favorita empieza aquí</div>
       <div class="landing-cta-band-sub">Gratis para siempre. Sin anuncios. Sin tarjeta de crédito.</div>
-      <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crear mi shelfie</button>
+      <div class="landing-cta-row" style="justify-content:center;margin-bottom:0">
+        <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crear mi shelfie</button>
+        <button class="btn btn-white btn-lg" onclick="showAuth('install')"><i class="ti ti-download"></i> Instalar la app</button>
+      </div>
     </div>
   </section>
 
@@ -1892,6 +2067,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <p>Si algo no funciona como debería, o se te ocurre algo que shelfie debería tener, cuéntanoslo — este proyecto mejora gracias a la gente que lo usa de verdad.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: TÉRMINOS ══════════════════════ -->
@@ -1927,6 +2120,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <p>Podemos actualizar estos términos según evolucione la aplicación. Si el cambio es importante, intentaremos avisarte dentro de la propia app.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: PRIVACIDAD ══════════════════════ -->
@@ -1962,6 +2173,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <p>Si esta política cambia de forma relevante, lo indicaremos en esta misma página.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: CONTACTO ══════════════════════ -->
@@ -1985,7 +2214,7 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <ul>
         <li><strong>Algo no funciona.</strong> Cuanto más detalle (qué hacías, en qué apartado, en qué dispositivo), más rápido se puede arreglar.</li>
         <li><strong>Una idea o mejora.</strong> Shelfie crece a partir de lo que pide la gente que lo usa de verdad.</li>
-        <li><strong>Borrar tu cuenta o tus datos.</strong> Todavía no hay un botón para hacerlo tú mismo desde la app — pídelo aquí y se hace a mano.</li>
+        <li><strong>Problemas al borrar tu cuenta o tus datos.</strong> Puedes hacerlo tú mismo en Cuenta → «Eliminar mi cuenta»; si algo falla, escríbenos y te ayudamos.</li>
         <li><strong>Dudas sobre Shelfie Eventos</strong> si organizas encuentros de lectura, firmas o presentaciones.</li>
         <li><strong>Reportar contenido o una cuenta</strong> que incumpla las <a href="javascript:void(0)" onclick="showAuth('community')">normas de la comunidad</a>.</li>
       </ul>
@@ -1993,6 +2222,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <p>Al ser un proyecto pequeño e independiente no hay un equipo de soporte 24/7 — pero se lee y se responde todo, normalmente en un par de días.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: INSTALAR LA APP (PWA) ══════════════════════ -->
@@ -2219,6 +2466,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <button class="btn btn-red btn-lg" onclick="showAuth('register')"><i class="ti ti-rocket"></i> Crear mi shelfie</button>
     </div>
   </section>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: COOKIES ══════════════════════ -->
@@ -2252,6 +2517,24 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <p>Puedes borrar en cualquier momento estos datos desde los ajustes de tu navegador — solo hará que tengas que volver a iniciar sesión. Más detalle sobre qué datos de tu cuenta guardamos (y para qué) en la <a href="javascript:void(0)" onclick="showAuth('privacy')">política de privacidad</a>.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: FAQ ══════════════════════ -->
@@ -2272,23 +2555,41 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <h3>¿Shelfie es gratis?</h3>
       <p>Sí, por completo. Sin planes de pago, sin límite de libros, sin funciones bloqueadas detrás de una suscripción.</p>
       <h3>¿Cómo borro mi cuenta?</h3>
-      <p>Puedes borrar tú mismo cualquier libro, publicación o dato de tu perfil desde la app cuando quieras. Para eliminar la cuenta entera (y las credenciales de acceso), todavía no hay un botón de autoservicio — escribe a <a href="javascript:void(0)" onclick="showAuth('contact')">contacto y soporte</a> y se hace a mano.</p>
+      <p>Desde la app, en <strong>Cuenta → «Eliminar mi cuenta»</strong>. Borra tu perfil, tus libros, publicaciones y toda tu actividad de forma inmediata y no se puede deshacer. También puedes borrar libros o publicaciones sueltas cuando quieras. Si necesitas ayuda, escribe a <a href="javascript:void(0)" onclick="showAuth('contact')">contacto y soporte</a>.</p>
       <h3>¿Cómo funciona la racha de lectura?</h3>
       <p>Cada día que registras actividad de lectura (terminar un libro, añadir páginas leídas) cuenta para tu racha. Se calcula a partir de tu historial real, nunca se rellena artificialmente.</p>
       <h3>¿Puede cualquiera ver mi shelfie?</h3>
-      <p>Tu shelfie es público por diseño — la idea central de la app es que tu estantería sea también tu perfil. Ahora mismo no existe un modo de cuenta privada.</p>
+      <p>Por defecto sí: la idea central de la app es que tu estantería sea también tu perfil. Si prefieres más privacidad, activa la <strong>cuenta privada</strong> en Cuenta: solo quien te siga podrá ver tu shelfie y tus publicaciones, y tendrás que aceptar cada solicitud de seguimiento.</p>
       <h3>¿De dónde salen las portadas y los datos de los libros?</h3>
       <p>De <a href="https://openlibrary.org" target="_blank" rel="noopener">Open Library</a>, un catálogo bibliográfico abierto. Si un libro no aparece o su portada no es la correcta, es una limitación de esa base de datos, no algo que shelfie invente.</p>
       <h3>¿Qué es Shelfie Eventos?</h3>
       <p>Un espacio aparte, pensado para librerías, bibliotecas y clubs de lectura: pueden publicar encuentros, firmas o presentaciones, y ver quién se apunta. Es una cuenta de organizador distinta de la cuenta de lector normal.</p>
       <h3>¿Hay una app de móvil?</h3>
-      <p>Una app nativa todavía no, pero puedes <a href="javascript:void(0)" onclick="showAuth('install')">instalar shelfie en tu pantalla de inicio</a> en unos segundos — abre a pantalla completa y funciona igual que una app.</p>
+      <p>Puedes <a href="javascript:void(0)" onclick="showAuth('install')">instalar shelfie en tu pantalla de inicio</a> en unos segundos: se abre a pantalla completa y funciona igual que una app.</p>
       <h3>¿Puedo desactivar las notificaciones?</h3>
-      <p>De momento las notificaciones (como que alguien te sigue o comenta) solo viven dentro de la app — no se envían por email, y no hay todavía un ajuste para silenciarlas por tipo.</p>
+      <p>Sí. En <strong>Cuenta</strong> puedes activar o desactivar por separado las notificaciones por email (nuevo seguidor o solicitud de seguimiento) y las notificaciones push del dispositivo (seguidores, comentarios, reacciones y mensajes). Dentro de la app siempre verás tus avisos.</p>
       <h3>¿No encuentras la respuesta que buscabas?</h3>
       <p>Escribe a <a href="javascript:void(0)" onclick="showAuth('contact')">contacto y soporte</a>.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ CONTENT: NORMAS DE LA COMUNIDAD ══════════════════════ -->
@@ -2317,9 +2618,27 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
       <h3>Sobre los spoilers</h3>
       <p>Al publicar una reseña, apunte o comentario puedes marcarlo con <strong>"Contiene spoiler"</strong> — el texto queda difuminado hasta que quien lo lee decide destaparlo. Úsalo siempre que vayas a desvelar un giro, un final o algo que alguien a mitad de libro no querría saber todavía.</p>
       <h3>Qué pasa si se incumplen</h3>
-      <p>Todavía no hay un botón de "reportar" dentro de la app — si ves contenido o una cuenta que incumple estas normas, escribe a <a href="javascript:void(0)" onclick="showAuth('contact')">contacto y soporte</a> con un enlace o una captura, y se revisa a mano. Podemos ocultar contenido o suspender cuentas cuando haga falta, tal y como recogen los <a href="javascript:void(0)" onclick="showAuth('terms')">términos y condiciones</a>.</p>
+      <p>Si ves contenido o una cuenta que incumple estas normas, usa el botón de <strong>reportar</strong> de la app, o escribe a <a href="javascript:void(0)" onclick="showAuth('contact')">contacto y soporte</a> con un enlace o una captura. Todo se revisa a mano. Podemos ocultar contenido o suspender cuentas cuando haga falta, tal y como recogen los <a href="javascript:void(0)" onclick="showAuth('terms')">términos y condiciones</a>.</p>
     </div>
   </div>
+
+  <footer class="landing-footer">
+    <div class="auth-logo" style="margin-bottom:0">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="19" width="21" height="1.5" rx="0.75"/><rect x="2.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="6" y="12.5" width="2" height="6.5" rx="0.4"/><rect x="9" y="7.5" width="2.5" height="11.5" rx="0.4"/><rect x="12.5" y="11" width="2" height="8" rx="0.4"/><rect x="15.5" y="9" width="2.5" height="10" rx="0.4"/><rect x="19" y="13" width="2.5" height="6" rx="0.4"/></svg></div>
+      <div class="logo-text">shelf<em>ie</em></div>
+    </div>
+    <div class="landing-footer-links">
+      <a href="javascript:void(0)" onclick="showAuth('about')">Acerca de</a>
+      <a href="javascript:void(0)" onclick="showAuth('terms')">Términos</a>
+      <a href="javascript:void(0)" onclick="showAuth('privacy')">Privacidad</a>
+      <a href="javascript:void(0)" onclick="showAuth('cookies')">Cookies</a>
+      <a href="javascript:void(0)" onclick="showAuth('faq')">FAQ</a>
+      <a href="javascript:void(0)" onclick="showAuth('install')">Instalar la app</a>
+      <a href="javascript:void(0)" onclick="showAuth('community')">Normas</a>
+      <a href="javascript:void(0)" onclick="showAuth('contact')">Contacto</a>
+    </div>
+    <div class="landing-footer-copy">© 2026 Shelfie</div>
+  </footer>
 </div>
 
 <!-- ══════════════════════ AUTH: LOGIN ══════════════════════ -->
