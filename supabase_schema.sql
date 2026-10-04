@@ -1783,3 +1783,10 @@ end;
 $$ language plpgsql security definer set search_path = public;
 revoke execute on function public.claim_push_subscription(text, text, text, text) from public, anon;
 grant execute on function public.claim_push_subscription(text, text, text, text) to authenticated;
+
+-- El username acaba en atributos onclick de otras personas; el cliente ya lo
+-- sanea, pero nada impedía saltarse el cliente por la API. "not valid" no
+-- revalida filas antiguas (solo las nuevas/actualizadas).
+alter table public.profiles drop constraint if exists profiles_username_format;
+alter table public.profiles add constraint profiles_username_format
+  check (username is null or username ~ '^[a-z0-9_]+$') not valid;

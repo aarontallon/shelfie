@@ -4906,7 +4906,7 @@ function renderMessagesPage(){
     const av=u.photo?`background-image:url(${u.photo});background-size:cover`:`background:${u.bg}`;
     const isPending=_messagesTab==='requests';
     return`<div class="chat-row ${c.unread?'unread':''}" ${isPending?'':`onclick="go('chatdetail',null,'${c.id}')"`}>
-      <div class="u-av" style="${av};width:44px;height:44px;flex-shrink:0">${u.photo?'':u.initials}</div>
+      <div class="u-av" style="${av};width:44px;height:44px;flex-shrink:0">${u.photo?'':escapeHtml(u.initials)}</div>
       <div style="flex:1;min-width:0">
         <div class="chat-row-name">${escapeHtml(u.name||u.username)}</div>
         <div class="chat-row-preview">${c.lastMessage?escapeHtml(c.lastMessage.slice(0,60)):'Solicitud de mensaje'}</div>
@@ -4939,8 +4939,8 @@ async function renderChatDetail(convId){
   const av=u.photo?`background-image:url(${u.photo});background-size:cover`:`background:${u.bg}`;
   header.innerHTML=`
     <button class="btn btn-white btn-sm" onclick="goBackFromChat()"><i class="ti ti-arrow-left"></i></button>
-    <div class="u-av" style="${av};width:36px;height:36px;cursor:pointer;flex-shrink:0" onclick="go('userprofile',null,'${u.username}')">${u.photo?'':u.initials}</div>
-    <div style="flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${u.username}')">
+    <div class="u-av" style="${av};width:36px;height:36px;cursor:pointer;flex-shrink:0" onclick="go('userprofile',null,'${jsq(u.username)}')">${u.photo?'':escapeHtml(u.initials)}</div>
+    <div style="flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${jsq(u.username)}')">
       <div style="font-weight:700;font-size:14px">${escapeHtml(u.name||u.username)}</div>
       <div style="font-size:12px;color:var(--ink3)">@${escapeHtml(u.username||'')}</div>
     </div>`;
@@ -5669,7 +5669,7 @@ async function runEventBookSearch(q){
     books.forEach(b=>{
       const row=document.createElement('div');
       row.className='s-item';
-      const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+      const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
       row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div>`;
       row.addEventListener('click',()=>selectEventBook(b));
       drop.appendChild(row);
@@ -7873,7 +7873,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached,ha
   if(profile.is_private&&!isFriend){
     const followBtnHtml=hasPendingRequest
       ?`<button class="btn btn-ghost btn-lg" style="flex:1" disabled>Solicitud enviada</button>`
-      :`<button class="btn btn-red btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)">Seguir</button>`;
+      :`<button class="btn btn-red btn-lg" style="flex:1" onclick="addFriend('${jsq(profile.username)}',this)">Seguir</button>`;
     document.getElementById('user-profile-content').innerHTML=`
       <div class="profile-hero">
         <div class="profile-hero-top">
@@ -8011,7 +8011,7 @@ function renderUserProfileView(profile,books,posts,following,followers,cached,ha
       </div>
     </div>
     <div style="display:flex;gap:8px;margin:16px 0">
-      <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${profile.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
+      <button class="btn ${isFriend?'btn-ghost':'btn-red'} btn-lg" style="flex:1" onclick="addFriend('${jsq(profile.username)}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo ✓':'Seguir'}</button>
       ${SUPA_USER?`<button class="btn btn-white btn-lg" onclick="openChat('${profile.id}')"><i class="ti ti-send"></i> Mensaje</button>`:''}
       ${SUPA_USER?`<div class="move-menu" style="position:relative;display:inline-block">
         <button class="btn btn-white btn-lg" onclick="toggleMoveMenu(event,'up-actions')" title="Más opciones"><i class="ti ti-dots-vertical"></i></button>
@@ -8211,7 +8211,7 @@ async function searchOL(q, dropId, onAddClick){
       const row=document.createElement('div');
       row.className='s-item';
       row.innerHTML=`
-        ${coverUrl?`<img class="s-cover" src="${coverUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="object-fit:cover"><div class="s-cover" style="background:${COLORS[i%COLORS.length]};display:none"></div>`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
+        ${coverUrl?`<img class="s-cover" src="${escapeHtml(coverUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" style="object-fit:cover"><div class="s-cover" style="background:${COLORS[i%COLORS.length]};display:none"></div>`:`<div class="s-cover" style="background:${COLORS[i%COLORS.length]}"></div>`}
         <div class="s-info"><div class="s-title">${escapeHtml(title)}</div><div class="s-author">${escapeHtml(author)}${year?' · '+year:''}${pages?' · '+pages+' p':''}</div></div>
         <button class="btn btn-sm btn-red">Añadir</button>`;
       const bookData={title,author,year,pages,cover:coverUrl,olKey,authorOlKey};
@@ -8516,7 +8516,7 @@ function showCoverPicker(bookData, covers, mode){
     const fullUrl=isUrl?c:`https://covers.openlibrary.org/b/id/${c}-L.jpg`;
     const item=document.createElement('div');
     item.className='cover-pick-item';
-    item.innerHTML=`<img src="${thumbUrl}" alt="" loading="lazy" onerror="this.closest('.cover-pick-item').remove()">`;
+    item.innerHTML=`<img src="${escapeHtml(thumbUrl)}" alt="" loading="lazy" onerror="this.closest('.cover-pick-item').remove()">`;
     item.addEventListener('click',()=>{
       picker.style.display='none';
       selectBookForAdd({...bookData,cover:fullUrl});
@@ -8576,7 +8576,7 @@ async function fetchEditionsAndPick(bookData){
       const imgId='ecov-'+Math.random().toString(36).slice(2);
       item.innerHTML=`
         <div class="edition-cover" style="background:#E8E5DF;position:relative;overflow:hidden">
-          ${thumbUrl?`<img id="${imgId}" src="${thumbUrl}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'" alt="">`:``}
+          ${thumbUrl?`<img id="${imgId}" src="${escapeHtml(thumbUrl)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0" onerror="this.style.display='none'" alt="">`:``}
           <i class="ti ti-book" style="font-size:14px;color:var(--ink3)"></i>
         </div>
         <div class="edition-info">
@@ -8608,7 +8608,7 @@ function selectBookForAdd(book){
     // use img to detect broken/blank covers
     cov.style.backgroundImage='none';
     cov.style.background=fallbackBg;
-    cov.innerHTML=`<img src="${book.cover}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:4px" onerror="this.style.display='none'">`;
+    cov.innerHTML=`<img src="${escapeHtml(book.cover)}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:4px" onerror="this.style.display='none'">`;
   } else {
     cov.innerHTML='';
     cov.style.backgroundImage='';
@@ -8669,8 +8669,8 @@ function onRetoSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
-    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       if(!retoAssigned.find(x=>x.id===b.id)){retoAssigned.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});renderRetoAssigned();}
       document.getElementById('reto-srch').value='';
@@ -8685,7 +8685,7 @@ function onRetoSearch(q){
 
 function renderRetoAssigned(){
   document.getElementById('reto-assigned').innerHTML=retoAssigned.map((b,i)=>{
-    const cover=b.cover?`<img src="${b.cover}" loading="lazy" style="width:22px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0">`:`<div style="width:22px;height:32px;border-radius:3px;background:${b.color||'var(--ink3)'};flex-shrink:0"></div>`;
+    const cover=b.cover?`<img src="${escapeHtml(b.cover)}" loading="lazy" style="width:22px;height:32px;border-radius:3px;object-fit:cover;flex-shrink:0">`:`<div style="width:22px;height:32px;border-radius:3px;background:${b.color||'var(--ink3)'};flex-shrink:0"></div>`;
     return `<div class="ch-book-tag">${cover} ${escapeHtml(b.title)} <button onclick="retoAssigned.splice(${i},1);renderRetoAssigned()">×</button></div>`;
   }).join('');
 }
@@ -9618,7 +9618,7 @@ function updateHome(){
     feedEl.innerHTML=recentOthers.map(p=>{
       const av=p.author.photo?`background-image:url(${p.author.photo});background-size:cover`:`background:${p.author.bg||'var(--red)'}`;
       const bookTitle=p.book?.title||'';
-      return `<div class="home-feed-mini" ${p.author.username?`onclick="go('userprofile',null,'${p.author.username}')" style="cursor:pointer"`:''}>
+      return `<div class="home-feed-mini" ${p.author.username?`onclick="go('userprofile',null,'${jsq(p.author.username)}')" style="cursor:pointer"`:''}>
     <div class="u-av" style="${av};width:32px;height:32px;font-size:11px;flex-shrink:0">${p.author.photo?'':(p.author.name||'??').slice(0,2).toUpperCase()}</div>
     <div>
       <div class="home-feed-mini-text"><strong>${escapeHtml(p.author.name||'Alguien')}</strong> ${actionFor(p)}${bookTitle?` <em>${escapeHtml(bookTitle)}</em>`:''}</div>
@@ -9800,7 +9800,7 @@ function updateStreakDisplay(){
 
 function cvr(b,type){
   const bg=b.cover?`background-image:url(${b.cover});background-color:${b.color}`:`background:${b.color}`;
-  if(type==='spine')return `<div class="spine" style="${bg}"><div class="spine-txt">${b.cover?'':b.title}</div></div>`;
+  if(type==='spine')return `<div class="spine" style="${bg}"><div class="spine-txt">${escapeHtml(b.cover?'':b.title)}</div></div>`;
   if(type==='grid'){
     if(b.cover)return `<div class="grid-cover" style="${bg}"></div>`;
     return `<div class="grid-cover" style="${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;text-align:center"><div style="font-size:13px;font-weight:700;color:#fff;line-height:1.25;text-shadow:0 1px 3px rgba(0,0,0,.4)">${escapeHtml(b.title)}</div><div style="font-size:10px;color:rgba(255,255,255,.75);font-weight:400">${escapeHtml(b.author)}</div></div>`;
@@ -10094,7 +10094,7 @@ function renderShelf(){
       } else {
         actions=`<button class="btn btn-sm btn-red" style="font-size:10px;padding:3px 8px" onclick="markFinishedFrom('${b.id}','${b.status}')" title="Marcar como leído"><i class="ti ti-check" style="font-size:11px"></i></button>${yearBtn}${moveBtn}<button class="btn btn-sm btn-danger" style="font-size:10px;padding:3px 8px" onclick="removeBook('${b.id}','${b.status}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`;
       }
-      return `<div class="grid-item" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')">${rereadBadge}${cvr(b,'grid')}<div class="grid-t">${yearStar?yearStar+' ':''}${b.title}</div><div class="grid-a">${b.author}</div><div class="grid-s">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div><div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${actions}</div></div>`;
+      return `<div class="grid-item" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')">${rereadBadge}${cvr(b,'grid')}<div class="grid-t">${yearStar?yearStar+' ':''}${b.title}</div><div class="grid-a">${escapeHtml(b.author)}</div><div class="grid-s">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div><div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${actions}</div></div>`;
     }).join('')}</div>`;
   } else if(isLeidosLike){
     cont.innerHTML=`<div class="shelf-list-scroll">${books.map((b,i)=>{
@@ -10102,13 +10102,13 @@ function renderShelf(){
       let actions=currentTab==='leidos'
         ?`<button class="btn btn-sm btn-white" onclick="openRereadModal('${b.id}')" title="Volver a leer"><i class="ti ti-refresh" style="font-size:11px"></i></button><button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')" title="Añadir/quitar de tu Shelfie ${CURRENT_SHELFIE_YEAR}"><i class="ti ti-calendar-event" style="font-size:11px;${YEAR_GOAL_IDS.has(b.id)?'color:var(--purple)':''}"></i></button>${bookActionsMenuHtml(b)}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','leidos')"><i class="ti ti-trash" style="font-size:11px"></i></button>`
         :`<button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')"><i class="ti ti-x" style="font-size:11px"></i></button>`;
-      return `<div class="book-list-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${b.title}${rereadTag}</div><div class="book-list-author">${b.author}</div><div class="book-list-stars">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div></div><div class="book-list-actions" onclick="event.stopPropagation()">${actions}</div></div>`;
+      return `<div class="book-list-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-list-info"><div class="book-list-title">${b.title}${rereadTag}</div><div class="book-list-author">${escapeHtml(b.author)}</div><div class="book-list-stars">${b.stars?'★'.repeat(b.stars)+'☆'.repeat(5-b.stars):''}</div></div><div class="book-list-actions" onclick="event.stopPropagation()">${actions}</div></div>`;
     }).join('')}</div>`;
   } else {
     cont.innerHTML=`<div class="shelf-list-scroll">${books.map((b,i)=>{
       const pct=b.pages?Math.round(b.curPage/b.pages*100):0;
       const yearBtn=`<button class="btn btn-sm btn-white" onclick="toggleYearGoal('${b.id}')" title="Añadir/quitar de tu Shelfie ${CURRENT_SHELFIE_YEAR}"><i class="ti ti-calendar-event" style="font-size:11px;${YEAR_GOAL_IDS.has(b.id)?'color:var(--purple)':''}"></i></button>`;
-      return `<div class="book-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-info"><div class="bk-title">${b.title}</div><div class="bk-author">${b.author}${b.year?' · '+b.year:''}</div>${currentTab==='leyendo'?`<div class="prog-track"><div class="prog-bar" id="sp-${b.id}" style="width:${pct}%"></div></div><div class="prog-txt" id="spt-${b.id}">${b.pages?`Pág. ${b.curPage}/${b.pages} · ${pct}%`:'Sin páginas · <button style="color:var(--red);background:none;border:none;cursor:pointer;font-size:11px" onclick="event.stopPropagation();addPages(\''+b.id+'\')">Añadir total</button>'}</div>`:''}<div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${currentTab==='leyendo'?`<button class="btn btn-sm btn-white" onclick="addPages('${b.id}')">+ Páginas</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','leyendo')">✓ Terminado</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='quiero'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','quiero','leyendo')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','quiero')">✓ Ya lo leí</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='dnf'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','dnf','quiero')">Reintentar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','dnf')">✓ Ya lo terminé</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','${currentTab}')"><i class="ti ti-trash"></i></button></div></div></div>`;
+      return `<div class="book-row" draggable="true" data-idx="${i}" ondragstart="listDragStart(event,${i})" ondragover="event.preventDefault()" ondrop="listDrop(event,${i})" ondragend="listDragEnd(event)" onclick="go('bookdetail',null,'${bkKey(b)}')" style="cursor:pointer">${cvr(b,'spine')}<div class="book-info"><div class="bk-title">${escapeHtml(b.title)}</div><div class="bk-author">${b.author}${b.year?' · '+b.year:''}</div>${currentTab==='leyendo'?`<div class="prog-track"><div class="prog-bar" id="sp-${b.id}" style="width:${pct}%"></div></div><div class="prog-txt" id="spt-${b.id}">${b.pages?`Pág. ${b.curPage}/${b.pages} · ${pct}%`:'Sin páginas · <button style="color:var(--red);background:none;border:none;cursor:pointer;font-size:11px" onclick="event.stopPropagation();addPages(\''+b.id+'\')">Añadir total</button>'}</div>`:''}<div class="flex gap-2 mt-1" style="flex-wrap:wrap" onclick="event.stopPropagation()">${currentTab==='leyendo'?`<button class="btn btn-sm btn-white" onclick="addPages('${b.id}')">+ Páginas</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','leyendo')">✓ Terminado</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='quiero'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','quiero','leyendo')"><i class="ti ti-book-open"></i> Empezar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','quiero')">✓ Ya lo leí</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}${currentTab==='dnf'?`<button class="btn btn-sm btn-white" onclick="moveBook('${b.id}','dnf','quiero')">Reintentar</button><button class="btn btn-sm btn-red" onclick="markFinishedFrom('${b.id}','dnf')">✓ Ya lo terminé</button>${yearBtn}${bookActionsMenuHtml(b)}`:''}<button class="btn btn-sm btn-danger" onclick="removeBook('${b.id}','${currentTab}')"><i class="ti ti-trash"></i></button></div></div></div>`;
     }).join('')}</div>`;
   }
 }
@@ -10969,7 +10969,7 @@ function renderBookPage(key){
         let tag='';
         if(e.reto)tag=`<span class="friends-book-tag" style="background:var(--red-light);color:var(--red-dark)">🎯 ${escapeHtml(e.reto)}</span>`;
         else if(e.status){const[bg,fg]=statusColors[e.status];tag=`<span class="friends-book-tag" style="background:${bg};color:${fg}">${statusLabels[e.status]}${e.stars?' · '+e.stars+'★':''}</span>`;}
-        return `<div class="friends-book-item"><div class="f-av" style="background:${e.reader.bg};color:${e.reader.tc}">${e.reader.initials}</div><b>${e.reader.name}</b>${tag}</div>`;
+        return `<div class="friends-book-item"><div class="f-av" style="background:${e.reader.bg};color:${e.reader.tc}">${escapeHtml(e.reader.initials)}</div><b>${escapeHtml(e.reader.name)}</b>${tag}</div>`;
       }).join('')}
     `:`<div class="text-sm text-muted">Ninguno de tus amigos tiene este libro en su shelfie todavía.</div>`;
 
@@ -11106,7 +11106,7 @@ function myReviewBlockHtml(book){
   const initials=(PROFILE.name||'Tú').trim().slice(0,2).toUpperCase();
   return `<div class="card" style="margin-bottom:12px">
     <div class="third-party-review">
-      <div class="f-av" style="background:var(--red);color:white;width:34px;height:34px;flex-shrink:0">${initials}</div>
+      <div class="f-av" style="background:var(--red);color:white;width:34px;height:34px;flex-shrink:0">${escapeHtml(initials)}</div>
       <div class="third-party-review-body">
         <div class="third-party-review-name">Tu reseña</div>
         ${book.stars?`<div class="third-party-review-stars">${'★'.repeat(book.stars)}${'☆'.repeat(5-book.stars)}</div>`:''}
@@ -11179,7 +11179,7 @@ async function loadRealBookReviews(title,guardKey){
     await ensureAuthorsLoaded(reviews.map(r=>r.user_id));
     el.innerHTML=`<div class="card" style="margin-bottom:0">${reviews.map(r=>{
       const author=authorFromId(r.user_id)||{name:'Un lector',initials:'??',bg:'#EEE',tc:'#555'};
-      return `<div class="third-party-review"><div class="f-av" style="background:${author.bg};color:${author.tc};width:34px;height:34px;flex-shrink:0">${author.initials}</div><div class="third-party-review-body"><div class="third-party-review-name">${escapeHtml(author.name)}</div>${r.rating?`<div class="third-party-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>`:''}<div class="third-party-review-text">«${escapeHtml(r.text||'')}»</div></div></div>`;
+      return `<div class="third-party-review"><div class="f-av" style="background:${author.bg};color:${author.tc};width:34px;height:34px;flex-shrink:0">${escapeHtml(author.initials)}</div><div class="third-party-review-body"><div class="third-party-review-name">${escapeHtml(author.name)}</div>${r.rating?`<div class="third-party-review-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>`:''}<div class="third-party-review-text">«${escapeHtml(r.text||'')}»</div></div></div>`;
     }).join('')}</div>`;
   }catch(e){console.error('loadRealBookReviews failed:',e);}
 }
@@ -11244,7 +11244,7 @@ async function renderBookPageGeneric(key){
     let tag='';
     if(e.reto)tag=`<span class="friends-book-tag" style="background:var(--red-light);color:var(--red-dark)">🎯 ${escapeHtml(e.reto)}</span>`;
     else if(e.status){const[bg,fg]=statusColorsMap[e.status];tag=`<span class="friends-book-tag" style="background:${bg};color:${fg}">${statusLabels[e.status]}${e.stars?' · '+e.stars+'★':''}</span>`;}
-    return `<div class="friends-book-item"><div class="f-av" style="background:${e.reader.bg};color:${e.reader.tc}">${e.reader.initials}</div><b>${e.reader.name}</b>${tag}</div>`;
+    return `<div class="friends-book-item"><div class="f-av" style="background:${e.reader.bg};color:${e.reader.tc}">${escapeHtml(e.reader.initials)}</div><b>${escapeHtml(e.reader.name)}</b>${tag}</div>`;
   }).join(''):'<div class="text-sm text-muted">Ninguno de tus amigos tiene este libro en su shelfie todavía.</div>';
 
   const authorLinkHtml=author?`<div class="book-page-author-link" onclick="go('authorpage',null,'${escapeHtml(author).replace(/'/g,"\\'")}')">${escapeHtml(author)} <i class="ti ti-arrow-right" style="font-size:13px"></i></div>`:'';
@@ -11374,8 +11374,8 @@ async function renderAuthorPage(authorName){
   const initials=name.split(' ').filter(w=>w[0]===w[0].toUpperCase()).slice(0,2).map(w=>w[0]).join('')||name.slice(0,2);
   const photoUrl=olAuthorKey?`https://covers.openlibrary.org/a/olid/${olAuthorKey}-M.jpg`:null;
   const avatarHtml=photoUrl
-    ?`<img src="${photoUrl}" alt="${escapeHtml(name)}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 10px 24px rgba(0,0,0,0.15)" onerror="this.outerHTML='<div class=\\'author-avatar-big\\'>${initials}</div>'">`
-    :`<div class="author-avatar-big">${initials}</div>`;
+    ?`<img src="${photoUrl}" alt="${escapeHtml(name)}" style="width:110px;height:110px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 10px 24px rgba(0,0,0,0.15)" onerror="this.outerHTML='<div class=\\'author-avatar-big\\'>${escapeHtml(initials)}</div>'">`
+    :`<div class="author-avatar-big">${escapeHtml(initials)}</div>`;
 
   const bio=data?.bio||'';
   const meta=[data?.years,data?.nationality].filter(Boolean).join(' · ');
@@ -11494,7 +11494,7 @@ function renderAuthorWorksList(){
   listEl.innerHTML=works.map(w=>{
     const userBook=allBooks().find(b=>b.title.toLowerCase()===w.title.toLowerCase());
     const coverHtml=w.cover
-      ?`<img src="${w.cover}" loading="lazy" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
+      ?`<img src="${escapeHtml(w.cover)}" loading="lazy" style="width:36px;height:52px;object-fit:cover;border-radius:3px;flex-shrink:0" onerror="this.style.display='none'" alt="">`
       :`<div style="width:36px;height:52px;border-radius:3px;background:${COLORS[(w.title.charCodeAt(0)||0)%COLORS.length]};flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ti-book" style="font-size:14px;color:rgba(255,255,255,.7)"></i></div>`;
 
     let actionHtml='';
@@ -11555,7 +11555,7 @@ function renderRanking(){
         <i class="ti ti-grip-vertical rank-handle"></i>
         <div class="rank-num">${i+1}</div>
         ${cvr(b,'mini')}
-        <div class="list-info"><div class="list-name">${b.title}</div><div class="list-meta">${b.author}${b.year?' · '+b.year:''}</div></div>
+        <div class="list-info"><div class="list-name">${escapeHtml(b.title)}</div><div class="list-meta">${b.author}${b.year?' · '+b.year:''}</div></div>
         <span style="color:var(--amber);font-size:13px;flex-shrink:0">${'★'.repeat(b.stars||0)}${'☆'.repeat(5-(b.stars||0))}</span>
         <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="removeFromFavorites('${b.id}')"><i class="ti ti-x" style="font-size:11px"></i></button>
       </div>`).join('');
@@ -11584,7 +11584,7 @@ function rankDrop(e,targetIdx){
 
 function renderRankingPreview(favs){
   const top=favs.slice(0,MAX_FAVORITES);
-  document.getElementById('ranking-preview').innerHTML=`<div class="pub-rank-grid">${top.map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:10px;margin-top:4px">${b.title}</div></div>`).join('')}</div>`;
+  document.getElementById('ranking-preview').innerHTML=`<div class="pub-rank-grid">${top.map((b,i)=>`<div class="pub-rank-item"><div class="pub-rank-badge">${i+1}</div>${cvr(b,'grid')}<div class="grid-t" style="font-size:10px;margin-top:4px">${escapeHtml(b.title)}</div></div>`).join('')}</div>`;
 }
 
 // Búsqueda entre libros LEÍDOS (no Open Library) para elegir manualmente como favorito
@@ -11619,8 +11619,8 @@ function onRankSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
-    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${b.author}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();addBookToRanking(b.id);});
     row.addEventListener('click',()=>addBookToRanking(b.id));
     drop.appendChild(row);
@@ -11723,7 +11723,7 @@ function onProfileFavSearch(q){
   pool.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}${b.stars?' · '+'★'.repeat(b.stars):''}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     row.querySelector('.btn').addEventListener('click',e=>{e.stopPropagation();pfAddFav(b.id);});
     row.addEventListener('click',()=>pfAddFav(b.id));
@@ -11801,7 +11801,7 @@ function discoverBookCard(b){
   // Library cover URLs 404 often enough (cover_id present but file missing)
   // that a background-image would just silently show nothing on failure.
   const coverHtml=b.cover
-    ?`<img class="disc-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="disc-cover" style="background:${b.color||'#555'};display:none">${initials||'?'}</div>`
+    ?`<img class="disc-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="disc-cover" style="background:${b.color||'#555'};display:none">${initials||'?'}</div>`
     :`<div class="disc-cover" style="background:${b.color||'#555'}">${initials||'?'}</div>`;
   const metaBits=[];
   if(b.stars)metaBits.push(`<span class="disc-stars">${'★'.repeat(Math.round(b.stars))}${'☆'.repeat(5-Math.round(b.stars))}</span>`);
@@ -12828,12 +12828,12 @@ function setRetosTab(btn,tab){
 function retoParticipantsHtml(r,i){
   const parts=r.participants||[];
   if(!parts.length)return'';
-  const avatars=parts.slice(0,5).map(p=>`<div class="reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${p.initials}</div>`).join('');
+  const avatars=parts.slice(0,5).map(p=>`<div class="reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${escapeHtml(p.initials)}</div>`).join('');
   const extra=parts.length>5?`<div class="reto-av" style="background:#EDEDED;color:var(--ink3)">+${parts.length-5}</div>`:'';
   const listHtml=parts.map(p=>{
     const pct=r.goal?Math.min(100,Math.round(p.progress/r.goal*100)):0;
     return `<div class="reto-part-row">
-      <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${p.initials}</div>
+      <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${escapeHtml(p.initials)}</div>
       <div style="flex:1;min-width:0">
         <div class="reto-part-name">${escapeHtml(p.name)}${p.done?` <span style="color:var(--green);font-size:11px">✅</span>`:''}</div>
         <div class="reto-part-meta">${p.progress} / ${r.goal} libros</div>
@@ -12871,7 +12871,7 @@ function renderRetos(){
     const pct=r.goal?Math.min(100,Math.round(r.progress/r.goal*100)):0;
     const visBadge=r.vis==='publico'?`<span class="reto-badge reto-badge-pub"><i class="ti ti-world" style="font-size:10px"></i> Público</span>`:r.vis==='amigos'?`<span class="reto-badge reto-badge-friends"><i class="ti ti-users" style="font-size:10px"></i> Amigos</span>`:`<span class="reto-badge reto-badge-priv"><i class="ti ti-lock" style="font-size:10px"></i> Privado</span>`;
     const joinedBadge=!r.createdByMe?`<span class="reto-badge reto-badge-joined"><i class="ti ti-user-check" style="font-size:10px"></i> Unido</span>`:'';
-    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${b.cover}" alt="" loading="lazy">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
+    const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${escapeHtml(b.cover)}" alt="" loading="lazy">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
     const deadlineHtml=r.deadline?`<span style="font-size:11px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> Hasta ${r.deadline}</span>`:'';
     return `<div class="reto-card">
       <div class="reto-card-head">
@@ -12902,7 +12902,7 @@ function renderCommunityRetos(){
   const cont=document.getElementById('community-retos-list');
   cont.innerHTML=COMMUNITY_RETOS.map(cr=>{
     const alreadyJoined=RETOS.find(r=>r.name===cr.name);
-    const avatarsHtml=cr.participants.slice(0,5).map(p=>`<div class="community-reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${p.initials}</div>`).join('');
+    const avatarsHtml=cr.participants.slice(0,5).map(p=>`<div class="community-reto-av" style="background:${p.bg};color:${p.tc}" title="${escapeHtml(p.name)}">${escapeHtml(p.initials)}</div>`).join('');
     const extraCount=cr.participantCount-cr.participants.length;
     return `<div class="community-reto-card">
       <div style="font-size:28px;flex-shrink:0;line-height:1">${cr.emoji}</div>
@@ -12928,7 +12928,7 @@ function renderCommunityRetos(){
           ${cr.participants.map(p=>{
             const pct=cr.goal?Math.min(100,Math.round(p.progress/cr.goal*100)):0;
             return `<div class="reto-part-row">
-              <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${p.initials}</div>
+              <div class="reto-part-av" style="background:${p.bg};color:${p.tc}">${escapeHtml(p.initials)}</div>
               <div style="flex:1;min-width:0">
                 <div class="reto-part-name">${escapeHtml(p.name)}${p.done||p.progress>=cr.goal?` <span style="color:var(--green);font-size:11px">✅</span>`:''}</div>
                 <div class="reto-part-meta">${p.progress} / ${cr.goal} libros</div>
@@ -13082,7 +13082,7 @@ function onAssignRetoBookSearch(q){
   drop.style.display='block';drop.innerHTML='';
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy">`:`<div class="s-cover" style="background:${b.color}"></div>`;
     row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       const r=RETOS[pendingAssignRetoIdx];
@@ -13108,7 +13108,7 @@ function onAssignRetoBookSearch(q){
 function friendRowHtml(u,buttonHtml,size){
   size=size||36;
   const nameSize=size>=40?14:13;
-  return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${u.username}')"><div class="f-av" style="background:${u.bg};color:${u.tc};width:${size}px;height:${size}px;border-radius:50%;font-size:${size>=40?13:12}px;font-weight:600;flex-shrink:0">${u.initials}</div><div style="flex:1;min-width:0"><div style="font-size:${nameSize}px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div></div>${buttonHtml||''}</div>`;
+  return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${jsq(u.username)}')"><div class="f-av" style="background:${u.bg};color:${u.tc};width:${size}px;height:${size}px;border-radius:50%;font-size:${size>=40?13:12}px;font-weight:600;flex-shrink:0">${escapeHtml(u.initials)}</div><div style="flex:1;min-width:0"><div style="font-size:${nameSize}px;font-weight:600">${escapeHtml(u.name)}</div><div style="font-size:11px;color:var(--ink3)">@${escapeHtml(u.username)}</div></div></div>${buttonHtml||''}</div>`;
 }
 
 // Shared by the "Amigos" page list and the Siguiendo/Seguidores popup: matches
@@ -13131,7 +13131,7 @@ function filterFriendsPage(){
   else if(!filtered.length){list.innerHTML='';empty.style.display='block';empty.querySelector('p').textContent='Sin resultados para tu búsqueda';}
   else{
     empty.style.display='none';
-    list.innerHTML=filtered.map(f=>friendRowHtml(f,`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${f.username}')"><i class="ti ti-user-minus"></i></button>`,40)).join('');
+    list.innerHTML=filtered.map(f=>friendRowHtml(f,`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${jsq(f.username)}')"><i class="ti ti-user-minus"></i></button>`,40)).join('');
   }
   renderFollowersTab();
 }
@@ -13156,7 +13156,7 @@ function renderFollowersTab(){
   empty.style.display='none';
   list.innerHTML=filtered.map(u=>{
     const isFriend=!!FRIENDS.find(f=>f.username===u.username);
-    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${jsq(u.username)}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
     return friendRowHtml(u,btn,40);
   }).join('');
 }
@@ -13194,10 +13194,10 @@ function renderPeopleModalList(kind){
   el.innerHTML=list.map(u=>{
     let btn;
     if(kind==='siguiendo'){
-      btn=`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${u.username}').then(()=>renderPeopleModalList('siguiendo'))"><i class="ti ti-user-minus"></i></button>`;
+      btn=`<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();removeFriend('${jsq(u.username)}').then(()=>renderPeopleModalList('siguiendo'))"><i class="ti ti-user-minus"></i></button>`;
     }else{
       const isFriend=!!FRIENDS.find(f=>f.username===u.username);
-      btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${u.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+      btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${jsq(u.username)}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
     }
     return friendRowHtml(u,btn,40);
   }).join('');
@@ -13205,7 +13205,7 @@ function renderPeopleModalList(kind){
 
 function suggestionRowHtml(u){
   const r=_userCache[u.username]||cacheUser(u);
-  return friendRowHtml(r,`<button class="btn btn-sm btn-red" onclick="event.stopPropagation();addFriend('${r.username}',this)">Seguir</button>`,36);
+  return friendRowHtml(r,`<button class="btn btn-sm btn-red" onclick="event.stopPropagation();addFriend('${jsq(r.username)}',this)">Seguir</button>`,36);
 }
 
 function renderLocalSuggestions(){
@@ -13342,7 +13342,7 @@ function renderFriendResults(list){
   res.innerHTML=list.map(u=>{
     const r=_userCache[u.username]||cacheUser(u);
     const isFriend=!!FRIENDS.find(f=>f.username===r.username);
-    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${r.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir'}</button>`;
+    const btn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${jsq(r.username)}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir'}</button>`;
     return friendRowHtml(r,btn,36);
   }).join('');
 }
@@ -13400,7 +13400,7 @@ function renderMyClubs(){
   }
   el.innerHTML=CLUBS.map(c=>{
     const mc=clubMemberCount(c);
-    const avs=c.members.slice(0,5).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc}">${m.initials}</div>`).join('');
+    const avs=c.members.slice(0,5).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc}">${escapeHtml(m.initials)}</div>`).join('');
     const roleTag=c.myRole==='admin'?'<span class="club-tag admin"><i class="ti ti-crown" style="font-size:9px"></i> Admin</span>':'';
     const privTag=c.privacy==='invite'?'<span class="club-tag private"><i class="ti ti-lock" style="font-size:9px"></i> Privado</span>':'';
     const reading=c.books.find(b=>b.status==='leyendo');
@@ -13567,7 +13567,7 @@ function renderClubDetail(id){
   const mc=clubMemberCount(club);
   const reading=club.books.find(b=>b.status==='leyendo');
 
-  const avs=club.members.slice(0,6).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc};width:28px;height:28px;font-size:10px">${m.initials}</div>`).join('');
+  const avs=club.members.slice(0,6).map(m=>`<div class="club-av" style="background:${m.bg};color:${m.tc};width:28px;height:28px;font-size:10px">${escapeHtml(m.initials)}</div>`).join('');
   document.getElementById('club-detail-hero').innerHTML=`
     <div class="club-detail-hero-top" style="padding-top:44px">
       <div class="club-detail-hero-left">
@@ -13650,7 +13650,7 @@ function renderClubDebates(club){
           <div class="thread-title">${escapeHtml(t.title)}${t.spoiler?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:6px;margin-left:6px">⚠️ Spoiler</span>':''}</div>
         </div>
         <div class="thread-meta">
-          <div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${t.initials}</div>${escapeHtml(t.author)}</div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${escapeHtml(t.initials)}</div>${escapeHtml(t.author)}</div>
           <span>${t.date}</span>
           <span><i class="ti ti-message-circle" style="font-size:12px"></i> ${(t.posts||[]).length}</span>
           <span><i class="ti ti-heart" style="font-size:12px"></i> ${t.likes||0}</span>
@@ -13665,7 +13665,7 @@ function threadTypeLabel(type){
 function threadDetailHtml(club,t){
   const postsHtml=(t.posts||[]).map((p,i)=>`
     <div class="thread-post" id="tp-${t.id}-${i}">
-      <div class="club-av" style="background:${p.bg};color:${p.tc};width:34px;height:34px;font-size:12px;flex-shrink:0">${p.initials}</div>
+      <div class="club-av" style="background:${p.bg};color:${p.tc};width:34px;height:34px;font-size:12px;flex-shrink:0">${escapeHtml(p.initials)}</div>
       <div class="thread-post-body">
         <div class="thread-post-author">
           ${escapeHtml(p.author)}
@@ -13689,7 +13689,7 @@ function threadDetailHtml(club,t){
         <span class="thread-type-badge thread-type-${t.type}">${threadTypeLabel(t.type)}</span>
         <div class="thread-title" style="margin-top:6px;font-size:16px">${escapeHtml(t.title)}${t.spoiler?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:6px;margin-left:8px">⚠️ Spoiler</span>':''}</div>
         <div class="thread-meta" style="margin-top:6px">
-          <div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${t.initials}</div>${escapeHtml(t.author)}</div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="club-av" style="background:${t.bg};color:${t.tc};width:20px;height:20px;font-size:8px">${escapeHtml(t.initials)}</div>${escapeHtml(t.author)}</div>
           <span>${t.date}</span>
           <span><i class="ti ti-message-circle"></i> ${(t.posts||[]).length} respuestas</span>
         </div>
@@ -13783,7 +13783,7 @@ function renderClubForo(club){
         <span class="club-forum-post-type ${typeClasses[p.type]||'forum-type-tweet'}">${typeLabels[p.type]||'Post'}</span>
         ${p.spoiler?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:6px;margin-left:4px">⚠️ Spoiler</span>':''}
         <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px">
-          <div class="club-av" style="background:${p.bg};color:${p.tc};width:32px;height:32px;font-size:11px;flex-shrink:0">${p.initials}</div>
+          <div class="club-av" style="background:${p.bg};color:${p.tc};width:32px;height:32px;font-size:11px;flex-shrink:0">${escapeHtml(p.initials)}</div>
           <div style="flex:1">
             <div style="font-size:12px;font-weight:700;color:var(--ink)">${escapeHtml(p.author)}</div>
             <div style="font-size:11px;color:var(--ink3)">${p.date}</div>
@@ -13796,7 +13796,7 @@ function renderClubForo(club){
           ${p.author==='Tú'?`<button class="btn btn-sm btn-danger" style="padding:2px 8px;font-size:11px;margin-left:auto" onclick="deleteForumPost('${club.id}','${p.id}')"><i class="ti ti-trash" style="font-size:11px"></i></button>`:''}
         </div>
         <div id="fp-comments-${p.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #EBEBEB">
-          ${(p.comments||[]).map(c=>`<div style="display:flex;gap:8px;margin-bottom:8px"><div class="club-av" style="background:${c.bg};color:${c.tc};width:24px;height:24px;font-size:8px;flex-shrink:0">${c.initials}</div><div style="flex:1;background:#F9F8F6;border-radius:8px;padding:7px 10px"><div style="font-size:11px;font-weight:700;color:var(--ink)">${escapeHtml(c.author)}</div><div style="font-size:12px;color:var(--ink2)">${escapeHtml(c.text)}</div></div></div>`).join('')}
+          ${(p.comments||[]).map(c=>`<div style="display:flex;gap:8px;margin-bottom:8px"><div class="club-av" style="background:${c.bg};color:${c.tc};width:24px;height:24px;font-size:8px;flex-shrink:0">${escapeHtml(c.initials)}</div><div style="flex:1;background:#F9F8F6;border-radius:8px;padding:7px 10px"><div style="font-size:11px;font-weight:700;color:var(--ink)">${escapeHtml(c.author)}</div><div style="font-size:12px;color:var(--ink2)">${escapeHtml(c.text)}</div></div></div>`).join('')}
           <div style="display:flex;gap:8px;margin-top:6px">
             <div class="club-av" style="background:var(--red);color:white;width:24px;height:24px;font-size:8px;flex-shrink:0">TU</div>
             <input id="fpc-${p.id}" class="f-input" style="font-size:12px;padding:6px 10px" placeholder="Añade un comentario...">
@@ -13970,7 +13970,7 @@ function renderClubMiembros(club){
         const retosDone=(club.clubRetos||[]).filter(r=>(r.participants||[]).find(p=>p.initials===m.initials&&p.done)).length;
         const retosTotal=(club.clubRetos||[]).length;
         return `<div class="member-admin-row">
-          <div class="club-member-av" style="background:${m.bg};color:${m.tc};width:40px;height:40px;font-size:13px;flex-shrink:0">${m.initials}</div>
+          <div class="club-member-av" style="background:${m.bg};color:${m.tc};width:40px;height:40px;font-size:13px;flex-shrink:0">${escapeHtml(m.initials)}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <div class="club-member-name">${escapeHtml(m.name)}</div>
@@ -13983,8 +13983,8 @@ function renderClubMiembros(club){
             </div>
           </div>
           ${isAdmin&&m.name!=='Tú'?`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-            ${retosDone>0&&retosDone==retosTotal?`<button class="btn btn-sm btn-white" style="font-size:12px" onclick="clapMember('${m.name}')">👏 Aplaudir</button>`:''}
-            <button class="btn btn-sm btn-white" style="font-size:12px" onclick="dmMember('${m.name}')"><i class="ti ti-send"></i></button>
+            ${retosDone>0&&retosDone==retosTotal?`<button class="btn btn-sm btn-white" style="font-size:12px" onclick="clapMember('${jsq(m.name)}')">👏 Aplaudir</button>`:''}
+            <button class="btn btn-sm btn-white" style="font-size:12px" onclick="dmMember('${jsq(m.name)}')"><i class="ti ti-send"></i></button>
             <select class="f-input" style="width:auto;font-size:11px;padding:3px 6px" onchange="changeMemberRole('${club.id}','${m.initials}',this.value)">
               <option value="member"${m.role==='member'?' selected':''}>Miembro</option>
               <option value="mod"${m.role==='mod'?' selected':''}>Moderador</option>
@@ -14056,12 +14056,12 @@ function renderClubRetos(club){
         <div class="club-reto-participants">
           <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Progreso por miembro</div>
           ${parts.map(p=>`<div class="club-reto-member-row">
-            <div class="club-av" style="background:${p.bg};color:${p.tc};width:26px;height:26px;font-size:9px;flex-shrink:0">${p.initials}</div>
+            <div class="club-av" style="background:${p.bg};color:${p.tc};width:26px;height:26px;font-size:9px;flex-shrink:0">${escapeHtml(p.initials)}</div>
             <div class="club-reto-member-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
             <div class="club-reto-member-prog"><div class="club-reto-member-bar" style="width:${Math.min(100,Math.round((p.progress||0)/(r.goal||1)*100))}%;${p.done?'background:var(--green)':''}"></div></div>
             <div style="font-size:11px;color:var(--ink3);white-space:nowrap">${p.progress||0}/${r.goal}</div>
             ${p.done?'<span style="color:var(--green);font-size:14px">✅</span>':''}
-            ${club.myRole==='admin'&&p.done?`<button class="btn btn-sm btn-white" style="font-size:11px;padding:2px 6px" onclick="clapMember('${p.name}')">👏</button>`:''}
+            ${club.myRole==='admin'&&p.done?`<button class="btn btn-sm btn-white" style="font-size:11px;padding:2px 6px" onclick="clapMember('${jsq(p.name)}')">👏</button>`:''}
           </div>`).join('')}
         </div>
         ${club.myRole==='admin'?`<button class="btn btn-sm btn-danger" style="margin-top:10px" onclick="deleteClubReto('${club.id}','${r.id}')"><i class="ti ti-trash"></i> Eliminar reto</button>`:''}
@@ -14116,7 +14116,7 @@ function renderClubAnuncios(club){
     ${(club.announcements||[]).map(a=>`
       <div class="club-announcement" style="position:relative">
         <div class="club-announcement-head">
-          <div class="club-av" style="background:${a.bg};color:${a.tc};width:22px;height:22px;font-size:8px">${a.initials}</div>
+          <div class="club-av" style="background:${a.bg};color:${a.tc};width:22px;height:22px;font-size:8px">${escapeHtml(a.initials)}</div>
           <strong>${escapeHtml(a.author)}</strong> · ${a.date}
           ${isAdmin?`<button onclick="deleteAnnouncement('${club.id}','${a.id}')" style="background:none;border:none;cursor:pointer;color:#78350F;font-size:14px;margin-left:auto;padding:0;line-height:1" title="Eliminar"><i class="ti ti-trash"></i></button>`:''}
         </div>
@@ -14267,14 +14267,14 @@ function renderNotifications(){
     const msg=n.type==='follow'?'empezó a seguirte':n.type==='follow_request'?'quiere seguirte':n.type==='follow_accepted'?'aceptó tu solicitud de seguimiento':n.type==='like'?'le ha dado like a tu publicación':n.type==='comment'?'ha comentado tu publicación':n.type==='comment_like'?'le ha dado like a tu comentario':n.type==='reaction'?'ha reaccionado a tu publicación':n.type==='event_signup'?'se ha apuntado a tu evento':'interactuó contigo';
     let followBtn='';
     if(n.type==='follow'){
-      followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${n.actor.username}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
+      followBtn=`<button class="btn btn-sm ${isFriend?'btn-ghost':'btn-red'}" onclick="event.stopPropagation();addFriend('${jsq(n.actor.username)}',this)" ${isFriend?'disabled':''}>${isFriend?'Siguiendo':'Seguir de vuelta'}</button>`;
     }else if(n.type==='follow_request'){
       followBtn=`<div style="display:flex;gap:6px;flex-shrink:0">
         <button class="btn btn-sm btn-red" onclick="event.stopPropagation();acceptFollowRequest('${n.actor.id}','${n.id}',this)">Aceptar</button>
         <button class="btn btn-sm btn-white" onclick="event.stopPropagation();declineFollowRequest('${n.actor.id}','${n.id}',this)">Rechazar</button>
       </div>`;
     }
-    return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${n.actor.username}')"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${n.actor.initials}</div><div style="flex:1;min-width:0"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div></div>${followBtn}</div>`;
+    return `<div class="friend-card"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer" onclick="go('userprofile',null,'${jsq(n.actor.username)}')"><div class="f-av" style="background:${n.actor.bg};color:${n.actor.tc};width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:600;flex-shrink:0">${escapeHtml(n.actor.initials)}</div><div style="flex:1;min-width:0"><div style="font-size:13px"><b>${escapeHtml(n.actor.name)}</b> ${msg}</div><div style="font-size:11px;color:var(--ink3)">${timeAgo(new Date(n.created_at).getTime())}</div></div></div>${followBtn}</div>`;
   }).join('');
 }
 
@@ -16226,8 +16226,8 @@ function onShelfiePostSearch(q){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
-    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div><button class="btn btn-sm btn-red">Añadir</button>`;
     const addFn=()=>{
       composerShelfiePostBooks.push({id:b.id,title:b.title,author:b.author,cover:b.cover||null,color:b.color});
       renderShelfiePostStack();
@@ -16393,8 +16393,8 @@ function onComposerBookSearch(q,isCharCtx){
   results.slice(0,8).forEach(b=>{
     const row=document.createElement('div');
     row.className='s-item';
-    const cover=b.cover?`<img class="s-cover" src="${b.cover}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
-    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${b.title}</div><div class="s-author">${b.author}</div></div>`;
+    const cover=b.cover?`<img class="s-cover" src="${escapeHtml(b.cover)}" alt="" loading="lazy" style="object-fit:cover">`:`<div class="s-cover" style="background:${b.color}"></div>`;
+    row.innerHTML=`${cover}<div class="s-info"><div class="s-title">${escapeHtml(b.title)}</div><div class="s-author">${escapeHtml(b.author)}</div></div>`;
     row.addEventListener('click',()=>isCharCtx?selectComposerCharacterBook(b):selectComposerBook(b));
     drop.appendChild(row);
   });
@@ -16407,7 +16407,7 @@ function selectComposerBook(book){
   document.getElementById('composer-book-srch').value='';
   const sel=document.getElementById('composer-book-selected');
   sel.style.display='block';
-  sel.innerHTML=`<div class="composer-book-chip">${cvr(book,'mini')}<div><div class="composer-book-chip-title">${book.title}</div><div class="composer-book-chip-author">${book.author}</div></div><button onclick="clearComposerBook()"><i class="ti ti-x"></i></button></div>`;
+  sel.innerHTML=`<div class="composer-book-chip">${cvr(book,'mini')}<div><div class="composer-book-chip-title">${escapeHtml(book.title)}</div><div class="composer-book-chip-author">${escapeHtml(book.author)}</div></div><button onclick="clearComposerBook()"><i class="ti ti-x"></i></button></div>`;
 }
 
 function clearComposerBook(){
@@ -16424,7 +16424,7 @@ function selectComposerCharacterBook(book){
   document.getElementById('composer-book-srch-char').value='';
   const sel=document.getElementById('composer-book-selected-char');
   sel.style.display='block';
-  sel.innerHTML=`<div class="composer-book-chip">${cvr(book,'mini')}<div><div class="composer-book-chip-title">${book.title}</div><div class="composer-book-chip-author">${book.author}</div></div><button onclick="clearComposerCharacterBook()"><i class="ti ti-x"></i></button></div>`;
+  sel.innerHTML=`<div class="composer-book-chip">${cvr(book,'mini')}<div><div class="composer-book-chip-title">${escapeHtml(book.title)}</div><div class="composer-book-chip-author">${escapeHtml(book.author)}</div></div><button onclick="clearComposerCharacterBook()"><i class="ti ti-x"></i></button></div>`;
 }
 
 function clearComposerCharacterBook(){
@@ -16863,8 +16863,8 @@ function renderOnePost(p){
   return `
     <div class="${cardClass}" data-id="${p.id}" style="${needsOwnPadding?'padding:0':''}">
       <div class="upost-head" style="${needsOwnPadding?'padding:16px 18px 0':''}">
-        <div class="u-av" style="${av};width:36px;height:36px;cursor:${author.username?'pointer':'default'}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${author.photo?'':initials}</div>
-        <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${author.username}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
+        <div class="u-av" style="${av};width:36px;height:36px;cursor:${author.username?'pointer':'default'}" ${author.username?`onclick="go('userprofile',null,'${jsq(author.username)}')"`:''}>${author.photo?'':escapeHtml(initials)}</div>
+        <div class="upost-who"><strong style="${author.username?'cursor:pointer':''}" ${author.username?`onclick="go('userprofile',null,'${jsq(author.username)}')"`:''}>${escapeHtml(author.name||'Alguien')}</strong> ${typeLabel?'· '+typeLabel:''} ${editedTag}</div>
         <div class="upost-time">${timeAgo(p.createdAt)}</div>
       </div>
       <div style="${needsOwnPadding?'padding:0 18px;margin-top:12px':''}">${metaContent}</div>
@@ -17080,8 +17080,8 @@ function renderReactionsModalTab(filterEmoji){
   body.innerHTML=shown.length?shown.map(r=>{
     const a=authorFromId(r.user_id)||{name:'Un lector',initials:'??',bg:'#EEE',tc:'#555',username:null};
     const av=a.photo?`background-image:url(${a.photo});background-size:cover`:`background:${a.bg||'var(--red)'}`;
-    return `<div class="reactions-modal-row" ${a.username?`onclick="closeModal('modal-reactions');go('userprofile',null,'${a.username}')" style="cursor:pointer"`:''}>
-      <div class="u-av" style="${av};width:36px;height:36px;flex-shrink:0">${a.photo?'':a.initials}</div>
+    return `<div class="reactions-modal-row" ${a.username?`onclick="closeModal('modal-reactions');go('userprofile',null,'${jsq(a.username)}')" style="cursor:pointer"`:''}>
+      <div class="u-av" style="${av};width:36px;height:36px;flex-shrink:0">${a.photo?'':escapeHtml(a.initials)}</div>
       <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${escapeHtml(a.name)}</div></div>
       <div style="font-size:18px">${r.emoji}</div>
     </div>`;
@@ -17110,9 +17110,13 @@ function toggleGenericLike(btn){
 }
 
 function escapeHtml(s){
-  const d=document.createElement('div');
-  d.textContent=s;
-  return d.innerHTML;
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Para valores que van dentro de un string JS de un atributo onclick="f('...')":
+// primero se escapa como JS y luego como HTML (el navegador decodifica el HTML
+// antes de ejecutar el JS, así que escapar solo uno de los dos no basta).
+function jsq(s){
+  return escapeHtml(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n').replace(/\r/g,''));
 }
 
 // Solid heart shown once liked — a distinct filled glyph (not just a recolored
