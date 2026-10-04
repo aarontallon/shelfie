@@ -1796,3 +1796,40 @@ alter table public.profiles add constraint profiles_username_format
 -- libro, la página que tenías al EMPEZAR el día — solo cuenta el progreso
 -- neto contra ese punto de partida, corrijas lo que corrijas por el camino.
 alter table public.profiles add column if not exists page_baselines_today jsonb not null default '{}'::jsonb;
+
+-- ════════════════════════════════════════════════
+-- ACTUALIZACIÓN 2 (avisos del Security Advisor de Supabase) — segura de volver a ejecutar.
+--
+-- 4) Las funciones SECURITY DEFINER de trigger (notify_on_*, handle_new_*,
+--    prevent_*, enforce_event_capacity...) quedaban ejecutables por RPC para
+--    anon/authenticated ("Public Can Execute SECURITY DEFINER Function").
+--    Solo las dispara Postgres: el permiso EXECUTE se comprueba al CREAR el
+--    trigger, no al dispararlo, así que revocarlo no rompe nada.
+-- 5) accept_follow_request sí se llama desde el cliente, pero solo con sesión:
+--    se quita a anon/public y se deja a authenticated.
+-- 6) El bucket público "avatars" tenía un SELECT amplio en storage.objects que
+--    permitía LISTAR todos los ficheros del bucket. Las URLs públicas de las
+--    imágenes no necesitan esa policy. Se limita al propio usuario (necesario
+--    para que upload con upsert, update y delete funcionen sobre sus ficheros).
+-- ════════════════════════════════════════════════
+
+do $$
+declare r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prosecdef and p.prorettype = 'trigger'::regtype
+  loop
+    execute format('revoke execute on function %s from public, anon, authenticated', r.sig);
+  end loop;
+end $$;
+
+revoke execute on function public.accept_follow_request(uuid) from public, anon;
+grant execute on function public.accept_follow_request(uuid) to authenticated;
+
+drop policy if exists "avatar_public_read" on storage.objects;
+drop policy if exists "avatar_owner_read" on storage.objects;
+create policy "avatar_owner_read" on storage.objects for select using (
+  bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text
+);
