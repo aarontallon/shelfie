@@ -1651,6 +1651,22 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 .auth-screen{background:radial-gradient(900px 480px at 85% -10%,rgba(74,124,95,.35),transparent 60%),#16201B}
 .auth-box{box-shadow:0 30px 80px rgba(0,0,0,.4)}
 .landing-organizers{background:#16201B}
+
+/* ═══════ AJUSTES UX v2 ═══════ */
+/* Descubrir: 1fr tiene mínimo "min-content" y empujaba la página 53px a la derecha en móvil */
+.disc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.disc-book-info{min-width:0}
+.disc-book-title,.disc-book-author{overflow-wrap:anywhere}
+@media (max-width:560px){.disc-grid{grid-template-columns:minmax(0,1fr)}}
+/* Objetivos táctiles cómodos en móvil (Feed medía 23px de alto) */
+@media (max-width:760px){
+  .fc-action-btn,.like-btn{min-height:36px}
+  .composer-mode{min-height:36px}
+  .disc-add-btn{min-height:34px}
+  .dg-tab{min-height:34px;display:inline-flex;align-items:center}
+  .book3dot-btn{min-width:34px;min-height:34px}
+  .card-link{display:inline-flex;align-items:center;min-height:32px}
+}
 </style>
 </head>
 <body>
@@ -3572,7 +3588,7 @@ html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 
   <div class="disc-search-wrap">
     <i class="ti ti-search disc-search-icon"></i>
-    <input class="disc-search" id="disc-search-inp" placeholder="Busca cualquier libro o autor en Open Library..." oninput="onDiscoverSearch(this.value)" autocomplete="off">
+    <input class="disc-search" id="disc-search-inp" placeholder="Busca un libro o autor…" oninput="onDiscoverSearch(this.value)" autocomplete="off">
   </div>
 
   <!-- Resultados de búsqueda (sustituyen a las secciones de abajo mientras hay una consulta) -->
@@ -6867,13 +6883,111 @@ let customCover=null;
 let toastTimer=null;
 let isLoggedIn=false;
 
-const STATIC_RECS=[
-  {title:'Pedro Páramo',author:'Juan Rulfo',year:'1955',pages:152,why:'Afinidad alta con García Márquez',pct:98},
-  {title:'Las mil y una noches',author:'Anónimo',year:'',pages:null,why:'Tu interés en cultura árabe y narrativas anidadas',pct:95},
-  {title:'El otoño del patriarca',author:'García Márquez',year:'1975',pages:359,why:'El Gabo que falta en tu shelfie',pct:91},
-  {title:'Kokoro',author:'Natsume Soseki',year:'1914',pages:248,why:'Para tu preparación del JLPT N4',pct:88},
-  {title:'La vorágine',author:'José Eustasio Rivera',year:'1924',pages:312,why:'Narrativa latinoamericana selvática, única',pct:85},
-];
+// ── Recomendaciones de Inicio: reales, nunca inventadas ──
+// Antes era una lista FIJA para todo el mundo, con "% de afinidad" inventado y
+// motivos escritos para una persona concreta ("tu preparación del JLPT N4"...).
+// Ahora: (1) lo que han leído de verdad las personas a las que sigues y (2) si
+// faltan, libros populares de Open Library en el género que más lees tú.
+let _homeRecsOL={genre:null,books:[],loading:false,failedAt:0};
+// Fechas límite: antes se enseñaba el valor crudo del <input type=date> ("2026-12-31").
+function fmtDeadline(iso){
+  const d=new Date(String(iso)+'T00:00:00');
+  if(isNaN(d))return escapeHtml(String(iso));
+  return d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+}
+function deadlineLeft(iso){
+  const d=new Date(String(iso)+'T00:00:00');
+  if(isNaN(d))return'';
+  const t=new Date();t.setHours(0,0,0,0);
+  const days=Math.round((d-t)/86400000);
+  if(days<0)return'vencido';
+  if(days===0)return'vence hoy';
+  return days===1?'queda 1 día':`quedan ${days} días`;
+}
+function homeRecFriendPicks(){
+  if(!SUPA_USER||!FRIENDS_BOOKS_CACHE.length)return[];
+  const mine=new Set(allBooks().map(b=>(b.title||'').toLowerCase().trim()));
+  const map=new Map();
+  FRIENDS_BOOKS_CACHE.forEach(r=>{
+    const key=(r.title||'').toLowerCase().trim();
+    if(!key||mine.has(key)||r.status!=='leidos'||!r.author)return;
+    const reader=FRIENDS.find(f=>f.id===r.user_id);
+    if(!reader)return;
+    let e=map.get(key);
+    if(!e){e={title:r.title,author:r.author,cover:null,color:r.color||COLORS[(r.title.charCodeAt(0)||0)%COLORS.length],readers:[],stars:[]};map.set(key,e);}
+    e.readers.push(reader);
+    if(r.stars>0)e.stars.push(r.stars);
+  });
+  return[...map.values()].map(e=>{
+    const avg=e.stars.length?e.stars.reduce((x,y)=>x+y,0)/e.stars.length:0;
+    const first=(e.readers[0].name||e.readers[0].username||'Alguien').split(' ')[0];
+    const n=e.readers.length;
+    const who=n>1?`${first} y ${n-1} más lo han leído`:`${first} lo leyó`;
+    return{...e,avg,why:who+(avg?` · ${avg.toFixed(1).replace('.',',')}★`:'')};
+  }).sort((x,y)=>y.readers.length-x.readers.length||y.avg-x.avg).slice(0,3);
+}
+function homeTopGenre(){
+  const counts={};
+  [...(DB.leidos||[]),...(DB.leyendo||[])].forEach(b=>{const g=inferDiscoverGenre(b);counts[g]=(counts[g]||0)+1;});
+  const top=Object.entries(counts).sort((x,y)=>y[1]-x[1])[0];
+  return top?top[0]:null;
+}
+async function loadHomeRecsFromOL(genre){
+  if(_homeRecsOL.loading)return;
+  _homeRecsOL.loading=true;
+  try{
+    const subject=DISCOVER_GENRE_SUBJECTS[genre]||'fiction';
+    const res=await fetch(`https://openlibrary.org/subjects/${subject}.json?limit=14`);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    _homeRecsOL={genre,books:(data.works||[]).map(olSubjectWorkToDiscoverBook),loading:false,failedAt:0};
+  }catch(e){
+    console.error('loadHomeRecsFromOL failed:',e);
+    _homeRecsOL={genre:null,books:[],loading:false,failedAt:Date.now()};
+  }
+  try{renderHomeRecs();}catch(e){console.error('renderHomeRecs failed:',e);}
+}
+function renderHomeRecs(){
+  const el=document.getElementById('home-recs');
+  if(!el)return;
+  const have=new Set(allBooks().map(b=>(b.title||'').toLowerCase().trim()));
+  const list=homeRecFriendPicks();
+  const genre=homeTopGenre();
+  let pending=false;
+  if(list.length<3&&genre){
+    if(_homeRecsOL.genre!==genre){
+      if(!_homeRecsOL.loading&&Date.now()-_homeRecsOL.failedAt>60000)loadHomeRecsFromOL(genre);
+      pending=_homeRecsOL.loading||!_homeRecsOL.failedAt;
+    }else{
+      const seen=new Set(list.map(r=>r.title.toLowerCase().trim()));
+      _homeRecsOL.books.filter(b=>{const k=b.title.toLowerCase().trim();if(have.has(k)||seen.has(k))return false;seen.add(k);return true;})
+        .slice(0,3-list.length).forEach(b=>list.push({...b,why:`Popular en ${genre}`}));
+    }
+  }
+  if(!list.length){
+    el.innerHTML=pending
+      ?'<div class="s-loading" style="padding:10px 0"><i class="ti ti-loader-2 spin"></i> Buscando lecturas para ti…</div>'
+      :`<div style="font-size:13px;color:var(--ink3);line-height:1.55;padding:6px 0">${genre
+        ?'Ahora mismo no puedo cargar recomendaciones. Mientras tanto, explora libros en <button class="card-link" onclick="go(\'discover\',nbFor(\'discover\'))">Descubrir →</button>'
+        :'Añade algunos libros y sigue a otros lectores: te recomendaremos lecturas a partir de lo que leen. <button class="card-link" onclick="go(\'discover\',nbFor(\'discover\'))">Explorar →</button>'}</div>`;
+    return;
+  }
+  el.innerHTML=list.map(r=>{
+    const id=registerDiscoverBook(r);
+    const initials=r.title.split(/\s+/).filter(w=>/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const thumb=r.cover
+      ?`<img src="${escapeHtml(r.cover)}" alt="" loading="lazy" style="width:38px;height:56px;border-radius:4px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">`
+      :`<div style="width:38px;height:56px;border-radius:4px;background:${escapeHtml(r.color||'#555')};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${escapeHtml(initials||'?')}</div>`;
+    return`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #EBEBEB">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.title)}</div>
+        <div class="text-xs text-muted">${escapeHtml(r.author||'')}</div>
+        <div style="font-size:11.5px;color:var(--ink3);margin-top:2px">${escapeHtml(r.why)}</div>
+        <button class="btn btn-sm btn-red mt-1" onclick="discoverQuickAdd('${id}',this)">+ Quiero leerlo</button>
+      </div></div>`;
+  }).join('');
+}
 // Mapa de las pestañas de género (en español, cara al usuario) a materias reales
 // de Open Library, para poder pedirle libros de verdad en vivo en vez de tirar
 // siempre de un catálogo local fijo de ~30 libros.
@@ -7021,7 +7135,7 @@ const FRIEND_SHELFIE_DATA={
 let FRIENDS_BOOKS_CACHE=[];
 async function loadFriendsBooksCache(){
   if(!SUPA_USER||!FRIENDS.length){FRIENDS_BOOKS_CACHE=[];return;}
-  const{data,error}=await supa.from('user_books').select('user_id,title,status,stars').in('user_id',FRIENDS.map(f=>f.id));
+  const{data,error}=await supa.from('user_books').select('user_id,title,author,status,stars,color').in('user_id',FRIENDS.map(f=>f.id));
   if(error){console.error('loadFriendsBooksCache failed:',error);return;}
   FRIENDS_BOOKS_CACHE=data||[];
 }
@@ -10027,17 +10141,8 @@ function updateHome(){
       ${books.length>1?`<div class="home-hero-books-more">+${books.length-1} más<br>leyendo</div>`:''}`;
   }
 
-  // ── Recs ──
-  const recs=document.getElementById('home-recs');
-  const avail=STATIC_RECS.filter(r=>!allBooks().find(b=>b.title===r.title)).slice(0,3);
-  recs.innerHTML=avail.length?avail.map(r=>`<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #EBEBEB">
-    <div style="width:38px;height:38px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#9B2B1B;flex-shrink:0">${r.pct}%</div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.title)}</div>
-      <div class="text-xs text-muted">${escapeHtml(r.author)}</div>
-      <div style="font-size:11px;color:var(--ink3);font-style:italic;margin-top:1px">${escapeHtml(r.why)}</div>
-      <button class="btn btn-sm btn-red mt-1" onclick="quickAddDirect('${r.title.replace(/'/g,"\\'")}','${r.author.replace(/'/g,"\\'")}','quiero')">+ Quiero leerlo</button>
-    </div></div>`).join(''):'<div style="font-size:13px;color:var(--ink3);padding:8px 0">🎉 ¡Tienes todos los libros recomendados!</div>';
+  // ── Recs (reales: amigos + género más leído) ──
+  try{renderHomeRecs();}catch(e){console.error('renderHomeRecs failed:',e);}
 
   // ── Active retos mini ──
   const retosEl=document.getElementById('home-retos');
@@ -13349,7 +13454,7 @@ function renderRetos(){
     const visBadge=r.vis==='publico'?`<span class="reto-badge reto-badge-pub"><i class="ti ti-world" style="font-size:10px"></i> Público</span>`:r.vis==='amigos'?`<span class="reto-badge reto-badge-friends"><i class="ti ti-users" style="font-size:10px"></i> Amigos</span>`:`<span class="reto-badge reto-badge-priv"><i class="ti ti-lock" style="font-size:10px"></i> Privado</span>`;
     const joinedBadge=!r.createdByMe?`<span class="reto-badge reto-badge-joined"><i class="ti ti-user-check" style="font-size:10px"></i> Unido</span>`:'';
     const booksHtml=(r.books&&r.books.length)?`<div class="reto-books-row">${r.books.slice(0,12).map(b=>{const cov=b.cover?`<img src="${escapeHtml(b.cover)}" alt="" loading="lazy">`:`<div class="reto-book-cover-fallback" style="background:${b.color||'#888'}"></div>`;return`<div class="reto-book-cover" title="${escapeHtml(b.title)}">${cov}</div>`;}).join('')}${r.books.length>12?`<div style="font-size:11px;color:var(--ink3);display:flex;align-items:center">+${r.books.length-12} más</div>`:''}</div>`:'';
-    const deadlineHtml=r.deadline?`<span style="font-size:11px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> Hasta ${r.deadline}</span>`:'';
+    const deadlineHtml=r.deadline?`<span style="font-size:11px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> Hasta ${fmtDeadline(r.deadline)}${deadlineLeft(r.deadline)?' · '+deadlineLeft(r.deadline):''}</span>`:'';
     return `<div class="reto-card">
       <div class="reto-card-head">
         <div>
@@ -13748,7 +13853,7 @@ async function addFriend(username,btn){
   FRIENDS.push({...r});
   if(btn){btn.textContent='Siguiendo ✓';btn.className='btn btn-sm btn-ghost';btn.disabled=true;}
   updateProfileStats();renderFriends();
-  loadFriendsBooksCache().catch(e=>console.error('loadFriendsBooksCache failed:',e));
+  loadFriendsBooksCache().then(()=>{try{renderHomeRecs();}catch(_){}}).catch(e=>console.error('loadFriendsBooksCache failed:',e));
   toast(`✓ Ahora sigues a ${r.name}`);
 }
 
@@ -13883,7 +13988,7 @@ function renderMyClubs(){
     const reading=c.books.find(b=>b.status==='leyendo');
     const mtg=c.nextMeeting?`<span style="font-size:12px;color:var(--ink3)"><i class="ti ti-calendar" style="font-size:11px"></i> ${c.nextMeeting.date} · ${c.nextMeeting.place}</span>`:'';
     return `<div class="club-card" onclick="go('clubdetail',null,'${c.id}')">
-      <div class="club-avatar" style="background:${c.myRole==='admin'?'var(--ink)':'#F2F2F2'}">${c.emoji}</div>
+      <div class="club-avatar" style="background:${c.myRole==='admin'?'var(--ink)':'#F2F2F2'}">${escapeHtml(c.emoji||'📚')}</div>
       <div class="club-card-info">
         <div class="club-card-name">${escapeHtml(c.name)}</div>
         <div class="club-card-meta">${mc} miembro${mc!==1?'s':''} · ${(c.threads||[]).length} debates · ${(c.forumPosts||[]).length} posts</div>
@@ -13998,7 +14103,7 @@ async function onClubsSearch(q){
     const ql=query.toLowerCase();
     const results=DISCOVER_CLUBS.filter(c=>c.name.toLowerCase().includes(ql));
     drop.style.display='block';
-    drop.innerHTML=results.length?results.map(c=>`<div class="s-item" onclick="joinDiscoverClub(event,'${c.id}')"><div class="s-cover" style="background:#F2F2F2;display:flex;align-items:center;justify-content:center;font-size:18px">${c.emoji}</div><div class="s-info"><div class="s-title">${escapeHtml(c.name)}</div><div class="s-author">${c.memberCount} miembros</div></div></div>`).join(''):'<div class="s-loading">Sin resultados</div>';
+    drop.innerHTML=results.length?results.map(c=>`<div class="s-item" onclick="joinDiscoverClub(event,'${c.id}')"><div class="s-cover" style="background:#F2F2F2;display:flex;align-items:center;justify-content:center;font-size:18px">${escapeHtml(c.emoji||'📚')}</div><div class="s-info"><div class="s-title">${escapeHtml(c.name)}</div><div class="s-author">${c.memberCount||0} miembros</div></div></div>`).join(''):'<div class="s-loading">Sin resultados</div>';
     return;
   }
   const token=++_clubSearchToken;
@@ -14048,7 +14153,7 @@ function renderClubDetail(id){
   document.getElementById('club-detail-hero').innerHTML=`
     <div class="club-detail-hero-top" style="padding-top:44px">
       <div class="club-detail-hero-left">
-        <div class="club-detail-emoji">${club.emoji}</div>
+        <div class="club-detail-emoji">${escapeHtml(club.emoji||'📚')}</div>
         <div class="club-detail-title">${escapeHtml(club.name)}</div>
         <div class="club-detail-desc">${escapeHtml(club.desc)}</div>
         ${reading?`<div class="club-detail-reading-tag"><span style="font-size:18px">📖</span> <span>Leyendo ahora: <strong>${escapeHtml(reading.title)}</strong></span></div>`:''}
@@ -14524,7 +14629,7 @@ function renderClubRetos(club){
             ${r.desc?`<div style="font-size:12px;color:var(--ink3);margin-bottom:4px">${escapeHtml(r.desc)}</div>`:''}
             ${r.requirements?`<div style="font-size:11px;background:#F2F2F2;border-radius:6px;padding:4px 8px;display:inline-block;color:var(--ink2)">📋 ${escapeHtml(r.requirements)}</div>`:''}
           </div>
-          ${r.deadline?`<div style="font-size:11px;color:var(--ink3);text-align:right;flex-shrink:0"><i class="ti ti-calendar" style="font-size:10px"></i> ${r.deadline}</div>`:''}
+          ${r.deadline?`<div style="font-size:11px;color:var(--ink3);text-align:right;flex-shrink:0"><i class="ti ti-calendar" style="font-size:10px"></i> ${fmtDeadline(r.deadline)}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
           <div class="prog-track" style="flex:1;height:8px"><div class="prog-bar" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--red)'}"></div></div>
